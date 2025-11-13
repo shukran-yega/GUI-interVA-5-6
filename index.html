@@ -250,7 +250,7 @@
 
   <script>
     // Configuration - change this to your backend URL
-    const API_BASE_URL = 'http://127.0.0.1:8000';
+    const API_BASE_URL = window.location.origin; // Uses same domain as the page
     const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
     
     // State management
