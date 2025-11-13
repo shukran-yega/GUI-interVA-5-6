@@ -1,0 +1,525 @@
+﻿type,name,relevant
+select_one select_19,Id10059,"selected(${isAdult}, '1')"
+select_one YES_NO,Id10060_check,"(selected(${isAdult}, '1')) and (${Id10059} = 'married' or ${Id10059} = 'divorced' or ${Id10059} = 'widowed')"
+date,Id10060,"selected(${Id10060_check}, 'yes')"
+text,Id10061,"(selected(${isChild}, '1') or selected(${isNeonatal}, '1')) and (selected(${Id10051}, 'yes'))"
+text,Id10062,"(selected(${isChild}, '1') or selected(${isNeonatal}, '1')) and (selected(${Id10051}, 'yes'))"
+select_one select_23,Id10063,"((selected(${isChild}, '1') and ${ageInMonthsByYear} >=48 ) or selected(${isAdult}, '1')) and (selected(${Id10051}, 'yes'))"
+select_one YES_NO_DK_REF,Id10064,"((selected(${isChild}, '1') and ${ageInMonthsByYear} >=72 ) or selected(${isAdult}, '1')) and (selected(${Id10051}, 'yes'))"
+select_one select_25,Id10065,"((selected(${isChild}, '1') and ${ageInMonthsByYear} >=96 ) or selected(${isAdult}, '1')) and (selected(${Id10051}, 'yes'))"
+text,Id10066,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and (selected(${Id10051}, 'yes')) and selected(${Id10065}, 'mainly_employed')"
+select_one YES_NO,Id10069_a,"selected(${Id10069}, 'yes')"
+text,Id10070,"selected(${Id10069_a}, 'yes')"
+select_one YES_NO,Id10071_check,"selected(${Id10069_a}, 'yes')"
+date,Id10071,"selected(${Id10071_check}, 'yes')"
+note,Id10071note,${Id10071}<${Id10023}
+text,Id10072,"selected(${Id10069_a}, 'yes')"
+text,Id10073,"selected(${Id10069_a}, 'yes')"
+begin group,stillbirth,"selected(${isNeonatal},'1')  "
+select_one YES_NO_DK_REF,Id10104,
+select_one YES_NO_DK_REF,Id10105,"selected(${Id10104}, 'yes') or selected(${Id10104}, 'dk')"
+integer,Id10106,"selected(${Id10104}, 'yes')"
+select_one YES_NO_DK_REF,Id10107,"selected(${Id10104}, 'yes') or selected(${Id10104}, 'dk')"
+integer,Id10108,"selected(${Id10107}, 'yes')"
+select_one YES_NO_DK_REF,Id10109,
+select_one YES_NO_DK_REF,Id10110,
+select_one YES_NO_DK_REF,Id10111,"selected(${Id10110}, 'yes')"
+select_one YES_NO_DK_REF,Id10112,"selected(${Id10110}, 'yes')"
+select_one YES_NO_DK_REF,Id10113,"selected(${Id10110}, 'yes')"
+select_one YES_NO_DK_REF,Id10114,"not(selected(${Id10104}, 'yes')) and not(selected(${Id10109}, 'yes'))  and not(selected(${Id10110}, 'yes'))"
+select_one YES_NO_DK_REF,Id10115,
+select_one YES_NO_DK_REF,Id10116,"selected(${Id10114}, 'yes')"
+end group,,
+begin group,injuries_accidents,
+select_one YES_NO_DK_REF,Id10077,${Id10114}!='yes'
+begin group,injuries_accidents_yes,"(selected(${Id10077}, 'yes') or selected(${Id10077}, 'dk') or selected(${Id10077}, 'ref'))"
+select_one YES_NO_DK_REF,Id10079,
+select_one select_292,Id10080,"selected(${Id10079}, 'yes')"
+select_one select_293,Id10081,"selected(${Id10079}, 'yes')"
+select_one YES_NO_DK_REF,Id10082,"(selected(${Id10079}, 'no') or selected(${Id10079}, 'dk') or selected(${Id10079}, 'ref'))"
+select_one YES_NO_DK_REF,Id10083,"(selected(${Id10079}, 'no') or selected(${Id10079}, 'dk') or selected(${Id10079}, 'ref'))"
+select_one YES_NO_DK_REF,Id10084,"(selected(${Id10079}, 'no') or selected(${Id10079}, 'dk') or selected(${Id10079}, 'ref'))"
+select_one YES_NO_DK_REF,Id10085,"(selected(${Id10079}, 'no') or selected(${Id10079}, 'dk') or selected(${Id10079}, 'ref'))"
+select_one YES_NO_DK_REF,Id10086,"(selected(${Id10079}, 'no') or selected(${Id10079}, 'dk') or selected(${Id10079}, 'ref'))"
+select_one YES_NO_DK_REF,Id10087,"(selected(${Id10086}, 'no') or selected(${Id10086}, 'dk') or selected(${Id10086}, 'ref'))"
+select_one select_299,Id10088,"selected(${Id10087}, 'yes') or selected(${Id10086}, 'yes')"
+select_one YES_NO_DK_REF,Id10089,"(selected(${Id10079}, 'no') or selected(${Id10079}, 'dk') or selected(${Id10079}, 'ref'))"
+select_one YES_NO_DK_REF,Id10090,"(selected(${Id10079}, 'no') or selected(${Id10079}, 'dk') or selected(${Id10079}, 'ref'))"
+select_one YES_NO_DK_REF,Id10091,"(selected(${Id10079}, 'no') or selected(${Id10079}, 'dk') or selected(${Id10079}, 'ref'))"
+select_one YES_NO_DK_REF,Id10092,"(selected(${Id10079}, 'no') or selected(${Id10079}, 'dk') or selected(${Id10079}, 'ref'))"
+select_one YES_NO_DK_REF,Id10093,"(selected(${Id10079}, 'no') or selected(${Id10079}, 'dk') or selected(${Id10079}, 'ref')) "
+select_one YES_NO_DK_REF,Id10094,"(selected(${Id10079}, 'no') or selected(${Id10079}, 'dk') or selected(${Id10079}, 'ref')) "
+select_one YES_NO_DK_REF,Id10095,"(selected(${Id10079}, 'no') or selected(${Id10079}, 'dk') or selected(${Id10079}, 'ref'))"
+select_one YES_NO_DK_REF,Id10096,"(selected(${Id10079}, 'no') or selected(${Id10079}, 'dk') or selected(${Id10079}, 'ref')) "
+select_one YES_NO_DK_REF,Id10097,"(selected(${Id10079}, 'no') or selected(${Id10079}, 'dk') or selected(${Id10079}, 'ref')) "
+select_one YES_NO_DK_REF,Id10098,
+select_one YES_NO_DK_REF,Id10099,"${isAdult} = '1' and not(selected(${Id10098}, 'yes'))"
+select_one YES_NO_DK_REF,Id10100,"not(selected(${Id10098}, 'yes')) and not(selected(${Id10099}, 'yes'))"
+select_one YES_NO_DK_REF,Id10408,"((selected(${Id10114}, 'no') or ${Id10114} = 'NaN' or string-length(${Id10114}) = 0)  and selected(${isNeonatal}, '1')) or selected(${isChild}, '1') "
+begin group,illdur,"not(selected(${Id10114}, 'yes'))"
+integer,Id10120_0,"selected(${isNeonatal}, '1')"
+select_one units_1,id10120_unit,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10123,"not(selected(${Id10114}, 'yes'))"
+begin group,med_hist_final_illness,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10125,
+select_one YES_NO_DK_REF,Id10126,
+select_one YES_NO_DK_REF,Id10127,
+select_one YES_NO_DK_REF,Id10128,
+select_one YES_NO_DK_REF,Id10129,"not(selected(${Id10128}, 'yes'))"
+select_one YES_NO_DK_REF,Id10130,
+select_one YES_NO_DK_REF,Id10131,
+select_one YES_NO_DK_REF,Id10132,"not(selected(${isChild}, '1'))"
+select_one YES_NO_DK_REF,Id10133,
+select_one YES_NO_DK_REF,Id10134,
+select_one YES_NO_DK_REF,Id10135,
+select_one YES_NO_DK_REF,Id10136,
+select_one YES_NO_DK_REF,Id10137,
+select_one YES_NO_DK_REF,Id10138,"selected(${isAdult}, '1')"
+select_one YES_NO_DK_REF,Id10139,"selected(${isAdult}, '1')"
+select_one YES_NO_DK_REF,Id10140,"selected(${isAdult}, '1')"
+select_one YES_NO_DK_REF,Id10141,"selected(${isAdult}, '1')"
+select_one YES_NO_DK_REF,Id10142,
+select_one YES_NO_DK_REF,Id10143,
+select_one YES_NO_DK_REF,Id10144,
+end group,,
+select_one YES_NO_DK_REF,Id10482,
+select_one YES_NO_DK_REF,Id10483,
+select_one select_531,Id10484,"selected(${Id10483}, 'yes')"
+begin group,signs_symptoms_final_illness,"not(selected(${Id10114}, 'yes'))"
+select_one YES_NO_DK_REF,Id10147,
+integer,Id10148_a,"selected(${Id10147}, 'yes') and selected(${isNeonatal}, '1')"
+select_one units_2,Id10148_units,"selected(${Id10147}, 'yes') and (selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+integer,Id10148_b,${Id10148_units}='days'
+integer,Id10148_c,${Id10148_units}='months'
+calculate,Id10148,"selected(${Id10147}, 'yes')"
+select_one YES_NO_DK_REF,Id10149,"selected(${Id10147}, 'yes')"
+select_one select_63,Id10150,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10147}, 'yes')"
+select_one select_64,Id10151,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10147}, 'yes')"
+select_one YES_NO_DK_REF,Id10152,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10153,
+select_one units_2,Id10154_units,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10153}, 'yes')"
+integer,Id10154_a,${Id10154_units}='days'
+integer,Id10154_b,${Id10154_units}='months'
+calculate,Id10154,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10153}, 'yes')"
+select_one YES_NO_DK_REF,Id10155,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10153}, 'yes')"
+select_one YES_NO_DK_REF,Id10156,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10153}, 'yes')"
+select_one YES_NO_DK_REF,Id10157,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10153}, 'yes')"
+select_one YES_NO_DK_REF,Id10158,"(selected(${isChild}, '1')  and selected(${Id10153}, 'yes')) or (selected(${isNeonatal}, '1') and  not(selected(${Id10114}, 'yes')) and selected(${Id10153}, 'yes'))"
+select_one YES_NO_DK_REF,Id10159,
+begin group,breathdur,"selected(${Id10159}, 'yes')"
+integer,Id10161_0,"selected(${isNeonatal}, '1')"
+select_one units,id10161_unit,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+integer,Id10161_1,${id10161_unit}='days'
+integer,Id10162,${id10161_unit}='months'
+integer,Id10163,${id10161_unit}='years'
+calculate,Id10161,
+end group,,
+select_one select_80,Id10165,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10159}, 'yes')"
+select_one YES_NO_DK_REF,Id10166,
+integer,Id10167_a,"selected(${Id10166}, 'yes') and selected(${isNeonatal}, '1')"
+select_one units_2,Id10167_units,"selected(${Id10166}, 'yes') and (selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+integer,Id10167_b,${Id10167_units}='days'
+integer,Id10167_c,${Id10167_units}='months'
+calculate,Id10167,"selected(${Id10166}, 'yes')"
+select_one YES_NO_DK_REF,Id10168,
+integer,Id10169_a,"selected(${Id10168}, 'yes') and selected(${isNeonatal}, '1')"
+select_one units_2,Id10169_units,"selected(${Id10168}, 'yes') and (selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+integer,Id10169_b,${Id10169_units}='days'
+integer,Id10169_c,${Id10169_units}='months'
+calculate,Id10169,"selected(${Id10168}, 'yes')"
+select_one YES_NO_DK_REF,Id10170,"selected(${isAdult}, '1') and selected(${Id10168}, 'yes')"
+select_one YES_NO_DK_REF,Id10171,"selected(${isAdult}, '1') and selected(${Id10168}, 'yes')"
+select_one YES_NO_DK_REF,Id10172,"(selected(${isNeonatal}, '1') or selected(${isChild}, '1'))"
+select_multiple select_501,Id10173_nc,"(selected(${isNeonatal}, '1') or selected(${isChild}, '1'))"
+note,id10173_check,"(selected(${Id10173_nc}, 'dk') or selected(${Id10173_nc}, 'ref')) and count-selected(${Id10173_nc})>1"
+select_one YES_NO_DK_REF,Id10173_a,"selected(${isAdult}, '1')"
+calculate,Id10173,
+select_one YES_NO_DK_REF,Id10174,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) "
+select_one YES_NO_DK_REF,Id10175,"(selected(${isAdult}, '1')) and selected(${Id10174}, 'yes')"
+integer,Id10176,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10174}, 'yes')"
+begin group,paindur,"selected(${isAdult}, '1') and selected(${Id10174}, 'yes')"
+select_one M_H_D_DK,Id10178_unit,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+integer,Id10178,${Id10178_unit}='minutes'
+integer,Id10179,${Id10178_unit}='hours'
+integer,Id10179_1,${Id10178_unit}='days'
+end group,,
+select_one YES_NO_DK_REF,Id10181,
+select_one units_2,Id10182_units,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10181}, 'yes')"
+integer,Id10182_a,${Id10182_units}='days'
+integer,Id10182_b,${Id10182_units}='months'
+calculate,Id10182,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10181}, 'yes')"
+integer,Id10183,"(selected(${isChild}, '1') or selected(${isNeonatal}, '1')) and selected(${Id10181}, 'yes')"
+integer,Id10184_a,"selected(${Id10181}, 'yes') and selected(${isNeonatal}, '1')"
+select_one units_2,Id10184_units,"selected(${Id10181}, 'yes') and selected(${isChild}, '1')"
+integer,Id10184_b,${Id10184_units}='days'
+integer,Id10184_c,${Id10184_units}='months'
+select_one YES_NO_DK_REF,Id10185,"(selected(${isChild}, '1')) and selected(${Id10181}, 'yes')"
+select_one YES_NO_DK_REF,Id10186,
+select_one YES_NO_DK_REF,Id10187,"((selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10186}, 'yes'))"
+select_one YES_NO_DK_REF,Id10188,
+select_one YES_NO_DK_REF,Id10189,
+select_one units_2,Id10190_units,"(selected(${Id10188}, 'yes') or selected(${Id10189}, 'yes')) and selected(${isAdult}, '1')"
+integer,Id10190_a,${Id10190_units}='days'
+integer,Id10190_b,${Id10190_units}='months'
+select_one YES_NO_DK_REF,Id10191,"(selected(${Id10188}, 'yes') or selected(${Id10189}, 'yes'))  and ${isNeonatal} !='1'"
+select_one YES_NO_DK_REF,Id10192,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and (selected(${Id10188}, 'yes') or selected(${Id10189}, 'yes')) "
+select_one YES_NO_DK_REF,Id10193,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10194,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10195,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10194}, 'yes')"
+begin group,abdominal_pain,"(selected(${isChild}, '1')  or selected(${isAdult}, '1')) and selected(${Id10194}, 'yes')"
+select_one H_D_M_DK,id10196_unit,
+integer,Id10196,${id10196_unit}='hours'
+integer,Id10197_a,${id10196_unit}='days'
+integer,Id10198,${id10196_unit}='months'
+calculate,Id10197,
+end group,,
+select_one select_100,Id10199,"((selected(${isChild}, '1')and selected(${Id10195}, 'yes')) or (selected(${isAdult}, '1') and selected(${Id10194}, 'yes')))"
+select_one YES_NO_DK_REF,Id10200,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) "
+select_one D_M_DK_REF,Id10201_unit,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10200}, 'yes')"
+integer,Id10201_a,${Id10201_unit}='days'
+integer,Id10202,${Id10201_unit}='months'
+calculate,Id10201,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10200}, 'yes')"
+select_one select_103,Id10203,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10200}, 'yes')"
+select_one YES_NO_DK_REF,Id10204,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one D_M_DK_REF,Id10205_unit,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10204}, 'yes')"
+integer,Id10205_a,${Id10205_unit}='days'
+integer,Id10206,${Id10205_unit}='months'
+calculate,Id10205,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10204}, 'yes')"
+select_one YES_NO_DK_REF,Id10207,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10208,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one units_2,Id10209_units,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10208}, 'yes')"
+integer,Id10209_a,${Id10209_units}='days'
+integer,Id10209_b,${Id10209_units}='months'
+calculate,Id10209,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10208}, 'yes')"
+select_one YES_NO_DK_REF,Id10210,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one units_2,Id10211_units,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10210}, 'yes')"
+integer,Id10211_a,${Id10211_units}='days'
+integer,Id10211_b,${Id10211_units}='months'
+calculate,Id10211,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10210}, 'yes')"
+select_one YES_NO_DK_REF,Id10212,"selected(${isAdult}, '1')"
+select_one units_2,Id10213_units,"(selected(${isAdult}, '1')) and selected(${Id10212}, 'yes')"
+integer,Id10213_a,${Id10213_units}='days'
+integer,Id10213_b,${Id10213_units}='months'
+calculate,Id10213,"(selected(${isAdult}, '1')) and selected(${Id10212}, 'yes')"
+select_one YES_NO_DK_REF,Id10214,
+select_one YES_NO_DK_REF,Id10215,"selected(${Id10214}, 'yes')"
+select_one units_3,Id10216_units,"selected(${isChild}, '1') and (selected(${Id10215}, 'no') or selected(${Id10215}, 'dk') or selected(${Id10215}, 'ref'))"
+integer,Id10216_a,${Id10216_units}='hours'
+integer,Id10216_b,${Id10216_units}='days'
+calculate,Id10216,"selected(${isChild}, '1') and (selected(${Id10215}, 'no') or selected(${Id10215}, 'dk') or selected(${Id10215}, 'ref'))"
+select_one YES_NO_DK_REF,Id10217,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10214}, 'yes')"
+select_one YES_NO_DK_REF,Id10218,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10214}, 'yes')"
+select_one YES_NO_DK_REF,Id10219,
+select_one YES_NO_DK_REF,Id10220,"(selected(${isChild}, '1')) and selected(${Id10219}, 'yes')"
+integer,Id10221,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10219}, 'yes')"
+select_one YES_NO_DK_REF,Id10222,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10219}, 'yes')"
+select_one YES_NO_DK_REF,Id10223,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10225,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10223}, 'yes')"
+select_one YES_NO_DK_REF,Id10226,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10223}, 'yes')"
+select_one YES_NO_DK_REF,Id10224,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10223}, 'yes')"
+select_one YES_NO_DK_REF,Id10227,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10228," selected(${isAdult}, '1')"
+select_one YES_NO_DK_REF,Id10229," ((selected(${isAdult}, '1') and selected(${Id10228}, 'yes')) or (selected(${isChild}, '1') and selected(${Id10227}, 'yes')))"
+select_one YES_NO_DK_REF,Id10230,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10231,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10230}, 'yes')"
+select_one units_2,Id10232_units,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10231}, 'yes')"
+integer,Id10232_a,${Id10232_units}='days'
+integer,Id10232_b,${Id10232_units}='months'
+calculate,Id10232,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10231}, 'yes')"
+select_one YES_NO_DK_REF,Id10233,
+integer,Id10234,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10233}, 'yes')"
+select_multiple select_135,Id10235,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10233}, 'yes')"
+note,id10235_check,"(selected(${Id10235}, 'DK') or selected(${Id10235}, 'Ref')) and count-selected(${Id10235})>1"
+select_one YES_NO_DK_REF,Id10236,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10233}, 'yes')"
+select_one YES_NO_DK_REF,Id10237,"selected(${isAdult}, '1') "
+select_one YES_NO_DK_REF,Id10238,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10239,"(selected(${isNeonatal}, '1') or selected(${isChild}, '1'))"
+select_one YES_NO_DK_REF,Id10240,"(selected(${isNeonatal}, '1') or selected(${isChild}, '1'))"
+select_one YES_NO_DK_REF,Id10241,
+select_one YES_NO_DK_REF,Id10242,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10241}, 'yes')"
+select_one YES_NO_DK_REF,Id10243,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10244,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10245,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10246,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10247,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one units_2,Id10248_units,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10247}, 'yes')"
+integer,Id10248_a,${Id10248_units}='days'
+integer,Id10248_b,${Id10248_units}='months'
+calculate,Id10248,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10247}, 'yes')"
+select_one YES_NO_DK_REF,Id10249,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one units_2,Id10250_units,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10249}, 'yes')"
+integer,Id10250_a,${Id10250_units}='days'
+integer,Id10250_b,${Id10250_units}='months'
+calculate,Id10250,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10249}, 'yes')"
+select_one YES_NO_DK_REF,Id10251,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10249}, 'yes')"
+select_one YES_NO_DK_REF,Id10252,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10253,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10254,"(selected(${isAdult}, '1')) and selected(${Id10253}, 'yes')"
+select_one YES_NO_DK_REF,Id10255,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10253}, 'yes')"
+select_one YES_NO_DK_REF,Id10256,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10253}, 'yes')"
+select_one YES_NO_DK_REF,Id10257,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10253}, 'yes')"
+select_one YES_NO_DK_REF,Id10258,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10259,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10258}, 'yes')"
+select_multiple select_161,Id10260,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10258}, 'yes')"
+note,id10260_check,"selected(${Id10259}, 'yes') and (selected(${Id10260}, 'whole_body') or  (selected(${Id10260}, 'left_side')  and selected(${Id10260}, 'right_side')))"
+note,id10260_check2,"(selected(${Id10260}, 'DK') or selected(${Id10260}, 'Ref')) and count-selected(${Id10260})>1"
+select_one YES_NO_DK_REF,Id10261,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one units_2,Id10262_units,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10261}, 'yes')"
+integer,Id10262_a,${Id10262_units}='days'
+integer,Id10262_b,${Id10262_units}='months'
+calculate,Id10262,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10261}, 'yes')"
+select_one select_164,Id10263,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10261}, 'yes')"
+select_one YES_NO_DK_REF,Id10264,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10265,
+select_one units_2,Id10266_units,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10265}, 'yes')"
+integer,Id10266_a,${Id10266_units}='days'
+integer,Id10266_b,${Id10266_units}='months'
+calculate,Id10266,"(selected(${isChild}, '1') or selected(${isAdult}, '1')) and selected(${Id10265}, 'yes')"
+select_one YES_NO_DK_REF,Id10267,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10268,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10269,"(selected(${isChild}, '1'))"
+select_one YES_NO_DK_REF,Id10270,"(selected(${isChild}, '1') or selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10271,"(selected(${isNeonatal}, '1') and ${Id10114}!='yes') or (selected(${isChild}, '1') and (${ageInMonthsByYear} = 'NaN' or string-length(${ageInMonthsByYear}) = 0)) or (selected(${isChild}, '1') and ${ageInMonthsByYear}<12)"
+select_one YES_NO_DK_REF,Id10272,"(selected(${isNeonatal}, '1') and ${Id10114}!='yes') or (selected(${isChild}, '1') and (${ageInMonthsByYear} = 'NaN' or string-length(${ageInMonthsByYear}) = 0)) or (selected(${isChild}, '1') and ${ageInMonthsByYear}<12)"
+select_one YES_NO_DK_REF,Id10273,"(selected(${isNeonatal}, '1') and ${Id10114}!='yes') or (selected(${isChild}, '1') and (${ageInMonthsByYear} = 'NaN' or string-length(${ageInMonthsByYear}) = 0)) or (selected(${isChild}, '1')  and ${ageInMonthsByYear}<12)"
+integer,Id10274_a,"selected(${Id10273}, 'yes') and selected(${isNeonatal}, '1')"
+select_one units_2,Id10274_units,"selected(${Id10273}, 'yes') and selected(${isChild}, '1') "
+integer,Id10274_b,${Id10274_units}='days'
+integer,Id10274_c,${Id10274_units}='months'
+calculate,Id10274,"selected(${Id10273}, 'yes')"
+select_one YES_NO_DK_REF,Id10275,"(selected(${isNeonatal}, '1') and ${Id10114}!='yes') or (selected(${isChild}, '1') and (${ageInMonthsByYear} = 'NaN' or string-length(${ageInMonthsByYear}) = 0)) or (selected(${isChild}, '1')  and ${ageInMonthsByYear}<12)"
+select_one YES_NO_DK_REF,Id10276,"(selected(${Id10275}, 'no') or selected(${Id10275}, 'dk') or selected(${Id10275}, 'ref'))"
+select_one YES_NO_DK_REF,Id10277,"(selected(${isNeonatal}, '1') and ${Id10114}!='yes') or (selected(${isChild}, '1') and (${ageInMonthsByYear} = 'NaN' or string-length(${ageInMonthsByYear}) = 0)) or (selected(${isChild}, '1') and ${ageInMonthsByYear}<12)"
+select_one YES_NO_DK_REF,Id10278,"(selected(${isNeonatal}, '1') and ${Id10114}!='yes') or (selected(${isChild}, '1') and (${ageInMonthsByYear} = 'NaN' or string-length(${ageInMonthsByYear}) = 0)) or (selected(${isChild}, '1') and ${ageInMonthsByYear}<18)"
+select_one YES_NO_DK_REF,Id10279,"(selected(${isNeonatal}, '1') or selected(${isChild}, '1')) and (${Id10278} ='no' or ${Id10278} ='dk' or ${Id10278} ='ref'  )"
+select_one YES_NO_DK_REF,Id10281," (selected(${isNeonatal}, '1') and ${Id10114}!='yes') or (selected(${isChild}, '1') and (${ageInMonthsByYear} = 'NaN' or string-length(${ageInMonthsByYear}) = 0)) or (selected(${isChild}, '1')  and ${ageInMonthsByYear}<12)"
+select_one YES_NO_DK_REF,Id10282,"((selected(${Id10281}, 'yes') and (selected(${isNeonatal}, '1')) and ${Id10114}!='yes') or (selected(${Id10281}, 'yes') and selected(${isChild}, '1')))"
+select_one YES_NO_DK_REF,Id10283,"(selected(${Id10281}, 'yes') and not(selected(${Id10282}, 'yes'))) and ((selected(${isNeonatal}, '1') and ${Id10114}!='yes') or selected(${isChild}, '1'))"
+begin group,neonatal_childC,"(selected(${isNeonatal}, '1')) and ${Id10114}!='yes'"
+select_one YES_NO_DK_REF,Id10284,
+integer,Id10285,"selected(${Id10284}, 'yes')"
+select_one YES_NO_DK_REF,Id10286,
+select_one YES_NO_DK_REF,Id10287,
+select_one YES_NO_DK_REF,Id10288,
+select_one YES_NO_DK_REF,Id10289,
+select_one YES_NO_DK_REF,Id10290,
+end group,,
+select_one YES_NO_DK_REF,Id10485,"selected(${isAdult}, '1')"
+select_one YES_NO_DK_REF,Id10486,"selected(${isAdult}, '1')"
+end group,,
+begin group,pregnancy_women,"(selected(${isAdult}, '1')) and (${Id10019} = 'female' or ${Id10019} = 'undetermined')"
+select_one YES_NO_DK_REF,Id10294,
+select_one YES_NO_DK_REF,Id10295,
+select_one YES_NO_DK_REF,Id10296,
+select_one YES_NO_DK_REF,Id10297,"selected(${Id10296}, 'yes')"
+select_one YES_NO_DK_REF,Id10298,"selected(${Id10297}, 'yes')"
+select_one YES_NO_DK_REF,Id10301,"selected(${Id10296}, 'yes') "
+select_one YES_NO_DK_REF,Id10299,"selected(${Id10296}, 'yes')"
+select_one YES_NO_DK_REF,Id10302,"selected(${Id10299}, 'dk') or selected(${Id10299}, 'no') or selected(${Id10299}, 'ref')"
+integer,Id10303,"selected(${Id10302}, 'yes')"
+select_one YES_NO_DK_REF,Id10300,"selected(${Id10299}, 'yes')"
+select_one YES_NO_DK_REF,Id10304,"not(selected(${Id10299}, 'yes'))"
+select_one YES_NO_DK_REF,Id10305,"not(selected(${Id10299}, 'yes'))"
+select_one YES_NO_DK_REF,Id10306,"selected(${Id10305}, 'dk') or selected(${Id10305}, 'no') or selected(${Id10305}, 'ref')"
+select_one YES_NO_DK_REF,Id10307," (selected(${Id10306}, 'dk') or selected(${Id10306}, 'no') or selected(${Id10306}, 'ref')) "
+select_one YES_NO_DK_REF,Id10308,"selected(${Id10307}, 'yes')"
+integer,Id10309,"selected(${Id10305}, 'yes') or selected(${Id10306}, 'yes') or selected(${Id10308}, 'yes')"
+select_one YES_NO_DK_REF2,Id10310," ((((selected(${Id10306}, 'dk') or selected(${Id10306}, 'no') or selected(${Id10306}, 'ref')) and 
+(selected(${Id10307}, 'dk') or selected(${Id10307}, 'no') or selected(${Id10307}, 'ref') )) or
+((selected(${Id10306}, 'dk') or selected(${Id10306}, 'no') or selected(${Id10306}, 'ref')) and 
+(selected(${Id10308}, 'dk') or selected(${Id10308}, 'no') or selected(${Id10308}, 'ref') ))) and
+ (${Id10309} = 'NaN' or string-length(${Id10309}) = 0)) or selected(${Id10299}, 'yes')"
+note,Id10310_check,"selected(${Id10310}, 'no')"
+begin group,group_maternal,"not(selected(${Id10310}, 'yes'))"
+select_one YES_NO_DK_REF,Id10312,"(selected(${Id10308}, 'no') or selected(${Id10308}, 'ref') or selected(${Id10308}, 'dk')) or selected(${Id10305}, 'yes') "
+select_one YES_NO_DK_REF,Id10313,"not(selected(${Id10312}, 'yes')) and not(selected(${Id10305}, 'yes')) and not(selected(${Id10308}, 'yes')) "
+select_one YES_NO_DK_REF,Id10314,"selected(${Id10313}, 'yes')"
+select_one YES_NO_DK_REF,Id10315_a,"${Id10312}!='yes' and  ${Id10314}!='yes' and ${Id10306}!='no' and (selected(${Id10305}, 'dk') or selected(${Id10305}, 'no') or selected(${Id10305}, 'ref')) and  ${Id10313}!='no'"
+calculate,Id10315,${Id10312}!='yes' and  ${Id10314}!='yes'
+select_one YES_NO_DK_REF,Id10316,"(not(selected(${Id10312}, 'no')) and selected(${Id10306}, 'yes')) or (selected(${Id10305}, 'yes') and selected(${Id10312}, 'yes'))"
+select_one YES_NO_DK_REF,Id10317,"not(selected(${Id10305}, 'yes')) or not(selected(${Id10312}, 'yes'))  or (selected(${Id10305}, 'yes') and selected(${Id10312}, 'yes'))"
+select_one YES_NO_DK_REF,Id10318,"not(selected(${Id10312}, 'yes')) and not(selected(${Id10314}, 'yes')) and selected(${Id10316}, 'yes')"
+integer,Id10319,"not(selected(${Id10305}, 'yes')) or not(selected(${Id10312}, 'yes'))  or (selected(${Id10305}, 'yes') and selected(${Id10312}, 'yes'))"
+select_one YES_NO_DK_REF,Id10320,${Id10319} > 0
+select_one YES_NO_DK_REF,Id10321,"not(selected(${Id10305}, 'yes')) or not(selected(${Id10312}, 'yes'))  or (selected(${Id10305}, 'yes') and selected(${Id10312}, 'yes'))"
+select_one YES_NO_DK_REF,Id10322,"not(selected(${Id10305}, 'yes')) or not(selected(${Id10312}, 'yes'))  or (selected(${Id10305}, 'yes') and selected(${Id10312}, 'yes'))"
+select_one YES_NO_DK_REF,Id10323,"not(selected(${Id10305}, 'yes')) or not(selected(${Id10312}, 'yes'))  or (selected(${Id10305}, 'yes') and selected(${Id10312}, 'yes'))"
+select_one YES_NO_DK_REF,Id10324,"not(selected(${Id10305}, 'yes')) or not(selected(${Id10312}, 'yes'))  or (selected(${Id10305}, 'yes') and selected(${Id10312}, 'yes'))"
+select_one YES_NO_DK_REF,Id10325,"not(selected(${Id10305}, 'yes')) or not(selected(${Id10312}, 'yes'))  or (selected(${Id10305}, 'yes') and selected(${Id10312}, 'yes'))"
+select_one YES_NO_DK_REF,Id10326,"selected(${Id10325}, 'yes')"
+select_one YES_NO_DK_REF,Id10327,"selected(${Id10325}, 'yes')"
+select_one YES_NO_DK_REF,Id10328,"(selected(${Id10305}, 'yes') and selected(${Id10312}, 'yes')) or selected(${Id10306}, 'yes') or (selected(${Id10305}, 'no') and selected(${Id10306}, 'yes')) or (selected(${Id10305}, 'no') and selected(${Id10306}, 'no') and selected(${Id10307}, 'yes') and selected(${Id10308}, 'yes') ) or ( selected(${Id10316}, 'yes') or selected(${Id10316}, 'no'))"
+select_one YES_NO_DK_REF,Id10329,"(not(selected(${Id10305}, 'yes')) and not(selected(${Id10312}, 'no')))   "
+select_one YES_NO_DK_REF,Id10330,"(selected(${Id10305}, 'yes') and selected(${Id10312}, 'yes')) or selected(${Id10306}, 'yes') or (selected(${Id10305}, 'no') and selected(${Id10306}, 'yes')) or (selected(${Id10305}, 'no') and selected(${Id10306}, 'no') and selected(${Id10307}, 'yes') and selected(${Id10308}, 'yes') ) or ( selected(${Id10316}, 'yes') or selected(${Id10316}, 'no'))"
+select_one YES_NO_DK_REF,Id10331,"(selected(${Id10305}, 'yes') and selected(${Id10312}, 'yes')) or selected(${Id10306}, 'yes') or (selected(${Id10305}, 'no') and selected(${Id10306}, 'yes')) or (selected(${Id10305}, 'no') and selected(${Id10306}, 'no') and selected(${Id10307}, 'yes') and selected(${Id10308}, 'yes') ) or ( selected(${Id10316}, 'yes') or selected(${Id10316}, 'no'))"
+integer,Id10332,"(selected(${Id10305}, 'yes') and selected(${Id10312}, 'yes')) or selected(${Id10306}, 'yes') or (selected(${Id10305}, 'no') and selected(${Id10306}, 'yes')) or (selected(${Id10305}, 'no') and selected(${Id10306}, 'no') and selected(${Id10307}, 'yes') and selected(${Id10308}, 'yes')) or ( selected(${Id10316}, 'yes') or selected(${Id10316}, 'no'))"
+select_one YES_NO_DK_REF,Id10333,
+select_one YES_NO_DK_REF,Id10334,"not(selected(${Id10316}, 'yes'))"
+select_one YES_NO_DK_REF,Id10335,"selected(${Id10334}, 'yes')"
+select_one YES_NO_DK_REF,Id10336,"selected(${Id10334}, 'yes') and not(selected(${Id10335}, 'yes')) and not(selected(${Id10305}, 'yes') and selected(${Id10312}, 'yes'))"
+select_one select_208,Id10337,"not(selected(${Id10312}, 'no') and selected(${Id10305}, 'yes')) or selected(${Id10316}, 'yes') or (selected(${Id10316}, 'no') and (selected(${Id10333}, 'yes') or selected(${Id10334}, 'yes') or selected(${Id10336}, 'yes'))) or (selected(${Id10316}, 'no') and selected(${Id10333}, 'no') and selected(${Id10334}, 'no')) or (selected(${Id10305}, 'no') and selected(${Id10306}, 'no') and selected(${Id10307}, 'yes') and selected(${Id10308}, 'yes') )"
+select_one YES_NO_DK_REF,Id10338,"not(selected(${Id10312}, 'no') and selected(${Id10305}, 'yes')) or selected(${Id10316}, 'yes') or (selected(${Id10316}, 'no') and (selected(${Id10333}, 'yes') or selected(${Id10334}, 'yes') or selected(${Id10336}, 'yes'))) or (selected(${Id10316}, 'no') and selected(${Id10333}, 'no') and selected(${Id10334}, 'no')) or (selected(${Id10305}, 'no') and selected(${Id10306}, 'no') and selected(${Id10307}, 'yes') and selected(${Id10308}, 'yes') )"
+select_one select_530,Id10339,"not(selected(${Id10312}, 'no') and selected(${Id10305}, 'yes')) or selected(${Id10316}, 'yes') or (selected(${Id10316}, 'no') and (selected(${Id10333}, 'yes') or selected(${Id10334}, 'yes') or selected(${Id10336}, 'yes'))) or (selected(${Id10316}, 'no') and selected(${Id10333}, 'no') and selected(${Id10334}, 'no')) or (selected(${Id10305}, 'no') and selected(${Id10306}, 'no') and selected(${Id10307}, 'yes') and selected(${Id10308}, 'yes') )"
+begin group,deliverytype,"((selected(${Id10334}, 'no') or selected(${Id10334}, 'dk') or selected(${Id10334}, 'ref') ) and not(selected(${Id10335}, 'yes')) and not(selected(${Id10336}, 'yes'))) or selected(${Id10316}, 'yes')"
+select_one YES_NO_DK_REF,Id10342,"not(selected(${Id10312}, 'no')and selected(${Id10305}, 'yes'))  or selected(${Id10316}, 'yes') or selected(${Id10316}, 'no')  or (selected(${Id10305}, 'yes') and selected(${Id10312}, 'yes')) or (selected(${Id10305}, 'no') and selected(${Id10306}, 'yes')) or (selected(${Id10305}, 'no') and selected(${Id10306}, 'no') and selected(${Id10307}, 'yes') and selected(${Id10308}, 'yes') )"
+select_one YES_NO_DK_REF,Id10343,"selected(${Id10342}, 'no') or selected(${Id10342}, 'ref') or selected(${Id10342}, 'dk')"
+select_one YES_NO_DK_REF,Id10344,"not(selected(${Id10342}, 'yes')) and (selected(${Id10343}, 'no') or selected(${Id10343}, 'dk') or selected(${Id10343}, 'ref'))"
+end group,,
+end group,,
+end group,,
+select_one YES_NO_DK_REF,Id10347,"((selected(${isAdult}, '1') and not(selected(${Id10310}, 'yes'))) and (${Id10019} = 'female') or ${Id10019}='undetermined') and (not(selected(${Id10334}, 'yes')) and not(selected(${Id10335}, 'yes')) and not(selected(${Id10336}, 'yes'))) and not(selected(${Id10305}, 'yes') and selected(${Id10312}, 'no'))"
+select_one YES_NO_DK_REF,Id10340,"selected(${Id10334}, 'yes') or selected(${Id10315_a}, 'yes') or selected(${Id10313}, 'yes') or (selected(${Id10305}, 'yes') and  (selected(${Id10312}, 'yes') or selected(${Id10312}, 'no'))) or (selected(${Id10305}, 'no') and selected(${Id10306}, 'no') and selected(${Id10307}, 'yes') and selected(${Id10308}, 'yes') )"
+begin group,neonatal_child,
+select_one units_4,Id10352_units,"(selected(${isChild}, '1'))"
+integer,Id10352_a,${Id10352_units}='months'
+integer,Id10352_b,${Id10352_units}='years'
+calculate,Id10352,"(selected(${isChild}, '1'))"
+begin group,neonatal_childA,"(selected(${isNeonatal}, '1') or selected(${isChild}, '1'))"
+select_one YES_NO_DK_REF,Id10354,"selected(${isNeonatal}, '1') or (selected(${isChild}, '1') and (${ageInMonthsByYear} = 'NaN' or string-length(${ageInMonthsByYear}) = 0)) or (selected(${isChild}, '1') and ${ageInMonthsByYear}<12)"
+select_one select_219,Id10355,"selected(${Id10354}, 'yes')"
+select_one YES_NO_DK_REF,Id10356,"selected(${isNeonatal}, '1') or (selected(${isChild}, '1') and (${ageInMonthsByYear} = 'NaN' or string-length(${ageInMonthsByYear}) = 0)) or (selected(${isChild}, '1') and ${ageInMonthsByYear}<12)"
+select_one select_221,Id10357,"selected(${Id10356}, 'no')"
+begin group,moth_death,"selected(${Id10357}, 'after_delivery')"
+select_one units_5,Id10358_units,
+integer,Id10358,${Id10358_units}='months'
+integer,Id10359,${Id10358_units}='days'
+integer,Id10359_a,${Id10358_units}='weeks'
+end group,,
+select_one select_223,Id10360,"selected(${isNeonatal}, '1') or (selected(${isChild}, '1') and (${ageInMonthsByYear} = 'NaN' or string-length(${ageInMonthsByYear}) = 0)) or (selected(${isChild}, '1') and ${ageInMonthsByYear}<12)"
+select_one YES_NO_DK_REF,Id10361,"selected(${isNeonatal}, '1') or (selected(${isChild}, '1') and (${ageInMonthsByYear} = 'NaN' or string-length(${ageInMonthsByYear}) = 0)) or (selected(${isChild}, '1') and ${ageInMonthsByYear}<12)"
+select_one YES_NO_DK_REF,Id10362,"selected(${isNeonatal}, '1') or (selected(${isChild}, '1') and (${ageInMonthsByYear} = 'NaN' or string-length(${ageInMonthsByYear}) = 0)) or (selected(${isChild}, '1')  and ${ageInMonthsByYear}<12)"
+select_one YES_NO_DK_REF,Id10363,"(selected(${isNeonatal}, '1') or (selected(${isChild}, '1') and (${ageInMonthsByYear} = 'NaN' or string-length(${ageInMonthsByYear}) = 0)) or (selected(${isChild}, '1') and ${ageInMonthsByYear}<12)) and ${Id10362}!='yes'"
+select_one YES_NO_DK_REF,Id10364,"selected(${Id10363}, 'yes')"
+select_one YES_NO_DK_REF,Id10365,"selected(${Id10363}, 'dk') or selected(${Id10363}, 'no') or selected(${Id10363}, 'ref')"
+note,id1036X_check,"(selected(${Id10362}, 'no') and selected(${Id10363}, 'no') and selected(${Id10365}, 'no')) "
+integer,Id10366,
+integer,Id10367,"(selected(${isNeonatal}, '1') or selected(${isChild}, '1'))"
+select_one YES_NO_DK_REF,Id10368,"(selected(${isNeonatal}, '1') or selected(${isChild}, '1'))"
+select_one YES_NO_DK_REF,Id10369,"(selected(${isNeonatal}, '1') or selected(${isChild}, '1'))"
+select_one YES_NO_DK_REF,Id10370,"selected(${isNeonatal}, '1') or (selected(${isChild}, '1') and (${ageInMonthsByYear} = 'NaN' or string-length(${ageInMonthsByYear}) = 0)) or (selected(${isChild}, '1') and ${ageInMonthsByYear}<12)"
+select_one YES_NO_DK_REF,Id10371,"selected(${Id10370}, 'yes') or  selected(${Id10370}, 'dk') or  selected(${Id10370}, 'ref') "
+select_one YES_NO_DK_REF,Id10372,"selected(${Id10370}, 'yes') or  selected(${Id10370}, 'dk') or  selected(${Id10370}, 'ref') "
+select_one YES_NO_DK_REF,Id10373,"selected(${Id10372}, 'no') or  selected(${Id10372}, 'dk') or  selected(${Id10372}, 'ref') "
+integer,Id10394,"${ageInMonthsByYear}<12 or selected(${isNeonatal}, '1')"
+end group,,
+begin group,neonatal_childB,"(selected(${isNeonatal}, '1'))"
+select_one YES_NO_DK_REF,Id10376,
+select_one YES_NO_DK_REF,Id10377,
+begin group,babmove,"selected(${Id10377}, 'yes')"
+select_one H_D_DK_REF,Id10379_unit,
+integer,Id10379,${Id10379_unit}='days'
+integer,Id10380,${Id10379_unit}='hours'
+end group,,
+integer,Id10382,
+select_one YES_NO_DK_REF,Id10383,
+select_one YES_NO_DK_REF,Id10384,
+select_one select_520,Id10385,
+begin group,mother_deliv,
+select_one YES_NO_DK_REF,Id10387,
+select_one YES_NO_DK_REF,Id10388,"not(selected(${Id10387}, 'yes'))"
+select_one YES_NO_DK_REF,Id10389,"not(selected(${Id10387}, 'yes')) and not(selected(${Id10388}, 'yes'))"
+note,id10389_check,"selected(${Id10387}, 'no') and selected(${Id10388}, 'no')  and selected(${Id10389}, 'no')"
+end group,,
+select_one YES_NO_DK_REF,Id10391,
+integer,Id10392,"selected(${Id10391}, 'yes')"
+select_one YES_NO_DK_REF,Id10393,"selected(${Id10391}, 'yes')"
+select_one YES_NO_DK_REF,Id10395,
+select_one YES_NO_DK_REF,Id10396,
+select_one YES_NO_DK_REF,Id10397,
+select_one YES_NO_DK_REF,Id10398,
+select_one YES_NO_DK_REF,Id10399,
+select_one YES_NO_DK_REF,Id10400,
+select_one YES_NO_DK_REF,Id10401,
+select_one YES_NO_DK_REF,Id10402,
+select_one YES_NO_DK_REF,Id10403,
+select_one YES_NO_DK_REF,Id10404,
+select_one YES_NO_DK_REF,Id10405,
+select_one YES_NO_DK_REF,Id10406,
+end group,,
+end group,,
+begin group,risk_factors,"(selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10411,
+select_one YES_NO_DK_REF,Id10412,
+select_one YES_NO_DK_REF,Id10413,
+select_one select_306,Id10414,"selected(${Id10413}, 'yes') or (selected(${Id10412}, 'yes') and selected(${Id10413}, 'no')) "
+note,id10414_check,"selected(${Id10413}, 'no') and (selected(${Id10414}, 'cigarettes')  or selected(${Id10414}, 'pipe'))"
+integer,Id10415,"selected(${Id10414}, 'cigarettes')"
+integer,Id10416,"selected(${Id10414}, 'pipe') or selected(${Id10414}, 'chewing_tobacco') or selected(${Id10414}, 'local_form_of_tobacco') or  selected(${Id10414}, 'other')"
+end group,,
+begin group,health_service_utilization,"not(selected(${Id10114}, 'yes'))"
+select_one YES_NO_DK_REF,Id10418,
+select_one YES_NO_DK_REF,Id10419,"selected(${Id10418}, 'yes')"
+select_one YES_NO_DK_REF,Id10420,"selected(${Id10418}, 'yes')"
+select_one YES_NO_DK_REF,Id10421,"selected(${Id10418}, 'yes')"
+select_one YES_NO_DK_REF,Id10422,"selected(${Id10418}, 'yes')"
+select_one YES_NO_DK_REF,Id10423,"selected(${Id10418}, 'yes')"
+select_one YES_NO_DK_REF,Id10424,"selected(${Id10418}, 'yes')"
+select_one YES_NO_DK_REF,Id10425,"selected(${Id10418}, 'yes')"
+select_one YES_NO_DK_REF,Id10426,"(selected(${Id10418}, 'yes') and ${isNeonatal} !='1') and selected(${Id10425}, 'yes')"
+select_one YES_NO_DK_REF,Id10427,"selected(${Id10418}, 'yes') and (selected(${isAdult}, '1') or selected(${isChild}, '1')) "
+select_one YES_NO_DK_REF,Id10428,"(selected(${isNeonatal}, '1') or selected(${isChild}, '1'))"
+select_one YES_NO_DK_REF,Id10429,"(selected(${isNeonatal}, '1') or selected(${isChild}, '1')) and selected(${Id10428}, 'yes')"
+select_one YES_NO_DK_REF,Id10430,"(selected(${isNeonatal}, '1') or selected(${isChild}, '1')) and selected(${Id10429}, 'yes')"
+select_multiple select_vaccines,Id10431,"(selected(${isNeonatal}, '1') or selected(${isChild}, '1')) and selected(${Id10430}, 'yes')"
+note,id10431_check,"(selected(${Id10431}, 'dk') or selected(${Id10431}, 'ref') or selected(${Id10431}, 'no')) and count-selected(${Id10431})>1"
+select_one YES_NO_DK_REF,Id10432,
+select_multiple select_322,Id10433,"selected(${Id10432}, 'yes')"
+note,id10433_check,"(selected(${Id10433}, 'dk') or selected(${Id10433}, 'ref')) and count-selected(${Id10433})>1"
+text,Id10434,"selected(${Id10432}, 'yes')"
+select_one YES_NO_DK_REF,Id10435,
+text,Id10436,"selected(${Id10435}, 'yes')"
+select_one YES_NO_DK_REF,Id10437,"(selected(${isNeonatal}, '1') or selected(${isAdult}, '1') or (selected(${isChild}, '1') and selected(${Id10432}, 'yes')))"
+select_one YES_NO_DK_REF,Id10438,"selected(${Id10437}, 'yes')"
+select_one YES_NO,Id10439_check,"selected(${Id10438}, 'yes')"
+date,Id10439,"selected(${Id10439_check}, 'yes')"
+select_one YES_NO,Id10440_check,"(selected(${Id10438}, 'yes') and selected(${isAdult}, '1'))"
+date,Id10440,"(selected(${Id10440_check}, 'yes') and selected(${isAdult}, '1'))"
+select_one YES_NO,Id10441_check,"(selected(${Id10438}, 'yes') and selected(${isAdult}, '1'))"
+date,Id10441,"(selected(${Id10441_check}, 'yes') and selected(${isAdult}, '1'))"
+decimal,Id10442,"(selected(${Id10438}, 'yes') and selected(${isAdult}, '1'))"
+decimal,Id10443,"(selected(${Id10438}, 'yes') and selected(${isAdult}, '1'))"
+text,Id10444,"(selected(${Id10438}, 'yes') and selected(${isAdult}, '1'))"
+select_one YES_NO_DK_REF,Id10445,"((selected(${isNeonatal}, '1')) or (selected(${isChild}, '1') and selected(${Id10432}, 'yes')))"
+select_one YES_NO_DK_REF,Id10446,"((selected(${isNeonatal}, '1')) or (selected(${isChild}, '1') and selected(${Id10432}, 'yes')))"
+end group,,
+end group,,
+begin group,back_context,
+select_one YES_NO_DK_REF,Id10450,
+select_one YES_NO_DK_REF,Id10451,"selected(${Id10450}, 'yes')"
+select_one YES_NO_DK_REF,Id10452,"selected(${Id10450}, 'yes')"
+select_one YES_NO_DK_REF,Id10453,"selected(${Id10450}, 'yes')"
+select_one YES_NO_DK_REF,Id10454,"selected(${Id10450}, 'yes')"
+select_one YES_NO_DK_REF,Id10455,
+select_one YES_NO_DK_REF,Id10456,
+select_one YES_NO_DK_REF,Id10457,
+select_one YES_NO_DK_REF,Id10458,
+select_one YES_NO_DK_REF,Id10459,
+begin group,deathcert,
+select_one YES_NO_DK_REF,Id10462,
+select_one YES_NO_DK_REF,Id10463,"selected(${Id10462}, 'yes')"
+text,Id10464,"selected(${Id10463}, 'yes')"
+text,Id10465,"selected(${Id10463}, 'yes')"
+text,Id10466,"selected(${Id10463}, 'yes')"
+text,Id10467,"selected(${Id10463}, 'yes')"
+text,Id10468,"selected(${Id10463}, 'yes')"
+text,Id10469,"selected(${Id10463}, 'yes')"
+text,Id10470,"selected(${Id10463}, 'yes')"
+text,Id10471,"selected(${Id10463}, 'yes')"
+text,Id10472,"selected(${Id10463}, 'yes')"
+text,Id10473,"selected(${Id10463}, 'yes')"
+end group,,
+begin group,narrat,"selected(${Id10058}, 'home') or selected(${Id10058}, 'on_route_to_hospital_or_facility') or selected(${Id10058}, 'other') or selected(${Id10058}, 'DK') or selected(${Id10058}, 'Ref') "
+text,Id10476,
+select_multiple select_510,Id10477,"selected(${isAdult}, '1')"
+select_multiple select_511,Id10478,"selected(${isChild}, '1')"
+select_multiple select_512,Id10479,"selected(${isNeonatal}, '1')"
+end group,,
+note,id10477_check,"(selected(${Id10477}, 'dk') or selected(${Id10477}, 'None')) and count-selected(${Id10477})>1"
+note,id10478_check,"(selected(${Id10478}, 'dk') or selected(${Id10478}, 'None')) and count-selected(${Id10478})>1"
+note,id10479_check,"(selected(${Id10479}, 'dk') or selected(${Id10479}, 'None')) and count-selected(${Id10479})>1"
+end,Id10481,
+text,comment,
+end group,,
+geopoint,gps_location,
+select_one gps_details,gps_details,
+calculate,vaid,

@@ -1,0 +1,10 @@
+ID,MALPREV,HIVPREV,COVIDPREV,PREGSTAT,PREGLIK,CAUSE1,LIK1,CAUSE2,LIK2,CAUSE3,LIK3,INDET
+uuid:ef05986b-78c4-4540-a111-80570f8d762f,h,h,v,n/a, ,Chronic obstructive pulmonary disease,59, , , , ,41
+uuid:0786aaf1-873b-4279-bcfb-4a43d66bf54c,h,h,v,n/a, ,Sepsis (non-obstetric),45,Acute respiratory infection including (non-neonatal) pneumonia,35, , ,20
+uuid:e188959f-055c-4cdd-82fc-06e82df71fe5,h,h,v,Pregnant at death,100,Abortion-related death,100, , , , ,0
+uuid:70ff8be9-3146-4459-955b-adaab75ba76b,h,h,v,Not pregnant or recently delivered,100, , , , , , ,100
+uuid:4d25a3a6-fb74-4d91-ad6e-8645c60628f3,h,h,v,n/a, ,Renal failure,100, , , , ,0
+uuid:058ec50f-efe6-4af1-9472-94fdd1397b49,h,h,v,n/a, ,Digestive neoplasms,100, , , , ,0
+uuid:040b8bbe-c5f0-41bf-b9b1-e4da2f2e9730,h,h,v,n/a, ,Abortion-related death,71, , , , ,29
+uuid:30c1d057-f6c1-4476-b792-243a71096ae5,h,h,v,n/a, , , , , , , ,100
+uuid:4698426b-2bfc-4883-8b6a-d6214b00268d,h,h,v,n/a, , , , , , , ,100

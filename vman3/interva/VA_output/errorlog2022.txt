@@ -1,0 +1,11 @@
+Error & warning log built for InterVA2022 2025-09-30 17:29:33
+
+
+
+the following records are incomplete and excluded from further processing:
+
+
+uuid:2330db1d-2b83-4f2f-999e-731f63f3a943 Error in age indicator: Not Specified
+uuid:c3482c6c-8125-48da-bdfb-5aadbf203c71 Error in age indicator: Not Specified
+uuid:44b6a7c3-188d-4865-8112-aad14fdce383 Error in age indicator: Not Specified
+uuid:03f93962-8ab9-4d51-b694-cf74a1b3fdb3 Error in age indicator: Not Specified
