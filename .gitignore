@@ -1,1 +1,37 @@
-VA_output/VA6_result.csv
+# Output files
+VA_output/*.csv
+VA_output/*.txt
+interva6/output/*.csv
+interva6/output/*.txt
+
+# Keep directory structure
+!VA_output/.gitkeep
+!interva6/output/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.Python
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test files
+test_*.csv
+sample_large*.csv
