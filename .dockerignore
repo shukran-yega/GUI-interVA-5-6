@@ -1,0 +1,82 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Documentation
+docs/
+*.md
+README.md
+LICENSE
+
+# Development files
+.env
+.env.local
+.dockerignore
+Dockerfile.dev
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+logs/
+
+# Output directories (not needed in container)
+VA_output/*.csv
+VA_output/*.txt
+interva6/output/*.csv
+interva6/output/*.txt
+
+# Keep structure files
+!VA_output/.gitkeep
+!interva6/output/.gitkeep
+
+# Large test files
+*.test.csv
+test_*.csv
+sample_large*.csv

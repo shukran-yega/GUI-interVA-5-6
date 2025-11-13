@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: interva-analysis-api
+    env: docker
+    plan: free  # Change to 'starter' or higher for production
+    region: oregon  # Change to your preferred region
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: PYTHONUNBUFFERED
+        value: 1
+      - key: ENVIRONMENT
+        value: production
+    healthCheckPath: /health
+    autoDeploy: true

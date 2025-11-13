@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InterVA Analysis</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      padding: 40px 60px;
+      border-radius: 16px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      width: 500px;
+      max-width: 100%;
+    }
+
+    h1 {
+      margin: 0 0 20px 0;
+      font-size: 24px;
+      color: #333;
+    }
+
+    input[type="file"] {
+      border: 2px dashed #bbb;
+      border-radius: 10px;
+      padding: 20px;
+      width: 100%;
+      cursor: pointer;
+      color: #555;
+      transition: all 0.2s ease;
+    }
+
+    input[type="file"]:hover {
+      border-color: #888;
+    }
+
+    .buttons {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+    }
+
+    button, select {
+      background-color: #e8e8e8;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s ease-in-out;
+      flex: 1;
+    }
+
+    button {
+      min-width: 80px;
+    }
+
+    select {
+      min-width: 120px;
+    }
+
+    button:hover:not(:disabled), select:hover {
+      background-color: #dcdcdc;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #cancelBtn {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    #cancelBtn:hover:not(:disabled) {
+      background-color: #c82333;
+    }
+
+    .output-box {
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      min-height: 120px;
+      max-height: 300px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      color: #777;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-y: auto;
+      text-align: left;
+    }
+
+    .output-box.success {
+      border-color: #28a745;
+      background-color: #f0f9f4;
+      color: #28a745;
+    }
+
+    .output-box.error {
+      border-color: #dc3545;
+      background-color: #fef5f5;
+      color: #dc3545;
+    }
+
+    .output-box.loading {
+      border-color: #007bff;
+      background-color: #f0f7ff;
+      color: #007bff;
+    }
+
+    .progress-container {
+      width: 100%;
+      max-width: 280px;
+      margin-top: 10px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 20px;
+      background-color: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #007bff, #0056b3);
+      transition: width 0.3s ease;
+      border-radius: 10px;
+    }
+
+    .progress-text {
+      margin-top: 5px;
+      font-size: 12px;
+      color: #555;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #007bff;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .download-link {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #333;
+      text-decoration: underline;
+      cursor: pointer;
+      display: none;
+      padding: 5px;
+    }
+
+    .download-link.active {
+      display: inline-block;
+      color: #007bff;
+    }
+
+    .download-link:hover {
+      color: #0056b3;
+    }
+
+    .file-info {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .log-messages {
+      width: 100%;
+      text-align: left;
+    }
+
+    .log-message {
+      padding: 3px 0;
+      color: #555;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>InterVA Analysis</h1>
+    
+    <input type="file" id="fileInput" accept=".csv" />
+    <div class="file-info" id="fileInfo"></div>
+
+    <div class="buttons">
+      <div class="button-row">
+        <button id="loadBtn">Load Data</button>
+        <button id="runBtn" disabled>Run Analysis</button>
+      </div>
+      <div class="button-row">
+        <select id="algorithmSelect">
+          <option value="InterVA-6">InterVA6</option>
+          <option value="InterVA-5">InterVA5</option>
+        </select>
+        <select id="whoVersionSelect">
+          <option value="auto">Auto-detect WHO version</option>
+          <option value="2016WHOv151">WHO 2016 v1.5.1</option>
+          <option value="2022WHOv0101">WHO 2022 v01.01</option>
+        </select>
+      </div>
+      <button id="cancelBtn" disabled style="display: none;">Cancel</button>
+    </div>
+
+    <div class="output-box" id="outputBox">
+      <div style="text-align: center; width: 100%;">Ready to process data</div>
+    </div>
+
+    <a class="download-link" id="downloadLink">Download Results</a>
+  </div>
+
+  <script>
+    // Configuration - change this to your backend URL
+    const API_BASE_URL = 'http://127.0.0.1:8000';
+    const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+    
+    // State management
+    let uploadedData = null;
+    let resultBlob = null;
+    let currentSessionId = null;
+    let eventSource = null;
+    
+    // DOM elements
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const loadBtn = document.getElementById('loadBtn');
+    const runBtn = document.getElementById('runBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const algorithmSelect = document.getElementById('algorithmSelect');
+    const whoVersionSelect = document.getElementById('whoVersionSelect');
+    const outputBox = document.getElementById('outputBox');
+    const downloadLink = document.getElementById('downloadLink');
+
+    // File input change handler
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        fileInfo.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+        uploadedData = null;
+        runBtn.disabled = true;
+        downloadLink.classList.remove('active');
+        resetOutput();
+      }
+    });
+
+    // Load Data button
+    loadBtn.addEventListener('click', async () => {
+      const file = fileInput.files[0];
+      if (!file) {
+        showError('Please select a CSV file first');
+        return;
+      }
+
+      if (!file.name.endsWith('.csv')) {
+        showError('Please select a valid CSV file');
+        return;
+      }
+
+      await loadCSVData(file);
+    });
+
+    // Run button
+    runBtn.addEventListener('click', async () => {
+      const algorithm = algorithmSelect.value;
+      const whoVersion = whoVersionSelect.value;
+
+      await processDataWithChunking(algorithm, whoVersion);
+    });
+
+    // Cancel button
+    cancelBtn.addEventListener('click', async () => {
+      if (currentSessionId) {
+        try {
+          addLogMessage('→ Cancelling operation...');
+          
+          // Send cancel request to backend
+          await fetch(`${API_BASE_URL}/cancel/${currentSessionId}`, {
+            method: 'POST'
+          });
+          
+          closeSSE();
+          showError('Operation cancelled by user');
+          
+          cancelBtn.disabled = true;
+          cancelBtn.style.display = 'none';
+          runBtn.disabled = false;
+          loadBtn.disabled = false;
+          
+          currentSessionId = null;
+        } catch (error) {
+          console.error('Cancel error:', error);
+        }
+      }
+    });
+
+    // Download link
+    downloadLink.addEventListener('click', () => {
+      if (resultBlob) {
+        const url = URL.createObjectURL(resultBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        a.download = `interva6_results_${timestamp}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        addLogMessage('File downloaded successfully!');
+      }
+    });
+
+    // Load CSV data
+    async function loadCSVData(file) {
+      try {
+        loadBtn.disabled = true;
+        runBtn.disabled = true;
+        
+        showLoadingWithProgress('Reading CSV file...', 0);
+        
+        const text = await file.text();
+        updateProgress(30);
+        addLogMessage('File read into memory');
+        
+        const lines = text.split('\n').filter(line => line.trim());
+        
+        if (lines.length < 2) {
+          throw new Error('CSV file must have at least a header row and one data row');
+        }
+
+        updateProgress(60);
+        addLogMessage(`Found ${lines.length} lines`);
+
+        // Parse CSV properly (handles quoted fields)
+        const csvData = lines.map(line => parseCSVLine(line));
+
+        updateProgress(90);
+        addLogMessage(`Parsed into ${csvData[0].length} columns`);
+        
+        await sleep(200);
+        uploadedData = csvData;
+        
+        updateProgress(100);
+        await sleep(300);
+
+        showSuccess(`CSV loaded successfully!\n${csvData.length - 1} data rows, ${csvData[0].length} columns`);
+        runBtn.disabled = false;
+        
+      } catch (error) {
+        showError(`Failed to load CSV: ${error.message}`);
+        uploadedData = null;
+      } finally {
+        loadBtn.disabled = false;
+      }
+    }
+
+    // Process data with chunking and SSE
+    async function processDataWithChunking(algorithm, whoVersion) {
+      try {
+        runBtn.disabled = true;
+        loadBtn.disabled = true;
+        cancelBtn.disabled = false;
+        cancelBtn.style.display = 'inline-block';
+        downloadLink.classList.remove('active');
+        resultBlob = null;
+
+        showLoadingWithProgress('Preparing file for upload...', 0);
+        addLogMessage('→ Converting data to CSV text');
+
+        // Convert uploadedData back to CSV text
+        const csvText = uploadedData.map(row => 
+          row.map(cell => {
+            // Escape quotes and wrap in quotes if contains comma or newline
+            const cellStr = String(cell);
+            if (cellStr.includes(',') || cellStr.includes('\n') || cellStr.includes('"')) {
+              return `"${cellStr.replace(/"/g, '""')}"`;
+            }
+            return cellStr;
+          }).join(',')
+        ).join('\n');
+
+        const fileSizeKB = (csvText.length / 1024).toFixed(2);
+        addLogMessage(`→ CSV size: ${fileSizeKB} KB`);
+
+        // Generate session ID
+        currentSessionId = generateSessionId();
+        addLogMessage(`→ Session ID: ${currentSessionId}`);
+
+        // Connect to SSE endpoint
+        await connectSSE(currentSessionId);
+        await sleep(500); // Give SSE time to connect
+
+        // Split into chunks
+        const chunks = [];
+        for (let i = 0; i < csvText.length; i += CHUNK_SIZE) {
+          chunks.push(csvText.slice(i, i + CHUNK_SIZE));
+        }
+
+        const totalChunks = chunks.length;
+        addLogMessage(`→ Split into ${totalChunks} chunk(s) (${(CHUNK_SIZE / 1024 / 1024).toFixed(1)}MB each)`);
+
+        updateProgress(10);
+
+        // Upload chunks sequentially
+        for (let i = 0; i < chunks.length; i++) {
+          addLogMessage(`→ Uploading chunk ${i + 1}/${totalChunks}...`);
+          
+          const chunkPayload = {
+            session_id: currentSessionId,
+            chunk_index: i,
+            total_chunks: totalChunks,
+            algorithm: algorithm,
+            who_version: whoVersion,
+            data: chunks[i]
+          };
+
+          const response = await fetch(`${API_BASE_URL}/upload-chunk`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(chunkPayload)
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Chunk upload failed: ${response.status}`);
+          }
+
+          // Update progress (10% to 40% for uploads)
+          const uploadProgress = 10 + (30 * (i + 1) / totalChunks);
+          updateProgress(uploadProgress);
+        }
+
+        addLogMessage(`✓ All chunks uploaded successfully`);
+        addLogMessage(`→ Backend is processing...`);
+
+        // SSE will handle the rest of the progress updates
+        // The download link will be enabled when processing completes
+
+      } catch (error) {
+        console.error('Processing error:', error);
+        showError(`Processing failed: ${error.message}`);
+        closeSSE();
+        resultBlob = null;
+        runBtn.disabled = false;
+        loadBtn.disabled = false;
+        cancelBtn.disabled = true;
+        cancelBtn.style.display = 'none';
+      }
+    }
+
+    // Connect to SSE endpoint
+    async function connectSSE(sessionId) {
+      return new Promise((resolve, reject) => {
+        closeSSE(); // Close any existing connection
+        
+        addLogMessage('→ Connecting to server event stream...');
+        
+        eventSource = new EventSource(`${API_BASE_URL}/stream/${sessionId}`);
+        
+        eventSource.onopen = () => {
+          addLogMessage('✓ Connected to server');
+          resolve();
+        };
+        
+        eventSource.onmessage = (event) => {
+          try {
+            // Parse the message
+            const data = JSON.parse(event.data.replace(/'/g, '"'));
+            
+            console.log('SSE message:', data);
+            
+            if (data.type === 'connected') {
+              addLogMessage(data.message);
+            } else if (data.type === 'chunk_received') {
+              addLogMessage(`✓ ${data.message}`);
+              // Update progress (40% to 50% for chunk confirmation)
+              const chunkProgress = 40 + (10 * data.chunk_index / data.total_chunks);
+              updateProgress(chunkProgress);
+            } else if (data.type === 'progress') {
+              addLogMessage(`→ ${data.message}`);
+              // Gradually increase progress during processing (50% to 90%)
+              const currentProgress = parseInt(document.getElementById('progressFill')?.style.width || '50');
+              if (currentProgress < 90) {
+                updateProgress(Math.min(currentProgress + 5, 90));
+              }
+            } else if (data.type === 'complete') {
+              addLogMessage(`✓ ${data.message}`);
+              updateProgress(100);
+              handleProcessingComplete(sessionId);
+            } else if (data.type === 'error') {
+              showError(data.message);
+              closeSSE();
+              runBtn.disabled = false;
+              loadBtn.disabled = false;
+              cancelBtn.disabled = true;
+              cancelBtn.style.display = 'none';
+            }
+          } catch (e) {
+            console.error('Error parsing SSE message:', e, event.data);
+          }
+        };
+        
+        eventSource.onerror = (error) => {
+          console.error('SSE error:', error);
+          // Don't treat as error if we're completing
+          if (eventSource.readyState === EventSource.CLOSED) {
+            console.log('SSE connection closed');
+          }
+        };
+      });
+    }
+
+    // Close SSE connection
+    function closeSSE() {
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+    }
+
+    // Handle processing complete
+    async function handleProcessingComplete(sessionId) {
+      try {
+        await sleep(500);
+        
+        addLogMessage('→ Downloading results...');
+        
+        // Download the result
+        const response = await fetch(`${API_BASE_URL}/download-result/${sessionId}`);
+        
+        if (!response.ok) {
+          throw new Error(`Download failed: ${response.status}`);
+        }
+        
+        resultBlob = await response.blob();
+        
+        addLogMessage(`✓ Results downloaded (${(resultBlob.size / 1024).toFixed(2)} KB)`);
+        
+        showSuccess('Processing complete!\nResults ready for download.');
+        downloadLink.classList.add('active');
+        
+        closeSSE();
+        
+      } catch (error) {
+        console.error('Download error:', error);
+        showError(`Failed to download results: ${error.message}`);
+      } finally {
+        runBtn.disabled = false;
+        loadBtn.disabled = false;
+        cancelBtn.disabled = true;
+        cancelBtn.style.display = 'none';
+      }
+    }
+
+    // Generate a unique session ID
+    function generateSessionId() {
+      return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    // Process data with selected algorithm (fallback for /test endpoint)
+    async function processData(algorithm) {
+      try {
+        runBtn.disabled = true;
+        loadBtn.disabled = true;
+        downloadLink.classList.remove('active');
+        resultBlob = null;
+
+        showLoadingWithProgress('Preparing data...', 0);
+        addLogMessage('→ Preparing payload for backend');
+
+        // Prepare payload for FastAPI
+        const payload = {
+          algorithm: algorithm,
+          csv: uploadedData
+        };
+
+        updateProgress(10);
+        addLogMessage(`→ Sending ${uploadedData.length} rows to ${algorithm} algorithm`);
+
+        console.log('Sending to backend:', {
+          algorithm: payload.algorithm,
+          rows: payload.csv.length,
+          columns: payload.csv[0].length
+        });
+
+        // Send to backend
+        const startTime = Date.now();
+        const response = await fetch(`${API_BASE_URL}/test`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const uploadTime = ((Date.now() - startTime) / 1000).toFixed(2);
+        updateProgress(30);
+        addLogMessage(`Data sent to server (${uploadTime}s)`);
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Server error: ${response.status}`);
+        }
+
+        updateProgress(50);
+        addLogMessage('→ Backend is processing data...');
+        addLogMessage('→ Running InterVA6 analysis...');
+
+        // Get the result as blob
+        resultBlob = await response.blob();
+        
+        const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+        
+        updateProgress(80);
+        addLogMessage(`Analysis complete (${totalTime}s total)`);
+        addLogMessage(`Result size: ${(resultBlob.size / 1024).toFixed(2)} KB`);
+        
+        updateProgress(100);
+        await sleep(300);
+
+        showSuccess(`Processing complete!\nTotal time: ${totalTime}s\nResults ready for download.`);
+        downloadLink.classList.add('active');
+
+      } catch (error) {
+        console.error('Processing error:', error);
+        showError(`Processing failed: ${error.message}`);
+        resultBlob = null;
+      } finally {
+        runBtn.disabled = false;
+        loadBtn.disabled = false;
+      }
+    }
+
+    // UI Helper functions
+    function showLoadingWithProgress(message, percent) {
+      outputBox.className = 'output-box loading';
+      
+      const progressHtml = `
+        <div class="spinner"></div>
+        <div style="text-align: center; width: 100%;">${message}</div>
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: ${percent}%"></div>
+          </div>
+          <div class="progress-text" id="progressText">${Math.round(percent)}%</div>
+        </div>
+        <div class="log-messages" id="logMessages"></div>
+      `;
+      
+      outputBox.innerHTML = progressHtml;
+    }
+
+    function updateProgress(percent) {
+      const progressFill = document.getElementById('progressFill');
+      const progressText = document.getElementById('progressText');
+      
+      if (progressFill && progressText) {
+        progressFill.style.width = percent + '%';
+        progressText.textContent = Math.round(percent) + '%';
+      }
+    }
+
+    function addLogMessage(message) {
+      const logMessages = document.getElementById('logMessages');
+      if (logMessages) {
+        const logDiv = document.createElement('div');
+        logDiv.className = 'log-message';
+        logDiv.textContent = message;
+        logMessages.appendChild(logDiv);
+        
+        // Auto-scroll to bottom
+        outputBox.scrollTop = outputBox.scrollHeight;
+      }
+    }
+
+    function showSuccess(message) {
+      outputBox.className = 'output-box success';
+      outputBox.innerHTML = `<div style="text-align: center; width: 100%;">${message.split('\n').map(line => `<div>${line}</div>`).join('')}</div>`;
+    }
+
+    function showError(message) {
+      outputBox.className = 'output-box error';
+      outputBox.innerHTML = `<div style="text-align: center; width: 100%;">${message}</div>`;
+    }
+
+    function resetOutput() {
+      outputBox.className = 'output-box';
+      outputBox.innerHTML = '<div style="text-align: center; width: 100%;">Ready to process data</div>';
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Proper CSV parsing function that handles quoted fields
+    function parseCSVLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+        
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            // Escaped quote
+            current += '"';
+            i++; // Skip next quote
+          } else {
+            // Toggle quotes
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          // Field separator
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      
+      // Add last field
+      result.push(current.trim());
+      
+      return result;
+    }
+
+    // Initialize
+    resetOutput();
+    
+    // Test connection on load
+    fetch(`${API_BASE_URL}/health`)
+      .then(r => r.json())
+      .then(data => {
+        console.log('Backend health check:', data);
+        if (data.status === 'healthy') {
+          fileInfo.textContent = 'Connected to server';
+          fileInfo.style.color = '#28a745';
+        }
+      })
+      .catch(err => {
+        console.error('Backend connection failed:', err);
+        fileInfo.textContent = '⚠ Warning: Cannot connect to server. Make sure it is running.';
+        fileInfo.style.color = '#dc3545';
+      });
+  </script>
+</body>
+</html>
