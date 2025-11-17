@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>InterVA Analysis</title>
+  <title>CCVA Processing</title>
   <style>
     * {
       box-sizing: border-box;
@@ -14,52 +14,162 @@
       background-color: #f5f5f5;
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: flex-start;
       min-height: 100vh;
-      padding: 20px;
+      padding: 40px 20px;
+    }
+
+    .main-wrapper {
+      display: flex;
+      gap: 20px;
+      max-width: 1200px;
+      width: 100%;
+      align-items: flex-start;
     }
 
     .container {
       background: white;
-      padding: 40px 60px;
+      padding: 30px 40px;
       border-radius: 16px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       text-align: center;
-      width: 500px;
-      max-width: 100%;
+      flex: 1;
+      min-width: 600px;
+    }
+
+    .disclaimer-box {
+      background: white;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      width: 320px;
+      text-align: left;
+    }
+
+    .disclaimer-box h2 {
+      margin: 0 0 15px 0;
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #333;
+    }
+
+    .disclaimer-box .beta-badge {
+      background: #007bff;
+      color: white;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .disclaimer-box p {
+      margin: 0 0 12px 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #555;
+    }
+
+    .disclaimer-box .version-info {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-size: 12px;
+    }
+
+    .disclaimer-box .version-info strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: #333;
+    }
+
+    .disclaimer-box ul {
+      margin: 8px 0 0 0;
+      padding-left: 18px;
+      color: #555;
+    }
+
+    .disclaimer-box li {
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .main-wrapper {
+        flex-direction: column;
+      }
+      
+      .disclaimer-box {
+        width: 100%;
+        max-width: 600px;
+      }
+      
+      .container {
+        min-width: auto;
+        width: 100%;
+      }
     }
 
     h1 {
-      margin: 0 0 20px 0;
+      margin: 0 0 15px 0;
       font-size: 24px;
       color: #333;
     }
 
+    .file-info {
+      margin-top: 8px;
+      margin-bottom: 15px;
+      font-size: 12px;
+      color: #666;
+      min-height: 18px;
+      text-align: center;
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      align-items: center;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      flex: 1;
+      min-width: 180px;
+    }
+
     input[type="file"] {
-      border: 2px dashed #bbb;
-      border-radius: 10px;
-      padding: 20px;
+      position: absolute;
+      opacity: 0;
       width: 100%;
+      height: 100%;
       cursor: pointer;
-      color: #555;
+    }
+
+    .file-button {
+      background-color: #e8e8e8;
+      border: 2px solid #bbb;
+      border-radius: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 13px;
       transition: all 0.2s ease;
+      white-space: nowrap;
+      display: block;
+      text-align: center;
+      color: #555;
     }
 
-    input[type="file"]:hover {
+    .file-input-wrapper:hover .file-button {
       border-color: #888;
-    }
-
-    .buttons {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .button-row {
-      display: flex;
-      gap: 10px;
-      width: 100%;
+      background-color: #dcdcdc;
     }
 
     button, select {
@@ -70,14 +180,16 @@
       cursor: pointer;
       font-size: 13px;
       transition: all 0.2s ease-in-out;
-      flex: 1;
-    }
-
-    button {
-      min-width: 80px;
+      white-space: nowrap;
     }
 
     select {
+      flex: 1;
+      min-width: 150px;
+    }
+
+    button {
+      flex: 0 0 auto;
       min-width: 120px;
     }
 
@@ -90,62 +202,43 @@
       cursor: not-allowed;
     }
 
+    #runBtn {
+      background-color: #007bff;
+      color: white;
+      font-weight: 500;
+    }
+
+    #runBtn:hover:not(:disabled) {
+      background-color: #0056b3;
+    }
+
     #cancelBtn {
       background-color: #dc3545;
       color: white;
+      font-weight: 500;
     }
 
     #cancelBtn:hover:not(:disabled) {
       background-color: #c82333;
     }
 
-    .output-box {
-      margin-top: 20px;
-      border: 1px solid #ddd;
+    .progress-section {
+      margin-top: 15px;
+      padding: 12px;
+      background-color: #f8f9fa;
       border-radius: 10px;
-      min-height: 120px;
-      max-height: 300px;
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      color: #777;
-      font-size: 13px;
-      line-height: 1.6;
-      overflow-y: auto;
-      text-align: left;
+      display: none;
     }
 
-    .output-box.success {
-      border-color: #28a745;
-      background-color: #f0f9f4;
-      color: #28a745;
-    }
-
-    .output-box.error {
-      border-color: #dc3545;
-      background-color: #fef5f5;
-      color: #dc3545;
-    }
-
-    .output-box.loading {
-      border-color: #007bff;
-      background-color: #f0f7ff;
-      color: #007bff;
-    }
-
-    .progress-container {
-      width: 100%;
-      max-width: 280px;
-      margin-top: 10px;
+    .progress-section.active {
+      display: block;
     }
 
     .progress-bar {
       width: 100%;
-      height: 20px;
+      height: 24px;
       background-color: #e0e0e0;
-      border-radius: 10px;
+      border-radius: 12px;
       overflow: hidden;
       position: relative;
     }
@@ -153,99 +246,168 @@
     .progress-fill {
       height: 100%;
       background: linear-gradient(90deg, #007bff, #0056b3);
-      transition: width 0.3s ease;
-      border-radius: 10px;
+      transition: width 0.4s ease;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
     }
 
-    .progress-text {
-      margin-top: 5px;
+    .progress-status {
+      margin-top: 8px;
       font-size: 12px;
       color: #555;
+      text-align: center;
     }
 
-    .spinner {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #007bff;
-      border-radius: 50%;
-      width: 30px;
-      height: 30px;
-      animation: spin 1s linear infinite;
-      margin-bottom: 10px;
+    .output-box {
+      margin-top: 15px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      height: 250px;
+      padding: 12px;
+      color: #777;
+      font-size: 12px;
+      line-height: 1.5;
+      overflow-y: auto;
+      text-align: left;
+      background-color: #fafafa;
     }
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    .output-box.success {
+      border-color: #28a745;
+      background-color: #f0f9f4;
+    }
+
+    .output-box.error {
+      border-color: #dc3545;
+      background-color: #fef5f5;
     }
 
     .download-link {
-      margin-top: 10px;
+      margin-top: 12px;
       font-size: 13px;
-      color: #333;
-      text-decoration: underline;
+      color: #007bff;
+      text-decoration: none;
       cursor: pointer;
       display: none;
-      padding: 5px;
+      padding: 10px 20px;
+      background-color: #e7f3ff;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.2s ease;
     }
 
     .download-link.active {
       display: inline-block;
-      color: #007bff;
     }
 
     .download-link:hover {
+      background-color: #cce5ff;
       color: #0056b3;
     }
 
-    .file-info {
-      margin-top: 10px;
-      font-size: 12px;
-      color: #666;
-    }
-
-    .log-messages {
-      width: 100%;
-      text-align: left;
-    }
-
     .log-message {
-      padding: 3px 0;
+      padding: 4px 0;
       color: #555;
       font-size: 12px;
+      font-family: 'Consolas', 'Monaco', monospace;
+    }
+
+    .log-message.success {
+      color: #28a745;
+    }
+
+    .log-message.error {
+      color: #dc3545;
+    }
+
+    .status-message {
+      text-align: center;
+      padding: 20px;
+      color: #999;
+      font-size: 13px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>InterVA Analysis</h1>
-    
-    <input type="file" id="fileInput" accept=".csv" />
-    <div class="file-info" id="fileInfo"></div>
+  <div class="main-wrapper">
+    <div class="container">
+    <h1>CCVA Processing</h1>
+    <div class="file-info" id="fileInfo">Select a CSV file to begin</div>
 
-    <div class="buttons">
-      <div class="button-row">
-        <button id="loadBtn">Load Data</button>
-        <button id="runBtn" disabled>Run Analysis</button>
+    <div class="controls-row">
+      <div class="file-input-wrapper">
+        <input type="file" id="fileInput" accept=".csv" />
+        <div class="file-button" id="fileButton"> Choose CSV File</div>
       </div>
-      <div class="button-row">
-        <select id="algorithmSelect">
-          <option value="InterVA-6">InterVA6</option>
-          <option value="InterVA-5">InterVA5</option>
-        </select>
-        <select id="whoVersionSelect">
-          <option value="auto">Auto-detect WHO version</option>
-          <option value="2016WHOv151">WHO 2016 v1.5.1</option>
-          <option value="2022WHOv0101">WHO 2022 v01.01</option>
-        </select>
-      </div>
+      
+      <select id="whoVersionSelect">
+        <option value="auto">Auto-detect WHO</option>
+        <option value="2016WHOv151">WHO 2016</option>
+        <option value="2022WHOv0101">WHO 2022</option>
+      </select>
+      
+      <select id="algorithmSelect">
+        <option value="InterVA-5">InterVA-5</option>
+        <option value="InterVA-6">InterVA-6</option>
+      </select>
+
+      <button id="runBtn" disabled>Run Analysis</button>
       <button id="cancelBtn" disabled style="display: none;">Cancel</button>
     </div>
 
-    <div class="output-box" id="outputBox">
-      <div style="text-align: center; width: 100%;">Ready to process data</div>
+    <div class="progress-section" id="progressSection">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 0%">
+          <span id="progressPercent">0%</span>
+        </div>
+      </div>
+      <div class="progress-status" id="progressStatus">Initializing...</div>
     </div>
 
-    <a class="download-link" id="downloadLink">Download Results</a>
+    <div class="output-box" id="outputBox">
+      <div class="status-message">Ready to process data</div>
+    </div>
+
+    <div class="action-row">
+      
+      <a class="download-link" id="downloadLink"> Download Results</a>
+    </div>
+  </div>
+
+  <div class="disclaimer-box">
+    <h2>
+      Beta Version
+      <span class="beta-badge">v1.0</span>
+    </h2>
+    
+    <p><strong>Important Notice:</strong></p>
+    
+    <p>This is a beta version of the CCVA Processing System using InterVA algorithms. By using this platform, you acknowledge and agree to the following:</p>
+    
+    <p>• This tool is provided "as-is" for research and evaluation purposes only.</p>
+    
+    <p>• Results should be verified by qualified professionals before making any clinical or policy decisions.</p>
+    
+    <p>• We are not liable for any misuse, misinterpretation, or consequences arising from the use of this platform.</p>
+    
+    <p>• No warranty is provided regarding accuracy, completeness, or fitness for any particular purpose.</p>
+    
+    <div class="version-info">
+      <strong>📋 Algorithm Compatibility:</strong>
+      <ul>
+        <li><strong>InterVA-5:</strong> WHO 2016 v1.5.1</li>
+        <li><strong>InterVA-6:</strong> WHO 2022 v01.01</li>
+      </ul>
+    </div>
+    
+    <p style="margin-top: 15px; font-size: 11px; opacity: 0.8;">© 2025 CCVA Processing System. All rights reserved.</p>
+  </div>
+  
   </div>
 
   <script>
@@ -258,44 +420,67 @@
     let resultBlob = null;
     let currentSessionId = null;
     let eventSource = null;
+    let detectedWhoVersion = null;
+    let isLoading = false;
     
     // DOM elements
     const fileInput = document.getElementById('fileInput');
+    const fileButton = document.getElementById('fileButton');
     const fileInfo = document.getElementById('fileInfo');
-    const loadBtn = document.getElementById('loadBtn');
     const runBtn = document.getElementById('runBtn');
     const cancelBtn = document.getElementById('cancelBtn');
     const algorithmSelect = document.getElementById('algorithmSelect');
     const whoVersionSelect = document.getElementById('whoVersionSelect');
     const outputBox = document.getElementById('outputBox');
     const downloadLink = document.getElementById('downloadLink');
+    const progressSection = document.getElementById('progressSection');
+    const progressFill = document.getElementById('progressFill');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressStatus = document.getElementById('progressStatus');
 
-    // File input change handler
-    fileInput.addEventListener('change', (e) => {
+    // File input change handler - auto-load in background
+    fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (file) {
-        fileInfo.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+        if (!file.name.endsWith('.csv')) {
+          fileInfo.textContent = '❌ Please select a valid CSV file';
+          fileInfo.style.color = '#dc3545';
+          fileButton.textContent = 'Choose CSV File';
+          uploadedData = null;
+          runBtn.disabled = true;
+          return;
+        }
+
+        // Update button text to show filename
+        const shortName = file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name;
+        fileButton.textContent = `📄 ${shortName}`;
+        
+        // Auto-load in background
+        fileInfo.textContent = `Loading ${file.name}...`;
+        fileInfo.style.color = '#007bff';
+        
         uploadedData = null;
         runBtn.disabled = true;
         downloadLink.classList.remove('active');
         resetOutput();
+        
+        await loadCSVData(file);
       }
     });
 
-    // Load Data button
-    loadBtn.addEventListener('click', async () => {
-      const file = fileInput.files[0];
-      if (!file) {
-        showError('Please select a CSV file first');
-        return;
+    // WHO version select change handler - suggest algorithm but allow override
+    whoVersionSelect.addEventListener('change', () => {
+      const whoVersion = whoVersionSelect.value;
+      
+      if (whoVersion === '2016WHOv151') {
+        // WHO 2016 recommended with InterVA-5
+        algorithmSelect.value = 'InterVA-5';
+        addLogMessage('ℹ WHO 2016 → InterVA-5 (recommended)');
+      } else if (whoVersion === '2022WHOv0101') {
+        // WHO 2022 recommended with InterVA-6
+        algorithmSelect.value = 'InterVA-6';
+        addLogMessage('ℹ WHO 2022 → InterVA-6 (recommended)');
       }
-
-      if (!file.name.endsWith('.csv')) {
-        showError('Please select a valid CSV file');
-        return;
-      }
-
-      await loadCSVData(file);
     });
 
     // Run button
@@ -306,28 +491,40 @@
       await processDataWithChunking(algorithm, whoVersion);
     });
 
-    // Cancel button
+    // Cancel button - stops current processing
     cancelBtn.addEventListener('click', async () => {
       if (currentSessionId) {
         try {
-          addLogMessage('→ Cancelling operation...');
+          addLogMessage('→ Cancelling operation...', 'error');
           
           // Send cancel request to backend
-          await fetch(`${API_BASE_URL}/cancel/${currentSessionId}`, {
+          const response = await fetch(`${API_BASE_URL}/cancel/${currentSessionId}`, {
             method: 'POST'
           });
+
+          if (response.ok) {
+            addLogMessage('✓ Cancellation request sent to server', 'error');
+          }
           
+          // Close SSE connection
           closeSSE();
-          showError('Operation cancelled by user');
           
+          // Update UI
+          addLogMessage('✓ Operation cancelled by user', 'error');
+          setProgress(0, 'Cancelled');
+          progressSection.classList.remove('active');
+          
+          // Reset buttons
           cancelBtn.disabled = true;
           cancelBtn.style.display = 'none';
           runBtn.disabled = false;
-          loadBtn.disabled = false;
           
+          // Clear session
           currentSessionId = null;
+          
         } catch (error) {
           console.error('Cancel error:', error);
+          addLogMessage(`❌ Cancel failed: ${error.message}`, 'error');
         }
       }
     });
@@ -339,7 +536,7 @@
         const a = document.createElement('a');
         a.href = url;
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-        a.download = `interva6_results_${timestamp}.csv`;
+        a.download = `interva_results_${timestamp}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -351,14 +548,13 @@
     // Load CSV data
     async function loadCSVData(file) {
       try {
-        loadBtn.disabled = true;
+        isLoading = true;
         runBtn.disabled = true;
         
-        showLoadingWithProgress('Reading CSV file...', 0);
+        addLogMessage('→ Reading CSV file...');
         
         const text = await file.text();
-        updateProgress(30);
-        addLogMessage('File read into memory');
+        addLogMessage('✓ File read into memory');
         
         const lines = text.split('\n').filter(line => line.trim());
         
@@ -366,29 +562,119 @@
           throw new Error('CSV file must have at least a header row and one data row');
         }
 
-        updateProgress(60);
-        addLogMessage(`Found ${lines.length} lines`);
+        addLogMessage(`→ Found ${lines.length} lines`);
 
         // Parse CSV properly (handles quoted fields)
         const csvData = lines.map(line => parseCSVLine(line));
 
-        updateProgress(90);
-        addLogMessage(`Parsed into ${csvData[0].length} columns`);
+        addLogMessage(`✓ Parsed into ${csvData[0].length} columns`);
         
-        await sleep(200);
         uploadedData = csvData;
         
-        updateProgress(100);
-        await sleep(300);
-
-        showSuccess(`CSV loaded successfully!\n${csvData.length - 1} data rows, ${csvData[0].length} columns`);
+        // Try to detect WHO version from headers
+        const headers = csvData[0].map(h => h.toLowerCase().trim());
+        detectedWhoVersion = detectWHOVersion(headers);
+        
+        if (detectedWhoVersion) {
+          whoVersionSelect.value = detectedWhoVersion;
+          
+          // Auto-select recommended algorithm based on WHO version
+          if (detectedWhoVersion === '2016WHOv151') {
+            algorithmSelect.value = 'InterVA-5';
+            addLogMessage(`✓ Detected WHO 2016 → InterVA-5 (recommended)`);
+          } else if (detectedWhoVersion === '2022WHOv0101') {
+            algorithmSelect.value = 'InterVA-6';
+            addLogMessage(`✓ Detected WHO 2022 → InterVA-6 (recommended)`);
+          }
+          
+          fileInfo.textContent = `✓ ${file.name} loaded (${csvData.length - 1} rows, WHO ${detectedWhoVersion.includes('2016') ? '2016' : '2022'})`;
+          fileInfo.style.color = '#28a745';
+        } else {
+          addLogMessage('⚠ Could not auto-detect WHO version - please select manually');
+          fileInfo.textContent = `✓ ${file.name} loaded (${csvData.length - 1} rows) - Select WHO version`;
+          fileInfo.style.color = '#ff9800';
+        }
+        
         runBtn.disabled = false;
         
       } catch (error) {
-        showError(`Failed to load CSV: ${error.message}`);
+        addLogMessage(`❌ Failed to load CSV: ${error.message}`, 'error');
+        fileInfo.textContent = `❌ Error: ${error.message}`;
+        fileInfo.style.color = '#dc3545';
         uploadedData = null;
       } finally {
-        loadBtn.disabled = false;
+        isLoading = false;
+      }
+    }
+
+    // Detect WHO version from CSV headers
+    function detectWHOVersion(headers) {
+      // Create a Set for faster lookup (case-insensitive)
+      const columnSet = new Set(headers.map(h => h.toLowerCase().trim()));
+      
+      // Define key signature variables for each version
+      // These are variables that are unique to each version
+      
+      // 2016 signature variables (unique to WHO 2016)
+      const who2016Signatures = [
+        'id10077note',
+        'id10077_note',
+        'id10444',
+        'id10445',
+        'id10446',
+        'id10450',
+        'id10451',
+        'id10453',
+        'id10454',
+        'id10260_check2',
+        'id1036x_check'
+      ];
+      
+      // 2022 signature variables (unique to WHO 2022)
+      const who2022Signatures = [
+        'language',
+        'id10476_audio',
+        'noteon',
+        'notenarr',
+        'note_s_s',
+        'nmh',
+        'botecrn',
+        'noteccd',
+        'noteend'
+      ];
+      
+      // Count matches for each version
+      let count2016 = 0;
+      let count2022 = 0;
+      
+      for (const sig of who2016Signatures) {
+        if (columnSet.has(sig.toLowerCase())) {
+          count2016++;
+        }
+      }
+      
+      for (const sig of who2022Signatures) {
+        if (columnSet.has(sig.toLowerCase())) {
+          count2022++;
+        }
+      }
+      
+      console.log(`WHO Detection: 2016 signatures=${count2016}, 2022 signatures=${count2022}`);
+      
+      // Make decision based on signature matches (need at least 3 matches)
+      if (count2016 > count2022 && count2016 >= 3) {
+        return '2016WHOv151';
+      } else if (count2022 > count2016 && count2022 >= 3) {
+        return '2022WHOv0101';
+      } else {
+        // If still unclear, use some key discriminators
+        if (columnSet.has('id10077_note')) {
+          return '2016WHOv151';
+        } else if (columnSet.has('language')) {
+          return '2022WHOv0101';
+        } else {
+          return null; // unknown
+        }
       }
     }
 
@@ -396,13 +682,16 @@
     async function processDataWithChunking(algorithm, whoVersion) {
       try {
         runBtn.disabled = true;
-        loadBtn.disabled = true;
         cancelBtn.disabled = false;
         cancelBtn.style.display = 'inline-block';
         downloadLink.classList.remove('active');
         resultBlob = null;
 
-        showLoadingWithProgress('Preparing file for upload...', 0);
+        // Show progress section
+        progressSection.classList.add('active');
+        setProgress(0, 'Preparing file for upload...');
+        
+        outputBox.innerHTML = '';
         addLogMessage('→ Converting data to CSV text');
 
         // Convert uploadedData back to CSV text
@@ -426,7 +715,7 @@
 
         // Connect to SSE endpoint
         await connectSSE(currentSessionId);
-        await sleep(500); // Give SSE time to connect
+        await sleep(300); // Give SSE time to connect
 
         // Split into chunks
         const chunks = [];
@@ -437,12 +726,10 @@
         const totalChunks = chunks.length;
         addLogMessage(`→ Split into ${totalChunks} chunk(s) (${(CHUNK_SIZE / 1024 / 1024).toFixed(1)}MB each)`);
 
-        updateProgress(10);
+        setProgress(5, 'Starting upload...');
 
         // Upload chunks sequentially
         for (let i = 0; i < chunks.length; i++) {
-          addLogMessage(`→ Uploading chunk ${i + 1}/${totalChunks}...`);
-          
           const chunkPayload = {
             session_id: currentSessionId,
             chunk_index: i,
@@ -465,24 +752,27 @@
             throw new Error(errorData.detail || `Chunk upload failed: ${response.status}`);
           }
 
-          // Update progress (10% to 40% for uploads)
-          const uploadProgress = 10 + (30 * (i + 1) / totalChunks);
-          updateProgress(uploadProgress);
+          // Update progress (5% to 30% for uploads)
+          const uploadProgress = 5 + (25 * (i + 1) / totalChunks);
+          setProgress(uploadProgress, `Uploading chunk ${i + 1}/${totalChunks}...`);
+          addLogMessage(`✓ Uploaded chunk ${i + 1}/${totalChunks}`);
         }
 
         addLogMessage(`✓ All chunks uploaded successfully`);
-        addLogMessage(`→ Backend is processing...`);
+        setProgress(30, 'Processing data...');
+        addLogMessage(`→ Backend is analyzing data with ${algorithm}...`);
 
         // SSE will handle the rest of the progress updates
         // The download link will be enabled when processing completes
 
       } catch (error) {
         console.error('Processing error:', error);
-        showError(`Processing failed: ${error.message}`);
+        addLogMessage(`❌ Error: ${error.message}`, 'error');
+        setProgress(0, 'Error occurred');
+        progressSection.classList.remove('active');
         closeSSE();
         resultBlob = null;
         runBtn.disabled = false;
-        loadBtn.disabled = false;
         cancelBtn.disabled = true;
         cancelBtn.style.display = 'none';
       }
@@ -512,26 +802,36 @@
             if (data.type === 'connected') {
               addLogMessage(data.message);
             } else if (data.type === 'chunk_received') {
-              addLogMessage(`✓ ${data.message}`);
-              // Update progress (40% to 50% for chunk confirmation)
-              const chunkProgress = 40 + (10 * data.chunk_index / data.total_chunks);
-              updateProgress(chunkProgress);
+              // Don't update progress here - already handled in upload loop
+              // Just log the message
+              // addLogMessage(`✓ ${data.message}`);
             } else if (data.type === 'progress') {
               addLogMessage(`→ ${data.message}`);
-              // Gradually increase progress during processing (50% to 90%)
-              const currentProgress = parseInt(document.getElementById('progressFill')?.style.width || '50');
-              if (currentProgress < 90) {
-                updateProgress(Math.min(currentProgress + 5, 90));
+              
+              // Extract percentage from message if available (e.g., "Processing: 45%")
+              const percentMatch = data.message.match(/(\d+)%/);
+              if (percentMatch) {
+                const backendPercent = parseInt(percentMatch[1]);
+                // Map backend progress (0-100%) to UI progress (30-95%)
+                const uiPercent = 30 + (backendPercent * 0.65);
+                setProgress(uiPercent, data.message);
+              } else {
+                // Gradually increase if no percentage in message
+                const currentProgress = getCurrentProgress();
+                if (currentProgress < 95) {
+                  setProgress(Math.min(currentProgress + 3, 95), data.message);
+                }
               }
             } else if (data.type === 'complete') {
-              addLogMessage(`✓ ${data.message}`);
-              updateProgress(100);
+              addLogMessage(`✓ ${data.message}`, 'success');
+              setProgress(100, 'Complete!');
               handleProcessingComplete(sessionId);
             } else if (data.type === 'error') {
-              showError(data.message);
+              addLogMessage(`❌ ${data.message}`, 'error');
+              setProgress(0, 'Error');
+              progressSection.classList.remove('active');
               closeSSE();
               runBtn.disabled = false;
-              loadBtn.disabled = false;
               cancelBtn.disabled = true;
               cancelBtn.style.display = 'none';
             }
@@ -561,8 +861,9 @@
     // Handle processing complete
     async function handleProcessingComplete(sessionId) {
       try {
-        await sleep(500);
+        await sleep(300);
         
+        setProgress(100, 'Downloading results...');
         addLogMessage('→ Downloading results...');
         
         // Download the result
@@ -574,19 +875,24 @@
         
         resultBlob = await response.blob();
         
-        addLogMessage(`✓ Results downloaded (${(resultBlob.size / 1024).toFixed(2)} KB)`);
+        addLogMessage(`✓ Results downloaded (${(resultBlob.size / 1024).toFixed(2)} KB)`, 'success');
+        addLogMessage('✓ Processing complete!', 'success');
         
-        showSuccess('Processing complete!\nResults ready for download.');
         downloadLink.classList.add('active');
         
         closeSSE();
         
+        // Hide progress bar after a moment
+        await sleep(2000);
+        progressSection.classList.remove('active');
+        
       } catch (error) {
         console.error('Download error:', error);
-        showError(`Failed to download results: ${error.message}`);
+        addLogMessage(`❌ Failed to download: ${error.message}`, 'error');
+        setProgress(0, 'Download failed');
+        progressSection.classList.remove('active');
       } finally {
         runBtn.disabled = false;
-        loadBtn.disabled = false;
         cancelBtn.disabled = true;
         cancelBtn.style.display = 'none';
       }
@@ -597,135 +903,31 @@
       return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
-    // Process data with selected algorithm (fallback for /test endpoint)
-    async function processData(algorithm) {
-      try {
-        runBtn.disabled = true;
-        loadBtn.disabled = true;
-        downloadLink.classList.remove('active');
-        resultBlob = null;
-
-        showLoadingWithProgress('Preparing data...', 0);
-        addLogMessage('→ Preparing payload for backend');
-
-        // Prepare payload for FastAPI
-        const payload = {
-          algorithm: algorithm,
-          csv: uploadedData
-        };
-
-        updateProgress(10);
-        addLogMessage(`→ Sending ${uploadedData.length} rows to ${algorithm} algorithm`);
-
-        console.log('Sending to backend:', {
-          algorithm: payload.algorithm,
-          rows: payload.csv.length,
-          columns: payload.csv[0].length
-        });
-
-        // Send to backend
-        const startTime = Date.now();
-        const response = await fetch(`${API_BASE_URL}/test`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload)
-        });
-
-        const uploadTime = ((Date.now() - startTime) / 1000).toFixed(2);
-        updateProgress(30);
-        addLogMessage(`Data sent to server (${uploadTime}s)`);
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `Server error: ${response.status}`);
-        }
-
-        updateProgress(50);
-        addLogMessage('→ Backend is processing data...');
-        addLogMessage('→ Running InterVA6 analysis...');
-
-        // Get the result as blob
-        resultBlob = await response.blob();
-        
-        const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
-        
-        updateProgress(80);
-        addLogMessage(`Analysis complete (${totalTime}s total)`);
-        addLogMessage(`Result size: ${(resultBlob.size / 1024).toFixed(2)} KB`);
-        
-        updateProgress(100);
-        await sleep(300);
-
-        showSuccess(`Processing complete!\nTotal time: ${totalTime}s\nResults ready for download.`);
-        downloadLink.classList.add('active');
-
-      } catch (error) {
-        console.error('Processing error:', error);
-        showError(`Processing failed: ${error.message}`);
-        resultBlob = null;
-      } finally {
-        runBtn.disabled = false;
-        loadBtn.disabled = false;
-      }
-    }
-
     // UI Helper functions
-    function showLoadingWithProgress(message, percent) {
-      outputBox.className = 'output-box loading';
+    function setProgress(percent, statusText) {
+      progressFill.style.width = Math.round(percent) + '%';
+      progressPercent.textContent = Math.round(percent) + '%';
+      progressStatus.textContent = statusText;
+    }
+
+    function getCurrentProgress() {
+      return parseFloat(progressFill.style.width) || 0;
+    }
+
+    function addLogMessage(message, type = 'info') {
+      const logDiv = document.createElement('div');
+      logDiv.className = 'log-message' + (type !== 'info' ? ' ' + type : '');
+      logDiv.textContent = message;
+      outputBox.appendChild(logDiv);
       
-      const progressHtml = `
-        <div class="spinner"></div>
-        <div style="text-align: center; width: 100%;">${message}</div>
-        <div class="progress-container">
-          <div class="progress-bar">
-            <div class="progress-fill" id="progressFill" style="width: ${percent}%"></div>
-          </div>
-          <div class="progress-text" id="progressText">${Math.round(percent)}%</div>
-        </div>
-        <div class="log-messages" id="logMessages"></div>
-      `;
-      
-      outputBox.innerHTML = progressHtml;
-    }
-
-    function updateProgress(percent) {
-      const progressFill = document.getElementById('progressFill');
-      const progressText = document.getElementById('progressText');
-      
-      if (progressFill && progressText) {
-        progressFill.style.width = percent + '%';
-        progressText.textContent = Math.round(percent) + '%';
-      }
-    }
-
-    function addLogMessage(message) {
-      const logMessages = document.getElementById('logMessages');
-      if (logMessages) {
-        const logDiv = document.createElement('div');
-        logDiv.className = 'log-message';
-        logDiv.textContent = message;
-        logMessages.appendChild(logDiv);
-        
-        // Auto-scroll to bottom
-        outputBox.scrollTop = outputBox.scrollHeight;
-      }
-    }
-
-    function showSuccess(message) {
-      outputBox.className = 'output-box success';
-      outputBox.innerHTML = `<div style="text-align: center; width: 100%;">${message.split('\n').map(line => `<div>${line}</div>`).join('')}</div>`;
-    }
-
-    function showError(message) {
-      outputBox.className = 'output-box error';
-      outputBox.innerHTML = `<div style="text-align: center; width: 100%;">${message}</div>`;
+      // Auto-scroll to bottom
+      outputBox.scrollTop = outputBox.scrollHeight;
     }
 
     function resetOutput() {
       outputBox.className = 'output-box';
-      outputBox.innerHTML = '<div style="text-align: center; width: 100%;">Ready to process data</div>';
+      outputBox.innerHTML = '<div class="status-message">Ready to process data</div>';
+      progressSection.classList.remove('active');
     }
 
     function sleep(ms) {
@@ -775,13 +977,13 @@
       .then(data => {
         console.log('Backend health check:', data);
         if (data.status === 'healthy') {
-          fileInfo.textContent = 'Connected to server';
+          fileInfo.textContent = '✓ Connected to server - Select a CSV file to begin';
           fileInfo.style.color = '#28a745';
         }
       })
       .catch(err => {
         console.error('Backend connection failed:', err);
-        fileInfo.textContent = '⚠ Warning: Cannot connect to server. Make sure it is running.';
+        fileInfo.textContent = '⚠ Cannot connect to server. Make sure backend is running.';
         fileInfo.style.color = '#dc3545';
       });
   </script>
