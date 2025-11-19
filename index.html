@@ -472,7 +472,7 @@
     </div>
 
     <div class="csmf-section" id="csmfSection">
-      <h3>📊 Top Causes of Death (CSMF)</h3>
+      <h3>Cause specific mortality fraction for given population</h3>
       <div class="chart-container">
         <div class="bar-chart" id="barChart"></div>
       </div>
@@ -1065,13 +1065,13 @@
     // Timer functions
     function startTimer() {
       startTime = Date.now();
-      timeElapsed.textContent = '⏱ Time: 0:00';
+      timeElapsed.textContent = 'Time Elapsed: 0:00';
       
       timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         const minutes = Math.floor(elapsed / 60);
         const seconds = elapsed % 60;
-        timeElapsed.textContent = `⏱ Time: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        timeElapsed.textContent = `Time Elapsed: ${minutes}:${seconds.toString().padStart(2, '0')}`;
       }, 1000);
     }
 
