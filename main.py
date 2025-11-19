@@ -311,14 +311,14 @@ async def download_result(session_id: str):
     
     result_blob = session["result"]
     
-    # Clean up session after download
-    del sessions[session_id]
+    # Mark as downloaded but don't delete yet (CSMF may still be fetched)
+    session["downloaded"] = True
     
     return StreamingResponse(
         io.BytesIO(result_blob),
         media_type="text/csv",
         headers={
-            "Content-Disposition": "attachment; filename=interva6_results.csv",
+            "Content-Disposition": "attachment; filename=interva_results.csv",
             "Access-Control-Expose-Headers": "Content-Disposition"
         }
     )
@@ -356,14 +356,25 @@ async def monitor_progress(queue: asyncio.Queue, session: Dict, total_records: i
     """
     try:
         # Simulate progress updates every 2 seconds
-        progress_points = [8, 15, 23, 31, 38, 46, 54, 62, 69, 77, 85, 92, 100]
+        progress_points = [
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+    11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+    21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+    31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+    41,42,43,45,46,47,48,49,50,51,52,53,54,
+    55,56,57,58,59,60,61,62,63,64,65,66,67,
+    68,69,70,71,72,73,74,75,76,77,78,79,80,
+    81,82,83,84,85,86,87,88,89,90,91,92,93,
+    94,95,96,97,98,99,100,"finalizing "
+    ]
+
         
         for percent in progress_points:
             # Check if cancelled
             if session.get("cancelled", False):
                 return
             
-            await asyncio.sleep(2)  # Wait 2 seconds between updates
+            await asyncio.sleep(5)  # Wait 2 seconds between updates
             
             # Check again after sleep
             if session.get("cancelled", False):
@@ -555,6 +566,51 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
         })
 
 
+@app.get("/get-csmf/{session_id}")
+async def get_csmf(session_id: str, top: int = 10):
+    """
+    Get CSMF (Cause-Specific Mortality Fraction) data for a session.
+    This is only available for InterVA5 results.
+    """
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    
+    session = sessions[session_id]
+    
+    # Check if we have InterVA5 object stored
+    if "interva5_obj" not in session:
+        raise HTTPException(status_code=404, detail="CSMF data not available (only for InterVA-5)")
+    
+    try:
+        interva5_obj = session["interva5_obj"]
+        
+        # Get CSMF using the frequency method
+        csmf_series = interva5_obj.get_csmf(top=top, groupcode=False, method="frequency")
+        
+        if csmf_series is None or len(csmf_series) == 0:
+            return {"csmf": {}, "message": "No CSMF data available"}
+        
+        # Convert to dictionary
+        csmf_dict = csmf_series.to_dict()
+        
+        # Now we can clean up the session since CSMF has been fetched
+        if session_id in sessions:
+            del sessions[session_id]
+            print(f"✓ Session {session_id} cleaned up after CSMF fetch")
+        
+        return {
+            "csmf": csmf_dict,
+            "top": top,
+            "total_causes": len(csmf_dict)
+        }
+        
+    except Exception as e:
+        print(f"❌ Error getting CSMF: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error getting CSMF: {str(e)}")
+
+
 async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who_version: str):
     """
     Process WHO VA data → pycrossva → InterVA5 with SSE progress updates.
@@ -666,8 +722,30 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
             monitor_progress(queue, session, ccva_df.shape[0], "InterVA-5")
         )
         
+        # Run InterVA5 using vman3 wrapper (which returns the InterVA5 object with results)
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = await loop.run_in_executor(executor, vman3.interva5, ccva_df)
+            # vman3.interva5 returns the results, but we need the object too
+            # We'll call it directly to get the object
+            def run_interva5_with_object():
+                # Import from vman3's interva module
+                sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'vman3', 'interva'))
+                from interva5 import InterVA5
+                
+                interva5_obj = InterVA5(
+                    va_input=ccva_df,
+                    hiv="h",
+                    malaria="h",
+                    write=False,
+                    return_checked_data=False
+                )
+                
+                results = interva5_obj.run()
+                return interva5_obj, results
+            
+            interva5_obj, results = await loop.run_in_executor(executor, run_interva5_with_object)
+        
+        # Store the InterVA5 object for CSMF calculation
+        session["interva5_obj"] = interva5_obj
         
         # Stop progress monitoring
         progress_task.cancel()

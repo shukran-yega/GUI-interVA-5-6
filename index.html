@@ -263,6 +263,14 @@
       text-align: center;
     }
 
+    .time-elapsed {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #777;
+      text-align: center;
+      font-family: 'Consolas', 'Monaco', monospace;
+    }
+
     .output-box {
       margin-top: 15px;
       border: 1px solid #ddd;
@@ -331,6 +339,90 @@
       color: #999;
       font-size: 13px;
     }
+
+    .csmf-section {
+      margin-top: 20px;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: none;
+    }
+
+    .csmf-section.active {
+      display: block;
+    }
+
+    .csmf-section h3 {
+      margin: 0 0 15px 0;
+      font-size: 18px;
+      color: #333;
+      text-align: left;
+    }
+
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 400px;
+      margin-top: 15px;
+    }
+
+    .bar-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 10px 0;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bar-label {
+      flex: 0 0 200px;
+      text-align: right;
+      font-size: 12px;
+      color: #555;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .bar-wrapper {
+      flex: 1;
+      position: relative;
+      height: 30px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      transition: width 0.8s ease-out;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+      border-radius: 4px;
+    }
+
+    .bar-value {
+      font-size: 11px;
+      font-weight: 600;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .no-csmf-message {
+      text-align: center;
+      padding: 30px;
+      color: #999;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -367,6 +459,7 @@
         </div>
       </div>
       <div class="progress-status" id="progressStatus">Initializing...</div>
+      <div class="time-elapsed" id="timeElapsed">⏱ Time: 0:00</div>
     </div>
 
     <div class="output-box" id="outputBox">
@@ -376,6 +469,13 @@
     <div class="action-row">
       
       <a class="download-link" id="downloadLink"> Download Results</a>
+    </div>
+
+    <div class="csmf-section" id="csmfSection">
+      <h3>📊 Top Causes of Death (CSMF)</h3>
+      <div class="chart-container">
+        <div class="bar-chart" id="barChart"></div>
+      </div>
     </div>
   </div>
 
@@ -398,7 +498,7 @@
     <p>• No warranty is provided regarding accuracy, completeness, or fitness for any particular purpose.</p>
     
     <div class="version-info">
-      <strong>📋 Algorithm Compatibility:</strong>
+      <strong>Algorithm Compatibility:</strong>
       <ul>
         <li><strong>InterVA-5:</strong> WHO 2016 v1.5.1</li>
         <li><strong>InterVA-6:</strong> WHO 2022 v01.01</li>
@@ -422,6 +522,9 @@
     let eventSource = null;
     let detectedWhoVersion = null;
     let isLoading = false;
+    let startTime = null;
+    let timerInterval = null;
+    let currentAlgorithm = null; // Store current algorithm for CSMF check
     
     // DOM elements
     const fileInput = document.getElementById('fileInput');
@@ -437,6 +540,9 @@
     const progressFill = document.getElementById('progressFill');
     const progressPercent = document.getElementById('progressPercent');
     const progressStatus = document.getElementById('progressStatus');
+    const timeElapsed = document.getElementById('timeElapsed');
+    const csmfSection = document.getElementById('csmfSection');
+    const barChart = document.getElementById('barChart');
 
     // File input change handler - auto-load in background
     fileInput.addEventListener('change', async (e) => {
@@ -463,6 +569,7 @@
         runBtn.disabled = true;
         downloadLink.classList.remove('active');
         resetOutput();
+        csmfSection.classList.remove('active');
         
         await loadCSVData(file);
       }
@@ -513,6 +620,9 @@
           addLogMessage('✓ Operation cancelled by user', 'error');
           setProgress(0, 'Cancelled');
           progressSection.classList.remove('active');
+          
+          // Stop timer
+          stopTimer();
           
           // Reset buttons
           cancelBtn.disabled = true;
@@ -681,6 +791,9 @@
     // Process data with chunking and SSE
     async function processDataWithChunking(algorithm, whoVersion) {
       try {
+        // Store algorithm globally for use in completion handler
+        currentAlgorithm = algorithm;
+        
         runBtn.disabled = true;
         cancelBtn.disabled = false;
         cancelBtn.style.display = 'inline-block';
@@ -690,6 +803,9 @@
         // Show progress section
         progressSection.classList.add('active');
         setProgress(0, 'Preparing file for upload...');
+        
+        // Start timer
+        startTimer();
         
         outputBox.innerHTML = '';
         addLogMessage('→ Converting data to CSV text');
@@ -770,6 +886,7 @@
         addLogMessage(`❌ Error: ${error.message}`, 'error');
         setProgress(0, 'Error occurred');
         progressSection.classList.remove('active');
+        stopTimer();
         closeSSE();
         resultBlob = null;
         runBtn.disabled = false;
@@ -830,6 +947,7 @@
               addLogMessage(`❌ ${data.message}`, 'error');
               setProgress(0, 'Error');
               progressSection.classList.remove('active');
+              stopTimer();
               closeSSE();
               runBtn.disabled = false;
               cancelBtn.disabled = true;
@@ -863,8 +981,8 @@
       try {
         await sleep(300);
         
-        setProgress(100, 'Downloading results...');
-        addLogMessage('→ Downloading results...');
+        setProgress(100, 'Preparing results...');
+        addLogMessage('→ Preparing results...');
         
         // Download the result
         const response = await fetch(`${API_BASE_URL}/download-result/${sessionId}`);
@@ -875,12 +993,20 @@
         
         resultBlob = await response.blob();
         
-        addLogMessage(`✓ Results downloaded (${(resultBlob.size / 1024).toFixed(2)} KB)`, 'success');
+        addLogMessage(`✓ Results ready (${(resultBlob.size / 1024).toFixed(2)} KB)`, 'success');
         addLogMessage('✓ Processing complete!', 'success');
         
         downloadLink.classList.add('active');
         
+        // If InterVA-5, fetch and display CSMF
+        if (currentAlgorithm === 'InterVA-5') {
+          await fetchAndDisplayCSMF(sessionId);
+        }
+        
         closeSSE();
+        
+        // Stop timer
+        stopTimer();
         
         // Hide progress bar after a moment
         await sleep(2000);
@@ -891,6 +1017,7 @@
         addLogMessage(`❌ Failed to download: ${error.message}`, 'error');
         setProgress(0, 'Download failed');
         progressSection.classList.remove('active');
+        stopTimer();
       } finally {
         runBtn.disabled = false;
         cancelBtn.disabled = true;
@@ -928,10 +1055,131 @@
       outputBox.className = 'output-box';
       outputBox.innerHTML = '<div class="status-message">Ready to process data</div>';
       progressSection.classList.remove('active');
+      csmfSection.classList.remove('active');
     }
 
     function sleep(ms) {
       return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Timer functions
+    function startTimer() {
+      startTime = Date.now();
+      timeElapsed.textContent = '⏱ Time: 0:00';
+      
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        timeElapsed.textContent = `⏱ Time: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    // Fetch and display CSMF data
+    async function fetchAndDisplayCSMF(sessionId) {
+      try {
+        addLogMessage('→ Fetching CSMF data...');
+        
+        const response = await fetch(`${API_BASE_URL}/get-csmf/${sessionId}`);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `CSMF fetch failed: ${response.status}`);
+        }
+        
+        const csmfData = await response.json();
+        
+        if (csmfData && csmfData.csmf && Object.keys(csmfData.csmf).length > 0) {
+          addLogMessage(`✓ CSMF data received (${Object.keys(csmfData.csmf).length} causes)`, 'success');
+          displayCSMFChart(csmfData.csmf);
+        } else {
+          addLogMessage('ℹ No CSMF data available for this analysis');
+        }
+        
+      } catch (error) {
+        console.error('CSMF fetch error:', error);
+        addLogMessage(`ℹ CSMF chart not available: ${error.message}`);
+      }
+    }
+
+    // Display CSMF as bar chart
+    function displayCSMFChart(csmfData) {
+      barChart.innerHTML = '';
+      
+      // Convert to array and sort by value (descending)
+      const csmfArray = Object.entries(csmfData).map(([cause, value]) => ({
+        cause: cause,
+        value: parseFloat(value)
+      }));
+      
+      csmfArray.sort((a, b) => b.value - a.value);
+      
+      if (csmfArray.length === 0) {
+        barChart.innerHTML = '<div class="no-csmf-message">No CSMF data available</div>';
+        return;
+      }
+      
+      // Color palette - top cause is red, rest are various colors
+      const colors = [
+        '#dc3545', // Red for top cause
+        '#007bff', // Blue
+        '#28a745', // Green
+        '#ffc107', // Yellow/Gold
+        '#6f42c1', // Purple
+        '#fd7e14', // Orange
+        '#20c997', // Teal
+        '#e83e8c', // Pink
+        '#17a2b8', // Cyan
+        '#6c757d'  // Gray
+      ];
+      
+      // Find max value for scaling
+      const maxValue = Math.max(...csmfArray.map(d => d.value));
+      
+      // Create bars
+      csmfArray.forEach((data, index) => {
+        const barRow = document.createElement('div');
+        barRow.className = 'bar-row';
+        
+        const barLabel = document.createElement('div');
+        barLabel.className = 'bar-label';
+        barLabel.textContent = data.cause;
+        barLabel.title = data.cause; // Tooltip for long names
+        
+        const barWrapper = document.createElement('div');
+        barWrapper.className = 'bar-wrapper';
+        
+        const barFill = document.createElement('div');
+        barFill.className = 'bar-fill';
+        const percentage = (data.value / maxValue) * 100;
+        barFill.style.width = '0%'; // Start at 0 for animation
+        barFill.style.backgroundColor = colors[index % colors.length];
+        
+        const barValue = document.createElement('span');
+        barValue.className = 'bar-value';
+        barValue.textContent = `${(data.value * 100).toFixed(2)}%`;
+        
+        barFill.appendChild(barValue);
+        barWrapper.appendChild(barFill);
+        barRow.appendChild(barLabel);
+        barRow.appendChild(barWrapper);
+        barChart.appendChild(barRow);
+        
+        // Animate bar after a short delay
+        setTimeout(() => {
+          barFill.style.width = `${percentage}%`;
+        }, 100 + (index * 50));
+      });
+      
+      // Show the CSMF section
+      csmfSection.classList.add('active');
     }
 
     // Proper CSV parsing function that handles quoted fields

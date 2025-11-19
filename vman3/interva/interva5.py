@@ -686,162 +686,232 @@ class InterVA5:
         :return: the top causes in CSMF with their values.
         :rtype: pandas.series
         """
+    def get_csmf(self, top: int = 10, groupcode: bool = False, method:str= "frequency") -> Union[Series, None]:
+        """Return top causes in cause-specific mortality fraction (CSMF).
 
-        if len(self.results) == 0:
-            print("No results.  Use run() method to assign causes.")
+        :param top: number of top causes in the CSMF to be determined.
+        :type top: integer
+        :param groupcode: a logical value indicating if the group code will be
+        included in the cause names.
+        :type groupcode: bool
+        :param method: method to calculate CSMF (currently only "frequency" is supported)
+        :type method: str
+        :return: the top causes in CSMF with their values.
+        :rtype: pandas.series
+        """
+        # Check if method is frequency, if not print warning and return
+        if method != "frequency":
+            print(f"Method '{method}' is not supported. Currently only 'frequency' method is available.")
             return None
-        if self.results["VA5"] is None:
-            print("No results found.  Check error log.  It is likely that "
-                  "all records failed the data consistency checks.")
+        
+        print("Running frequency method to obtain CSMF")
+        
+        # Check if we have results from InterVA5 run
+        if len(self.results) == 0 or self.results["COD"] is None:
+            print("No results found. Did you run InterVA5 first using the run() method?")
             return None
-        va = self.results["VA5"]
-        set_option("display.max_rows", None)
-        set_option("display.max_columns", None)
-
-        # for future compatibility with non-standard input
-        causenames = causeindex = []
-        for i in range(va.shape[0]):
-            # if va.loc[i, "WHOLEPROB"] is not None:
-            #     causenames = va.loc[i, "WHOLEPROB"].index
-            if va.iloc[i]["WHOLEPROB"] is not None:
-                causenames = va.iloc[i]["WHOLEPROB"].index
-                causeindex = [x for x in range(len(causenames))]
-                break
-        include_probAC = False
-
-        if self.groupcode:
-            temp_names = ["" for _ in range(len(causenames))]
-            for i in range(len(causenames)):
-                if i <= 2 or i >= 64:
-                    temp_names[i] = causenames[i]
-                else:
-                    cause_with_code = causenames[i]
-                    temp_names[i] = cause_with_code.split(" ", 1)[1]
-            causenames = Index(temp_names)
-
-        # fix for removing the first 3 preg related death in standard input
-        if ("Not pregnant or recently delivered" in causenames[0] and
-                "Pregnancy ended within 6 weeks of death" in causenames[1] and
-                "Pregnant at death" in causenames[2] and
-                "Culture" in causenames[64] and
-                "Emergency" in causenames[65] and
-                "Health" in causenames[66] and
-                "Inevitable" in causenames[67] and
-                "Knowledge" in causenames[68] and
-                "Resources" in causenames[69]):
-            del causeindex[64:70]
-            del causeindex[0:3]
-            causenames = causenames.delete([0, 1, 2, 64, 65, 66, 67, 68, 69])
-            include_probAC = True
-
-        causetextV5_horizontal = DataFrame(CAUSETEXTV5)
-        self.causetextV5 = causetextV5_horizontal.transpose()
-        if groupcode:
-            temp_names = ["" for _ in range(len(causenames))]
-            for i in range(len(causenames)):
-                if i <= 2 or i >= 64:
-                    temp_names[i] = causenames[i]
-                else:
-                    cause = str(self.causetextV5.iloc[i, 0])
-                    code = str(self.causetextV5.iloc[i, 1])
-                    temp_names[i] = code + " " + cause
-            causenames = Index(temp_names)
-
-        # Check if there is a valid va object
-        if len(va) < 1:
-            print("No va5 object found")
+        
+        # Get the COD (Cause of Death) results dataframe
+        cod_results = self.results["COD"]
+        
+        # Extract CAUSE1 column (primary cause of death for each record)
+        cause1_column = cod_results["CAUSE1"]
+        
+        # Filter out empty spaces (undetermined causes) - these are represented as " "
+        # We only want to count actual causes, not undetermined cases
+        valid_causes = cause1_column[cause1_column != " "]
+        
+        # Count the frequency of each cause
+        # This gives us how many times each disease appears
+        cause_counts = valid_causes.value_counts()
+        
+        # Get the total number of valid causes (excluding undetermined)
+        total_causes = len(valid_causes)
+        
+        # Check if we have any valid causes
+        if total_causes == 0:
+            print("No valid causes found. All cases are undetermined.")
             return None
-        # Initialize the population distribution
-        dist = None
-        for i in range(len(va)):
-            if va.iloc[i, 14] is not None:
-                # dist = [[0 for _ in range(len(va.iloc[i, 14]))]]
-                dist = array([0] * len(va.iloc[i, 14]))
-                break
-        # what if dist is still None at this point? ex dataset 2?
-        undeter = 0
-
-        # Pick not simply the top # causes,
-        # but the top # causes reported by InterVA5
-        for i in range(len(va)):
-            if va.iloc[i, 14] is None:  # wholeprob exists
-                continue
-            this_dist_copy = va.iloc[i, 14].copy()
-            this_dist = this_dist_copy.to_numpy()
-            if include_probAC:
-                this_dist[0:3] = 0
-                this_dist[64:70] = 0
-            if max(this_dist) < 0.4:
-                if isclose(sum(this_dist), 0):
-                    this_undeter = 1
-                else:
-                    this_undeter = sum(this_dist)
-                undeter = undeter + this_undeter
-            else:
-                cutoff_3 = Decimal(this_dist[argsort(-this_dist)][2])
-                cutoff_2 = Decimal(this_dist[argsort(-this_dist)][1])
-                cutoff_1 = Decimal(this_dist[argsort(-this_dist)][0])
-                cutoff_1_halved = cutoff_1 / Decimal('2')
-                cutoff_pt1 = cutoff_3.max(cutoff_1_halved)
-                cutoff_pt2 = cutoff_2.max(cutoff_1_halved)
-                cutoff = cutoff_pt1.min(cutoff_pt2)
-                adj_cutoff = cutoff - Decimal(1e-15)
-
-                undeter = undeter + sum(
-                    this_dist[where(this_dist < adj_cutoff)[0]])
-                this_dist[where(this_dist < adj_cutoff)[0]] = 0
-
-                temp_len = len(this_dist[where(this_dist > 0)[0]])
-                close_indices = []
-                for j in range(temp_len):
-                    val = Decimal(
-                        this_dist[where(this_dist > 0)[0]][j]) - cutoff
-                    if abs(val) < 4e-29:
-                        close_indices.append(where(this_dist > 0)[0][j])
-
-                close_indices.sort(reverse=True)
-                for k in close_indices:
-                    undeter = undeter + this_dist[k]
-                    this_dist[k] = 0
-
-                if va.iloc[i, 14] is not None:
-                    # if i == 0:
-                    #     dist = this_dist
-                    # else:
-                    #     dist = dist + this_dist
-                    dist = dist + this_dist
-
-        dist = Series(dist)
-        dist_cod = None
-        # Normalize the probability for CODs
-        if undeter > 0:
-            dist_cod = dist.iloc[causeindex].copy()
-            dist_cod.loc[causeindex[len(causeindex)-1]+1] = undeter
-            dist_cod = dist_cod / dist_cod.sum()
-            dist_cod.index = causenames.append(Index(["Undetermined"]))
-        else:
-            dist_cod = dist.iloc[causeindex].copy()
-            dist_cod = dist_cod / dist_cod.sum()
-            dist_cod.index = causenames
-        if (isna(dist_cod).sum() == len(dist_cod)).all():
-            dist_cod[isna(dist_cod)] = 0
-
-        dist_cod_sorted = dist_cod.copy()
-        dist_cod_sorted.sort_values(ascending=False, inplace=True)
-        # show causes with top non-zero values
-        show_top = 0
-        while dist_cod_sorted.iloc[show_top] > 0 and show_top < top:
-            show_top = show_top + 1
-        if show_top == top:
-            a = dist_cod_sorted.iloc[show_top]
-            b = dist_cod_sorted.iloc[show_top-1]
-            while show_top < len(dist_cod_sorted) and \
-                    (abs(a-b) < (a+b) * 1e-5):
-                show_top = show_top + 1
-                a = dist_cod_sorted[show_top]
-                b = dist_cod_sorted[show_top-1]
-        top_csmf = dist_cod_sorted.head(show_top)
+        
+        # Calculate CSMF (Cause-Specific Mortality Fraction) for each cause
+        # CSMF = (count of specific cause) / (total valid causes)
+        csmf_values = cause_counts / total_causes
+        
+        # Sort CSMF values in descending order (highest fractions first)
+        csmf_sorted = csmf_values.sort_values(ascending=False)
+        
+        # Get only the top N causes as requested by the user
+        top_csmf = csmf_sorted.head(top)
+        
+        # Print results in a readable format
+        print(f"\nTop {len(top_csmf)} Cause-Specific Mortality Fractions (CSMF):")
+        print(f"Total valid causes analyzed: {total_causes}")
+        print("-" * 60)
+        for rank, (cause, fraction) in enumerate(top_csmf.items(), start=1):
+            count = cause_counts[cause]
+            percentage = fraction * 100
+            print(f"{rank}. {cause}")
+            print(f"   Count: {count}/{total_causes} | CSMF: {fraction:.4f} ({percentage:.2f}%)")
+        print("-" * 60)
+        
+        # Return the top CSMF as a pandas Series
         return top_csmf
+    
+        # if len(self.results) == 0:
+        #     print("No results.  Use run() method to assign causes.")
+        #     return None
+        # if self.results["VA5"] is None:
+        #     print("No results found.  Check error log.  It is likely that "
+        #           "all records failed the data consistency checks.")
+        #     return None
+        # va = self.results["VA5"]
+        # set_option("display.max_rows", None)
+        # set_option("display.max_columns", None)
+
+        # # for future compatibility with non-standard input
+        # causenames = causeindex = []
+        # for i in range(va.shape[0]):
+        #     # if va.loc[i, "WHOLEPROB"] is not None:
+        #     #     causenames = va.loc[i, "WHOLEPROB"].index
+        #     if va.iloc[i]["WHOLEPROB"] is not None:
+        #         causenames = va.iloc[i]["WHOLEPROB"].index
+        #         causeindex = [x for x in range(len(causenames))]
+        #         break
+        # include_probAC = False
+
+        # if self.groupcode:
+        #     temp_names = ["" for _ in range(len(causenames))]
+        #     for i in range(len(causenames)):
+        #         if i <= 2 or i >= 64:
+        #             temp_names[i] = causenames[i]
+        #         else:
+        #             cause_with_code = causenames[i]
+        #             temp_names[i] = cause_with_code.split(" ", 1)[1]
+        #     causenames = Index(temp_names)
+
+        # # fix for removing the first 3 preg related death in standard input
+        # if ("Not pregnant or recently delivered" in causenames[0] and
+        #         "Pregnancy ended within 6 weeks of death" in causenames[1] and
+        #         "Pregnant at death" in causenames[2] and
+        #         "Culture" in causenames[64] and
+        #         "Emergency" in causenames[65] and
+        #         "Health" in causenames[66] and
+        #         "Inevitable" in causenames[67] and
+        #         "Knowledge" in causenames[68] and
+        #         "Resources" in causenames[69]):
+        #     del causeindex[64:70]
+        #     del causeindex[0:3]
+        #     causenames = causenames.delete([0, 1, 2, 64, 65, 66, 67, 68, 69])
+        #     include_probAC = True
+
+        # causetextV5_horizontal = DataFrame(CAUSETEXTV5)
+        # self.causetextV5 = causetextV5_horizontal.transpose()
+        # if groupcode:
+        #     temp_names = ["" for _ in range(len(causenames))]
+        #     for i in range(len(causenames)):
+        #         if i <= 2 or i >= 64:
+        #             temp_names[i] = causenames[i]
+        #         else:
+        #             cause = str(self.causetextV5.iloc[i, 0])
+        #             code = str(self.causetextV5.iloc[i, 1])
+        #             temp_names[i] = code + " " + cause
+        #     causenames = Index(temp_names)
+
+        # # Check if there is a valid va object
+        # if len(va) < 1:
+        #     print("No va5 object found")
+        #     return None
+        # # Initialize the population distribution
+        # dist = None
+        # for i in range(len(va)):
+        #     if va.iloc[i, 14] is not None:
+        #         # dist = [[0 for _ in range(len(va.iloc[i, 14]))]]
+        #         dist = array([0] * len(va.iloc[i, 14]))
+        #         break
+        # # what if dist is still None at this point? ex dataset 2?
+        # undeter = 0
+
+        # # Pick not simply the top # causes,
+        # # but the top # causes reported by InterVA5
+        # for i in range(len(va)):
+        #     if va.iloc[i, 14] is None:  # wholeprob exists
+        #         continue
+        #     this_dist_copy = va.iloc[i, 14].copy()
+        #     this_dist = this_dist_copy.to_numpy()
+        #     if include_probAC:
+        #         this_dist[0:3] = 0
+        #         this_dist[64:70] = 0
+        #     if max(this_dist) < 0.4:
+        #         if isclose(sum(this_dist), 0):
+        #             this_undeter = 1
+        #         else:
+        #             this_undeter = sum(this_dist)
+        #         undeter = undeter + this_undeter
+        #     else:
+        #         cutoff_3 = Decimal(this_dist[argsort(-this_dist)][2])
+        #         cutoff_2 = Decimal(this_dist[argsort(-this_dist)][1])
+        #         cutoff_1 = Decimal(this_dist[argsort(-this_dist)][0])
+        #         cutoff_1_halved = cutoff_1 / Decimal('2')
+        #         cutoff_pt1 = cutoff_3.max(cutoff_1_halved)
+        #         cutoff_pt2 = cutoff_2.max(cutoff_1_halved)
+        #         cutoff = cutoff_pt1.min(cutoff_pt2)
+        #         adj_cutoff = cutoff - Decimal(1e-15)
+
+        #         undeter = undeter + sum(
+        #             this_dist[where(this_dist < adj_cutoff)[0]])
+        #         this_dist[where(this_dist < adj_cutoff)[0]] = 0
+
+        #         temp_len = len(this_dist[where(this_dist > 0)[0]])
+        #         close_indices = []
+        #         for j in range(temp_len):
+        #             val = Decimal(
+        #                 this_dist[where(this_dist > 0)[0]][j]) - cutoff
+        #             if abs(val) < 4e-29:
+        #                 close_indices.append(where(this_dist > 0)[0][j])
+
+        #         close_indices.sort(reverse=True)
+        #         for k in close_indices:
+        #             undeter = undeter + this_dist[k]
+        #             this_dist[k] = 0
+
+        #         if va.iloc[i, 14] is not None:
+        #             # if i == 0:
+        #             #     dist = this_dist
+        #             # else:
+        #             #     dist = dist + this_dist
+        #             dist = dist + this_dist
+
+        # dist = Series(dist)
+        # dist_cod = None
+        # # Normalize the probability for CODs
+        # if undeter > 0:
+        #     dist_cod = dist.iloc[causeindex].copy()
+        #     dist_cod.loc[causeindex[len(causeindex)-1]+1] = undeter
+        #     dist_cod = dist_cod / dist_cod.sum()
+        #     dist_cod.index = causenames.append(Index(["Undetermined"]))
+        # else:
+        #     dist_cod = dist.iloc[causeindex].copy()
+        #     dist_cod = dist_cod / dist_cod.sum()
+        #     dist_cod.index = causenames
+        # if (isna(dist_cod).sum() == len(dist_cod)).all():
+        #     dist_cod[isna(dist_cod)] = 0
+
+        # dist_cod_sorted = dist_cod.copy()
+        # dist_cod_sorted.sort_values(ascending=False, inplace=True)
+        # # show causes with top non-zero values
+        # show_top = 0
+        # while dist_cod_sorted.iloc[show_top] > 0 and show_top < top:
+        #     show_top = show_top + 1
+        # if show_top == top:
+        #     a = dist_cod_sorted.iloc[show_top]
+        #     b = dist_cod_sorted.iloc[show_top-1]
+        #     while show_top < len(dist_cod_sorted) and \
+        #             (abs(a-b) < (a+b) * 1e-5):
+        #         show_top = show_top + 1
+        #         a = dist_cod_sorted[show_top]
+        #         b = dist_cod_sorted[show_top-1]
+        # top_csmf = dist_cod_sorted.head(show_top)
+        # return top_csmf
 
     def write_csmf(self, top: int = 10, groupcode: bool = False,
                    filename: str = "csmf") -> None:
