@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CCVA Processing</title>
+  <title>VMan3 public portal</title>
   <style>
     * {
       box-sizing: border-box;
@@ -227,11 +227,7 @@
       padding: 12px;
       background-color: #f8f9fa;
       border-radius: 10px;
-      display: none;
-    }
-
-    .progress-section.active {
-      display: block;
+      min-height: 60px;
     }
 
     .progress-bar {
@@ -256,6 +252,15 @@
       font-weight: 600;
     }
 
+    .progress-fill span {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .progress-section.active .progress-fill span {
+      opacity: 1;
+    }
+
     .progress-status {
       margin-top: 8px;
       font-size: 12px;
@@ -267,7 +272,7 @@
       margin-top: 6px;
       font-size: 11px;
       color: #777;
-      text-align: center;
+      text-align: left;
       font-family: 'Consolas', 'Monaco', monospace;
     }
 
@@ -295,22 +300,62 @@
       background-color: #fef5f5;
     }
 
+    .action-row {
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #555;
+    }
+
+    .checkbox-wrapper input[type="checkbox"] {
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+    }
+
+    .checkbox-wrapper input[type="checkbox"]:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .checkbox-wrapper label {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-wrapper input[type="checkbox"]:disabled + label {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
     .download-link {
       margin-top: 12px;
       font-size: 13px;
       color: #007bff;
       text-decoration: none;
       cursor: pointer;
-      display: none;
+      display: inline-block;
       padding: 10px 20px;
       background-color: #e7f3ff;
       border-radius: 8px;
       font-weight: 500;
       transition: all 0.2s ease;
+      opacity: 0.3;
+      pointer-events: none;
     }
 
     .download-link.active {
-      display: inline-block;
+      opacity: 1;
+      pointer-events: auto;
     }
 
     .download-link:hover {
@@ -342,7 +387,7 @@
 
     .csmf-section {
       margin-top: 20px;
-      padding: 20px;
+      padding: 20px 20px 40px 20px;
       background: white;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -428,7 +473,7 @@
 <body>
   <div class="main-wrapper">
     <div class="container">
-    <h1>CCVA Processing</h1>
+    <h1>VMan3 Public Portal for Processing Verbal Autopsy Data</h1>
     <div class="file-info" id="fileInfo">Select a CSV file to begin</div>
 
     <div class="controls-row">
@@ -449,7 +494,7 @@
       </select>
 
       <button id="runBtn" disabled>Run Analysis</button>
-      <button id="cancelBtn" disabled style="display: none;">Cancel</button>
+      <button id="cancelBtn" disabled>Cancel</button>
     </div>
 
     <div class="progress-section" id="progressSection">
@@ -458,21 +503,29 @@
           <span id="progressPercent">0%</span>
         </div>
       </div>
-      <div class="progress-status" id="progressStatus">Initializing...</div>
       <div class="time-elapsed" id="timeElapsed">⏱ Time: 0:00</div>
     </div>
 
     <div class="output-box" id="outputBox">
-      <div class="status-message">Ready to process data</div>
     </div>
 
-    <div class="action-row">
+    <div class="action-row" style="padding-top: 15px;">
       
       <a class="download-link" id="downloadLink"> Download Results</a>
+      
+      <div class="checkbox-wrapper">
+        <input type="checkbox" id="checkbox1" disabled>
+        <label for="checkbox1">Include ind. records</label>
+      </div>
+      
+      <div class="checkbox-wrapper">
+        <input type="checkbox" id="checkbox2" disabled>
+        <label for="checkbox2">include error log </label>
+      </div>
     </div>
 
     <div class="csmf-section" id="csmfSection">
-      <h3>Cause specific mortality fraction for given population</h3>
+      <h3>CSMF for all population</h3>
       <div class="chart-container">
         <div class="bar-chart" id="barChart"></div>
       </div>
@@ -480,34 +533,30 @@
   </div>
 
   <div class="disclaimer-box">
-    <h2>
+    <!-- <h2>
       Beta Version
       <span class="beta-badge">v1.0</span>
-    </h2>
+    </h2> -->
     
-    <p><strong>Important Notice:</strong></p>
+    <p style="color: #007bff; font-size: 20px;"><strong>Important Notice</strong></p>
     
-    <p>This is a beta version of the CCVA Processing System using InterVA algorithms. By using this platform, you acknowledge and agree to the following:</p>
+    <p>This is a beta version of the VMan3 Public Portal for processing Verbal Autopsy data.</p>
     
-    <p>• This tool is provided "as-is" for research and evaluation purposes only.</p>
+    <p>• The tool loads verbal autopsy data collected using WHO VA standard instrument, auto-detect which instrument, and allow processing of the cause of death data based on selected algorithm.</p>
     
-    <p>• Results should be verified by qualified professionals before making any clinical or policy decisions.</p>
-    
-    <p>• We are not liable for any misuse, misinterpretation, or consequences arising from the use of this platform.</p>
-    
-    <p>• No warranty is provided regarding accuracy, completeness, or fitness for any particular purpose.</p>
-    
+    <p style="font-size: 15px; font-weight: 500;">Current supported Instruments and algorithms are:</p>
     <div class="version-info">
-      <strong>Algorithm Compatibility:</strong>
       <ul>
-        <li><strong>InterVA-5:</strong> WHO 2016 v1.5.1</li>
-        <li><strong>InterVA-6:</strong> WHO 2022 v01.01</li>
+        <li><b>WHO VA V1.5.2</b> and <b>InterVA5.</b> The InterVA5 source code has been copied from <a href="https://github.com/verbal-autopsy-software/InterVA5" target="_blank" style="color: #007bff; text-decoration: underline;">here</a></li>
+        <li><b> WHO VA 2022</b> and <b>InterVA6</b> is a python version of the <a href="https://github.com/verbal-autopsy-software/InterVA2022" target="_blank" style="color: #007bff; text-decoration: underline;">InterVA2022</a> (R-version)</strong></li>
       </ul>
     </div>
-    
-    <p style="margin-top: 15px; font-size: 11px; opacity: 0.8;">© 2025 CCVA Processing System. All rights reserved.</p>
+      <p>• This service is provided "as-is", for research and evaluation purposes only.</p>
+      <p style="color: #007bff;"><b>• This service does not store any data.</bold></p>
   </div>
   
+
+
   </div>
 
   <script>
@@ -549,8 +598,7 @@
       const file = e.target.files[0];
       if (file) {
         if (!file.name.endsWith('.csv')) {
-          fileInfo.textContent = '❌ Please select a valid CSV file';
-          fileInfo.style.color = '#dc3545';
+          addLogMessage('❌ Please select a valid CSV file', 'error');
           fileButton.textContent = 'Choose CSV File';
           uploadedData = null;
           runBtn.disabled = true;
@@ -561,9 +609,11 @@
         const shortName = file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name;
         fileButton.textContent = `📄 ${shortName}`;
         
+        // Clear logs for new file
+        outputBox.innerHTML = '';
+        
         // Auto-load in background
-        fileInfo.textContent = `Loading ${file.name}...`;
-        fileInfo.style.color = '#007bff';
+        addLogMessage(`→ Loading ${file.name}...`);
         
         uploadedData = null;
         runBtn.disabled = true;
@@ -626,11 +676,7 @@
           
           // Reset buttons
           cancelBtn.disabled = true;
-          cancelBtn.style.display = 'none';
           runBtn.disabled = false;
-          
-          // Clear session
-          currentSessionId = null;
           
         } catch (error) {
           console.error('Cancel error:', error);
@@ -661,10 +707,7 @@
         isLoading = true;
         runBtn.disabled = true;
         
-        addLogMessage('→ Reading CSV file...');
-        
         const text = await file.text();
-        addLogMessage('✓ File read into memory');
         
         const lines = text.split('\n').filter(line => line.trim());
         
@@ -672,12 +715,10 @@
           throw new Error('CSV file must have at least a header row and one data row');
         }
 
-        addLogMessage(`→ Found ${lines.length} lines`);
-
         // Parse CSV properly (handles quoted fields)
         const csvData = lines.map(line => parseCSVLine(line));
 
-        addLogMessage(`✓ Parsed into ${csvData[0].length} columns`);
+        addLogMessage(`✓ loaded ${lines.length} rows, ${csvData[0].length} columns`);
         
         uploadedData = csvData;
         
@@ -691,26 +732,22 @@
           // Auto-select recommended algorithm based on WHO version
           if (detectedWhoVersion === '2016WHOv151') {
             algorithmSelect.value = 'InterVA-5';
-            addLogMessage(`✓ Detected WHO 2016 → InterVA-5 (recommended)`);
+            addLogMessage(`✓ Detected WHO 2016 → recommend InterVA-5`);
           } else if (detectedWhoVersion === '2022WHOv0101') {
             algorithmSelect.value = 'InterVA-6';
-            addLogMessage(`✓ Detected WHO 2022 → InterVA-6 (recommended)`);
+            addLogMessage(`✓ Detected WHO 2022 → recommend InterVA-6`);
           }
           
-          fileInfo.textContent = `✓ ${file.name} loaded (${csvData.length - 1} rows, WHO ${detectedWhoVersion.includes('2016') ? '2016' : '2022'})`;
-          fileInfo.style.color = '#28a745';
+          // addLogMessage(`✓ ${file.name} loaded (${csvData.length - 1} rows, WHO ${detectedWhoVersion.includes('2016') ? '2016' : '2022'})`, 'success');
         } else {
           addLogMessage('⚠ Could not auto-detect WHO version - please select manually');
-          fileInfo.textContent = `✓ ${file.name} loaded (${csvData.length - 1} rows) - Select WHO version`;
-          fileInfo.style.color = '#ff9800';
+          addLogMessage(`✓ ${file.name} loaded (${csvData.length - 1} rows) - Select WHO version`);
         }
         
         runBtn.disabled = false;
         
       } catch (error) {
         addLogMessage(`❌ Failed to load CSV: ${error.message}`, 'error');
-        fileInfo.textContent = `❌ Error: ${error.message}`;
-        fileInfo.style.color = '#dc3545';
         uploadedData = null;
       } finally {
         isLoading = false;
@@ -796,7 +833,6 @@
         
         runBtn.disabled = true;
         cancelBtn.disabled = false;
-        cancelBtn.style.display = 'inline-block';
         downloadLink.classList.remove('active');
         resultBlob = null;
 
@@ -891,7 +927,6 @@
         resultBlob = null;
         runBtn.disabled = false;
         cancelBtn.disabled = true;
-        cancelBtn.style.display = 'none';
       }
     }
 
@@ -951,7 +986,6 @@
               closeSSE();
               runBtn.disabled = false;
               cancelBtn.disabled = true;
-              cancelBtn.style.display = 'none';
             }
           } catch (e) {
             console.error('Error parsing SSE message:', e, event.data);
@@ -1021,7 +1055,6 @@
       } finally {
         runBtn.disabled = false;
         cancelBtn.disabled = true;
-        cancelBtn.style.display = 'none';
       }
     }
 
@@ -1034,7 +1067,9 @@
     function setProgress(percent, statusText) {
       progressFill.style.width = Math.round(percent) + '%';
       progressPercent.textContent = Math.round(percent) + '%';
-      progressStatus.textContent = statusText;
+      if (progressStatus) {
+        progressStatus.textContent = statusText;
+      }
     }
 
     function getCurrentProgress() {
@@ -1053,7 +1088,7 @@
 
     function resetOutput() {
       outputBox.className = 'output-box';
-      outputBox.innerHTML = '<div class="status-message">Ready to process data</div>';
+      // outputBox.innerHTML = '<div class="status-message">Ready to process data</div>';
       progressSection.classList.remove('active');
       csmfSection.classList.remove('active');
     }
@@ -1219,20 +1254,24 @@
     // Initialize
     resetOutput();
     
+    // Set version info
+    fileInfo.innerHTML = 'Beta Version <span style="background: #007bff; color: white; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;">v1.0</span>';
+    fileInfo.style.color = '#007bff';
+    
     // Test connection on load
     fetch(`${API_BASE_URL}/health`)
       .then(r => r.json())
       .then(data => {
         console.log('Backend health check:', data);
         if (data.status === 'healthy') {
-          fileInfo.textContent = '✓ Connected to server - Select a CSV file to begin';
-          fileInfo.style.color = '#28a745';
+          // addLogMessage('Backend server is healthy and ready');
+        }else{
+          addLogMessage("Could not connect to the backend service")
         }
       })
       .catch(err => {
         console.error('Backend connection failed:', err);
-        fileInfo.textContent = '⚠ Cannot connect to server. Make sure backend is running.';
-        fileInfo.style.color = '#dc3545';
+        addLogMessage('Cannot connect to server. Make sure backend is running.', 'error');
       });
   </script>
 </body>
