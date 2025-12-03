@@ -503,8 +503,29 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
             monitor_progress(queue, session, ccva_df.shape[0], "InterVA-6")
         )
         
+        # Run InterVA6 using the class directly to get the object
+        def run_interva6_with_object():
+            # Import from vman3's interva module
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'vman3', 'interva'))
+            from interva6 import interva6
+            
+            interva6_obj = interva6()
+            results = interva6_obj.run(
+                input_data=ccva_df,
+                hiv="h",
+                malaria="h",
+                covid="v",
+                write=False,
+                output="extended"
+            )
+            return interva6_obj, results
+        
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = await loop.run_in_executor(executor, vman3.interva6, ccva_df)
+            interva6_obj, results = await loop.run_in_executor(executor, run_interva6_with_object)
+        
+        # Store the InterVA6 object for CSMF calculation
+        session["interva6_obj"] = interva6_obj
+        session["algorithm"] = "InterVA-6"
         
         # Stop progress monitoring
         progress_task.cancel()
@@ -570,38 +591,78 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
 async def get_csmf(session_id: str, top: int = 10):
     """
     Get CSMF (Cause-Specific Mortality Fraction) data for a session.
-    This is only available for InterVA5 results.
+    This is available for both InterVA-5 and InterVA-6 results.
     """
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found or expired")
     
     session = sessions[session_id]
     
-    # Check if we have InterVA5 object stored
-    if "interva5_obj" not in session:
-        raise HTTPException(status_code=404, detail="CSMF data not available (only for InterVA-5)")
+    # Check if we have either InterVA5 or InterVA6 object stored
+    if "interva5_obj" not in session and "interva6_obj" not in session:
+        raise HTTPException(status_code=404, detail="CSMF data not available - no InterVA object found")
     
     try:
-        interva5_obj = session["interva5_obj"]
+        algorithm = session.get("algorithm", "Unknown")
         
-        # Get CSMF using the frequency method
-        csmf_series = interva5_obj.get_csmf(top=top, groupcode=False, method="frequency")
+        # Handle InterVA-5
+        if "interva5_obj" in session:
+            interva5_obj = session["interva5_obj"]
+            
+            # Get CSMF using the frequency method
+            csmf_series = interva5_obj.get_csmf(top=top, groupcode=False, method="frequency")
+            
+            if csmf_series is None or len(csmf_series) == 0:
+                return {"csmf": {}, "message": "No CSMF data available", "algorithm": algorithm}
+            
+            # Convert to dictionary
+            csmf_dict = csmf_series.to_dict()
         
-        if csmf_series is None or len(csmf_series) == 0:
-            return {"csmf": {}, "message": "No CSMF data available"}
+        # Handle InterVA-6
+        elif "interva6_obj" in session:
+            interva6_obj = session["interva6_obj"]
+            
+            # Get COD results
+            if not interva6_obj.results or "COD" not in interva6_obj.results:
+                return {"csmf": {}, "message": "No results found in InterVA-6 object", "algorithm": algorithm}
+            
+            cod_results = interva6_obj.results["COD"]
+            
+            # Convert to DataFrame if it's a list
+            if isinstance(cod_results, list):
+                cod_results_df = pd.DataFrame(cod_results)
+            else:
+                cod_results_df = cod_results
+            
+            # Extract CAUSE1 column (primary cause of death for each record)
+            cause1_column = cod_results_df["CAUSE1"]
+            
+            # Filter out empty spaces (undetermined causes)
+            valid_causes = cause1_column[cause1_column != " "]
+            
+            # Count the frequency of each cause
+            cause_counts = valid_causes.value_counts()
+            
+            # Get the total number of valid causes
+            total_causes = len(valid_causes)
+            
+            if total_causes == 0:
+                return {"csmf": {}, "message": "No valid causes found", "algorithm": algorithm}
+            
+            # Calculate CSMF (as proportion of total)
+            csmf_series = (cause_counts / total_causes).head(top)
+            
+            # Convert to dictionary
+            csmf_dict = csmf_series.to_dict()
         
-        # Convert to dictionary
-        csmf_dict = csmf_series.to_dict()
-        
-        # Now we can clean up the session since CSMF has been fetched
-        if session_id in sessions:
-            del sessions[session_id]
-            print(f"✓ Session {session_id} cleaned up after CSMF fetch")
+        # Don't clean up session here - we may need it for error log and CSV downloads
+        # Session will be cleaned up after all downloads are complete or on timeout
         
         return {
             "csmf": csmf_dict,
             "top": top,
-            "total_causes": len(csmf_dict)
+            "total_causes": len(csmf_dict),
+            "algorithm": algorithm
         }
         
     except Exception as e:
@@ -609,6 +670,121 @@ async def get_csmf(session_id: str, top: int = 10):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error getting CSMF: {str(e)}")
+
+
+@app.get("/get-error-log/{session_id}")
+async def get_error_log(session_id: str):
+    """
+    Get error log data for a session.
+    Returns the error log content from the InterVA processing.
+    """
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    
+    session = sessions[session_id]
+    algorithm = session.get("algorithm", "Unknown")
+    
+    try:
+        error_log_content = ""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Handle InterVA-5
+        if "interva5_obj" in session:
+            interva5_obj = session["interva5_obj"]
+            
+            # Build error log from processing info
+            error_log_content = f"Error & Warning Log for InterVA-5\n"
+            error_log_content += f"Generated: {timestamp}\n"
+            error_log_content += "=" * 60 + "\n\n"
+            
+            # Get results info
+            if hasattr(interva5_obj, 'results') and interva5_obj.results:
+                results = interva5_obj.results
+                if isinstance(results, dict):
+                    if 'COD' in results:
+                        cod_df = results['COD']
+                        if isinstance(cod_df, pd.DataFrame):
+                            total_records = len(cod_df)
+                            # Count undetermined (CAUSE1 is empty or space)
+                            undetermined = len(cod_df[cod_df['CAUSE1'].isin([' ', '', 'Undetermined'])])
+                            error_log_content += f"Processing Summary:\n"
+                            error_log_content += f"  - Total records processed: {total_records}\n"
+                            error_log_content += f"  - Records with determined cause: {total_records - undetermined}\n"
+                            error_log_content += f"  - Undetermined causes: {undetermined}\n\n"
+            
+            error_log_content += "Note: Detailed error logs are generated when write=True.\n"
+            error_log_content += "This summary provides an overview of the processing results.\n"
+        
+        # Handle InterVA-6
+        elif "interva6_obj" in session:
+            interva6_obj = session["interva6_obj"]
+            
+            error_log_content = f"Error & Warning Log for InterVA-6 (InterVA2022)\n"
+            error_log_content += f"Generated: {timestamp}\n"
+            error_log_content += "=" * 60 + "\n\n"
+            
+            # Get results info
+            if hasattr(interva6_obj, 'results') and interva6_obj.results:
+                results = interva6_obj.results
+                if isinstance(results, dict):
+                    if 'COD' in results:
+                        cod_data = results['COD']
+                        if isinstance(cod_data, list):
+                            cod_df = pd.DataFrame(cod_data)
+                        else:
+                            cod_df = cod_data
+                        
+                        total_records = len(cod_df)
+                        # Count undetermined
+                        undetermined = len(cod_df[cod_df['CAUSE1'].isin([' ', '', 'Undetermined'])])
+                        
+                        error_log_content += f"Processing Summary:\n"
+                        error_log_content += f"  - Total records processed: {total_records}\n"
+                        error_log_content += f"  - Records with determined cause: {total_records - undetermined}\n"
+                        error_log_content += f"  - Undetermined causes: {undetermined}\n\n"
+                    
+                    # Include settings if available
+                    if 'HIV' in results:
+                        error_log_content += f"Settings:\n"
+                        error_log_content += f"  - HIV prevalence: {results.get('HIV', 'N/A')}\n"
+                        error_log_content += f"  - Malaria prevalence: {results.get('Malaria', 'N/A')}\n"
+                        error_log_content += f"  - COVID prevalence: {results.get('Covid', 'N/A')}\n\n"
+            
+            # Check for errors list
+            if hasattr(interva6_obj, 'errors') and interva6_obj.errors:
+                error_log_content += "Processing Errors:\n"
+                for error in interva6_obj.errors:
+                    error_log_content += f"  - {error}\n"
+                error_log_content += "\n"
+            
+            error_log_content += "Note: Detailed error logs are generated when write=True.\n"
+        
+        else:
+            error_log_content = f"Error Log\nGenerated: {timestamp}\n\nNo InterVA object found in session.\n"
+        
+        return {
+            "error_log": error_log_content,
+            "algorithm": algorithm
+        }
+        
+    except Exception as e:
+        print(f"❌ Error getting error log: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error getting error log: {str(e)}")
+
+
+@app.post("/cleanup-session/{session_id}")
+async def cleanup_session(session_id: str):
+    """
+    Clean up a session after all downloads are complete.
+    """
+    if session_id in sessions:
+        del sessions[session_id]
+        print(f"✓ Session {session_id} cleaned up")
+        return {"status": "cleaned", "session_id": session_id}
+    
+    return {"status": "not_found", "session_id": session_id}
 
 
 async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who_version: str):
@@ -746,6 +922,7 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
         
         # Store the InterVA5 object for CSMF calculation
         session["interva5_obj"] = interva5_obj
+        session["algorithm"] = "InterVA-5"
         
         # Stop progress monitoring
         progress_task.cancel()

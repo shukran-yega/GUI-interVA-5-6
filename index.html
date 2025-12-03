@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VMan3 public portal</title>
+  <!-- Libraries for PDF and ZIP generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -592,6 +596,8 @@
     const timeElapsed = document.getElementById('timeElapsed');
     const csmfSection = document.getElementById('csmfSection');
     const barChart = document.getElementById('barChart');
+    const checkbox1 = document.getElementById('checkbox1'); // Include individual records
+    const checkbox2 = document.getElementById('checkbox2'); // Include error log
 
     // File input change handler - auto-load in background
     fileInput.addEventListener('change', async (e) => {
@@ -685,21 +691,177 @@
       }
     });
 
-    // Download link
-    downloadLink.addEventListener('click', () => {
-      if (resultBlob) {
-        const url = URL.createObjectURL(resultBlob);
+    // Download link - generates ZIP with PDF, optional CSV and error log
+    downloadLink.addEventListener('click', async () => {
+      if (!resultBlob && !currentSessionId) {
+        addLogMessage('❌ No results available to download', 'error');
+        return;
+      }
+      
+      try {
+        addLogMessage('→ Preparing download package...');
+        downloadLink.style.pointerEvents = 'none';
+        downloadLink.textContent = 'Preparing...';
+        
+        const zip = new JSZip();
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        const algorithmName = currentAlgorithm === 'InterVA-5' ? 'interva5' : 'interva6';
+        const folderName = `${algorithmName}_results_${timestamp}`;
+        
+        // 1. Always generate CSMF PDF
+        addLogMessage('→ Generating CSMF report...');
+        const pdfBlob = await generateCSMFPdf();
+        if (pdfBlob) {
+          zip.file(`${folderName}/CSMF_Report.pdf`, pdfBlob);
+          addLogMessage('✓ CSMF report added');
+        }
+        
+        // 2. Optionally include individual records CSV
+        if (checkbox1.checked && resultBlob) {
+          zip.file(`${folderName}/individual_results.csv`, resultBlob);
+          addLogMessage('✓ Individual records CSV added');
+        }
+        
+        // 3. Optionally include error log
+        if (checkbox2.checked && currentSessionId) {
+          try {
+            const errorLogResponse = await fetch(`${API_BASE_URL}/get-error-log/${currentSessionId}`);
+            if (errorLogResponse.ok) {
+              const errorLogData = await errorLogResponse.json();
+              if (errorLogData.error_log) {
+                const errorLogBlob = new Blob([errorLogData.error_log], { type: 'text/plain' });
+                zip.file(`${folderName}/error_log.txt`, errorLogBlob);
+                addLogMessage('✓ Error log added');
+              }
+            }
+          } catch (e) {
+            addLogMessage('ℹ Error log not available');
+          }
+        }
+        
+        // Generate ZIP and trigger download
+        addLogMessage('→ Creating ZIP archive...');
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        
+        const url = URL.createObjectURL(zipBlob);
         const a = document.createElement('a');
         a.href = url;
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-        a.download = `interva_results_${timestamp}.csv`;
+        a.download = `${folderName}.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        addLogMessage('File downloaded successfully!');
+        
+        addLogMessage('✓ Download complete!', 'success');
+        
+        // Cleanup session on server after successful download
+        if (currentSessionId) {
+          try {
+            await fetch(`${API_BASE_URL}/cleanup-session/${currentSessionId}`, { method: 'POST' });
+          } catch (e) {
+            console.log('Session cleanup skipped');
+          }
+        }
+        
+      } catch (error) {
+        console.error('Download error:', error);
+        addLogMessage(`❌ Download failed: ${error.message}`, 'error');
+      } finally {
+        downloadLink.style.pointerEvents = 'auto';
+        downloadLink.textContent = 'Download Results';
       }
     });
+
+    // Generate CSMF PDF from chart
+    async function generateCSMFPdf() {
+      try {
+        // Make sure CSMF section is visible
+        if (!csmfSection.classList.contains('active')) {
+          return null;
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        
+        // Title
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Cause-Specific Mortality Fraction (CSMF) Report', pageWidth / 2, 20, { align: 'center' });
+        
+        // Algorithm and timestamp
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'normal');
+        const algorithm = currentAlgorithm || 'InterVA';
+        pdf.text(`Algorithm: ${algorithm}`, 14, 35);
+        pdf.text(`Generated: ${new Date().toLocaleString()}`, 14, 42);
+        
+        // Capture chart as image
+        const chartContainer = csmfSection.querySelector('.chart-container');
+        if (chartContainer) {
+          const canvas = await html2canvas(chartContainer, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            logging: false
+          });
+          
+          const imgData = canvas.toDataURL('image/png');
+          const imgWidth = pageWidth - 28;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          
+          // Add chart image
+          pdf.addImage(imgData, 'PNG', 14, 50, imgWidth, Math.min(imgHeight, 180));
+        }
+        
+        // Add cause breakdown table on new page
+        pdf.addPage();
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('CSMF Breakdown by Cause of Death', 14, 20);
+        
+        // Get causes from the chart
+        const barRows = barChart.querySelectorAll('.bar-row');
+        let yPos = 35;
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        
+        // Table header
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Rank', 14, yPos);
+        pdf.text('Cause of Death', 30, yPos);
+        pdf.text('CSMF (%)', 160, yPos);
+        yPos += 8;
+        
+        // Draw line under header
+        pdf.setDrawColor(200);
+        pdf.line(14, yPos - 4, pageWidth - 14, yPos - 4);
+        
+        pdf.setFont('helvetica', 'normal');
+        barRows.forEach((row, index) => {
+          const label = row.querySelector('.bar-label')?.textContent || '';
+          const value = row.querySelector('.bar-value')?.textContent || '';
+          
+          if (yPos > 270) {
+            pdf.addPage();
+            yPos = 20;
+          }
+          
+          pdf.text(`${index + 1}`, 14, yPos);
+          // Truncate long cause names
+          const truncatedLabel = label.length > 60 ? label.substring(0, 57) + '...' : label;
+          pdf.text(truncatedLabel, 30, yPos);
+          pdf.text(value, 160, yPos);
+          yPos += 7;
+        });
+        
+        return pdf.output('blob');
+        
+      } catch (error) {
+        console.error('PDF generation error:', error);
+        addLogMessage('⚠ Could not generate PDF report');
+        return null;
+      }
+    }
 
     // Load CSV data
     async function loadCSVData(file) {
@@ -1032,8 +1194,12 @@
         
         downloadLink.classList.add('active');
         
-        // If InterVA-5, fetch and display CSMF
-        if (currentAlgorithm === 'InterVA-5') {
+        // Enable download option checkboxes (but keep them unchecked by default)
+        checkbox1.disabled = false;
+        checkbox2.disabled = false;
+        
+        // Fetch and display CSMF for both InterVA-5 and InterVA-6
+        if (currentAlgorithm === 'InterVA-5' || currentAlgorithm === 'InterVA-6') {
           await fetchAndDisplayCSMF(sessionId);
         }
         
@@ -1091,6 +1257,13 @@
       // outputBox.innerHTML = '<div class="status-message">Ready to process data</div>';
       progressSection.classList.remove('active');
       csmfSection.classList.remove('active');
+      // Reset checkboxes
+      checkbox1.disabled = true;
+      checkbox1.checked = false;
+      checkbox2.disabled = true;
+      checkbox2.checked = false;
+      // Reset download link
+      downloadLink.classList.remove('active');
     }
 
     function sleep(ms) {
@@ -1132,8 +1305,9 @@
         const csmfData = await response.json();
         
         if (csmfData && csmfData.csmf && Object.keys(csmfData.csmf).length > 0) {
+          const algorithm = csmfData.algorithm || currentAlgorithm || 'InterVA';
           addLogMessage(`✓ CSMF data received (${Object.keys(csmfData.csmf).length} causes)`, 'success');
-          displayCSMFChart(csmfData.csmf);
+          displayCSMFChart(csmfData.csmf, algorithm);
         } else {
           addLogMessage('ℹ No CSMF data available for this analysis');
         }
@@ -1145,8 +1319,14 @@
     }
 
     // Display CSMF as bar chart
-    function displayCSMFChart(csmfData) {
+    function displayCSMFChart(csmfData, algorithm = 'InterVA') {
       barChart.innerHTML = '';
+      
+      // Update the CSMF section title with algorithm name
+      const csmfTitle = csmfSection.querySelector('h3');
+      if (csmfTitle) {
+        csmfTitle.textContent = `CSMF for all population (${algorithm})`;
+      }
       
       // Convert to array and sort by value (descending)
       const csmfArray = Object.entries(csmfData).map(([cause, value]) => ({
