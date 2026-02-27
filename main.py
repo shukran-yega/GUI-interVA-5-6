@@ -18,9 +18,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'vman3'))
 # Import vman3 functions
 try:
     import vman3
-    print("✓ vman3 imported successfully")
+    print("[OK] vman3 imported successfully")
 except ImportError as e:
-    print(f"❌ Failed to import vman3: {e}")
+    print(f"[ERROR] Failed to import vman3: {e}")
     vman3 = None
 
 app = FastAPI(title="InterVA Analysis API", version="1.0.0")
@@ -48,6 +48,7 @@ class ChunkPayload(BaseModel):
     total_chunks: int
     algorithm: str
     who_version: str  # WHO version: "auto", "2016WHOv151", or "2022WHOv0101"
+    id_column: str = "instanceID"  # Column name used as unique record identifier
     data: str  # Base64 or plain text chunk
 
 
@@ -169,7 +170,7 @@ async def cancel_session(session_id: str):
     # Cleanup session
     del sessions[session_id]
     
-    print(f"→ Session {session_id} cancelled and cleaned up")
+    print(f"-> Session {session_id} cancelled and cleaned up")
     
     return {"status": "cancelled", "session_id": session_id}
 
@@ -192,6 +193,7 @@ async def upload_chunk(payload: ChunkPayload):
                 "total_chunks": total_chunks,
                 "algorithm": payload.algorithm,
                 "who_version": payload.who_version,
+                "id_column": payload.id_column,
                 "sse_queue": asyncio.Queue(),
                 "cancelled": False,
                 "task": None
@@ -207,6 +209,7 @@ async def upload_chunk(payload: ChunkPayload):
         session["total_chunks"] = total_chunks
         session["algorithm"] = payload.algorithm
         session["who_version"] = payload.who_version
+        session["id_column"] = payload.id_column
         
         # Send progress update via SSE
         await session["sse_queue"].put({
@@ -216,11 +219,11 @@ async def upload_chunk(payload: ChunkPayload):
             "total_chunks": total_chunks
         })
         
-        print(f"→ Session {session_id}: Received chunk {chunk_index + 1}/{total_chunks}")
+        print(f"-> Session {session_id}: Received chunk {chunk_index + 1}/{total_chunks}")
         
         # Check if all chunks received
         if len(session["chunks"]) == total_chunks:
-            print(f"→ Session {session_id}: All chunks received, combining...")
+            print(f"-> Session {session_id}: All chunks received, combining...")
             await session["sse_queue"].put({
                 "type": "progress",
                 "message": "All chunks received, combining data..."
@@ -252,9 +255,20 @@ async def upload_chunk(payload: ChunkPayload):
             # Parse CSV
             csv_data = [parse_csv_line(line) for line in lines]
             
+            row_count = len(csv_data) - 1  # Exclude header
+            MAX_ROWS = 100000000
+            
+            if row_count > MAX_ROWS:
+                await session["sse_queue"].put({
+                    "type": "error",
+                    "message": f"CSV exceeds maximum row limit. You uploaded {row_count} rows but the maximum allowed is {MAX_ROWS}."
+                })
+                del sessions[session_id]
+                raise HTTPException(status_code=400, detail=f"CSV exceeds {MAX_ROWS} row limit ({row_count} rows)")
+            
             await session["sse_queue"].put({
                 "type": "progress",
-                "message": f"Parsed {len(csv_data) - 1} data rows with {len(csv_data[0])} columns"
+                "message": f"Parsed {row_count} data rows with {len(csv_data[0])} columns"
             })
             
             # Process based on algorithm - Create background task
@@ -262,14 +276,14 @@ async def upload_chunk(payload: ChunkPayload):
             if "interva-6" in algorithm_lower or "interva6" in algorithm_lower:
                 # Create async task for processing
                 task = asyncio.create_task(
-                    process_vman3_interva6(csv_data, session_id, session["who_version"])
+                    process_vman3_interva6(csv_data, session_id, session["who_version"], session.get("id_column", "instanceID"))
                 )
                 session["task"] = task
                 return {"status": "processing", "session_id": session_id}
             elif "interva-5" in algorithm_lower or "interva5" in algorithm_lower:
                 # Create async task for processing
                 task = asyncio.create_task(
-                    process_vman3_interva5(csv_data, session_id, session["who_version"])
+                    process_vman3_interva5(csv_data, session_id, session["who_version"], session.get("id_column", "instanceID"))
                 )
                 session["task"] = task
                 return {"status": "processing", "session_id": session_id}
@@ -288,7 +302,7 @@ async def upload_chunk(payload: ChunkPayload):
         }
         
     except Exception as e:
-        print(f"❌ Error in upload_chunk: {str(e)}")
+        print(f"[ERROR] Error in upload_chunk: {str(e)}")
         if session_id in sessions:
             await sessions[session_id]["sse_queue"].put({
                 "type": "error",
@@ -351,48 +365,35 @@ def parse_csv_line(line: str) -> List[str]:
 
 async def monitor_progress(queue: asyncio.Queue, session: Dict, total_records: int, algorithm: str):
     """
-    Monitor and emit progress updates during InterVA analysis.
-    Emits periodic progress messages while processing.
+    Emit steady progress updates to keep the UI feeling alive.
+    Ticks 1% every 4 seconds up to 90%. The real 'complete' message handles 100%.
     """
     try:
-        # Simulate progress updates every 2 seconds
-        progress_points = [
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-    11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-    21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-    31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-    41,42,43,45,46,47,48,49,50,51,52,53,54,
-    55,56,57,58,59,60,61,62,63,64,65,66,67,
-    68,69,70,71,72,73,74,75,76,77,78,79,80,
-    81,82,83,84,85,86,87,88,89,90,91,92,93,
-    94,95,96,97,98,99,100,"finalizing "
-    ]
-
+        percent = 0
         
-        for percent in progress_points:
-            # Check if cancelled
+        while percent < 90:
             if session.get("cancelled", False):
                 return
             
-            await asyncio.sleep(5)  # Wait 2 seconds between updates
+            await asyncio.sleep(4)
             
-            # Check again after sleep
             if session.get("cancelled", False):
                 return
+            
+            percent += 1
             
             await queue.put({
                 "type": "progress",
-                "message": f"{algorithm} processing... {percent}% completed"
+                "message": f"{algorithm} processing... {percent}% completed",
+                "percent": percent
             })
-            
+        
     except asyncio.CancelledError:
-        # Task was cancelled, processing is complete
         pass
 
-
-async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who_version: str):
+async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who_version: str, id_column: str = "instanceID"):
     """
-    Process WHO VA data → pycrossva → InterVA6 with SSE progress updates.
+    Process WHO VA data -> pycrossva -> InterVA6 with SSE progress updates.
     """
     try:
         if vman3 is None:
@@ -433,7 +434,7 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
             detected_version = vman3.detectwhoqn(input_df)
             await queue.put({
                 "type": "progress",
-                "message": f"✓ Detected: {detected_version}"
+                "message": f"[OK] Detected: {detected_version}"
             })
             
             # Map detected version to format strings
@@ -467,21 +468,21 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
         # Transform using pycrossva
         await queue.put({
             "type": "progress",
-            "message": f"Transforming data ({input_format} → {output_format})..."
+            "message": f"Transforming data ({input_format} >> {output_format})..."
         })
         
         ccva_df = vman3.pycrossva(
             input_data=input_df,
             input_format=input_format,
             output_format=output_format,
-            raw_data_id="instanceID",
+            raw_data_id=id_column,
             lower=True,
             verbose=0  # Suppress console output
         )
         
         await queue.put({
             "type": "progress",
-            "message": f"✓ Transformation complete: {ccva_df.shape[0]} rows, {ccva_df.shape[1]} columns"
+            "message": f"[OK] Transformation complete: {ccva_df.shape[0]} rows, {ccva_df.shape[1]} columns"
         })
         
         # Check for cancellation
@@ -526,6 +527,8 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
         # Store the InterVA6 object for CSMF calculation
         session["interva6_obj"] = interva6_obj
         session["algorithm"] = "InterVA-6"
+        session["input_df"] = input_df  # Store input data for demographic filtering in CSMF
+        session["id_column"] = id_column
         
         # Stop progress monitoring
         progress_task.cancel()
@@ -544,7 +547,7 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
         
         await queue.put({
             "type": "progress",
-            "message": f"✓ Analysis complete! Generated {results_df.shape[0]} result rows"
+            "message": f"[OK] Analysis complete! Generated {results_df.shape[0]} result rows"
         })
         
         # Convert to CSV
@@ -568,16 +571,16 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
             "result_size": len(result_bytes)
         })
         
-        print(f"✓ InterVA6 analysis complete for session {session_id}")
+        print(f"[OK] InterVA6 analysis complete for session {session_id}")
         
     except asyncio.CancelledError:
-        print(f"→ Task cancelled for session {session_id}")
+        print(f"-> Task cancelled for session {session_id}")
         await queue.put({
             "type": "error",
             "message": "Operation cancelled"
         })
     except Exception as e:
-        print(f"❌ Error in process_vman3_interva6: {str(e)}")
+        print(f"[ERROR] Error in process_vman3_interva6: {str(e)}")
         import traceback
         traceback.print_exc()
         
@@ -591,82 +594,207 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
 async def get_csmf(session_id: str, top: int = 10):
     """
     Get CSMF (Cause-Specific Mortality Fraction) data for a session.
-    This is available for both InterVA-5 and InterVA-6 results.
+    Returns CSMF broken down by categories:
+      - all: entire population
+      - male / female: by gender (from Id10019 column in input data)
+      - adult / child / neonatal: by age group (from isAdult, isChild, isNeonatal columns in input data)
+    
+    The demographic columns live in the original input DataFrame (stored as session["input_df"]),
+    NOT in the InterVA output. We join them via instanceID (input) >> ID (results).
     """
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found or expired")
     
     session = sessions[session_id]
     
-    # Check if we have either InterVA5 or InterVA6 object stored
     if "interva5_obj" not in session and "interva6_obj" not in session:
         raise HTTPException(status_code=404, detail="CSMF data not available - no InterVA object found")
     
     try:
         algorithm = session.get("algorithm", "Unknown")
         
-        # Handle InterVA-5
+        # ── Step 1: Build the full COD results DataFrame ─────────────────
+        
         if "interva5_obj" in session:
             interva5_obj = session["interva5_obj"]
+            csmf_all_series = interva5_obj.get_csmf(top=top, groupcode=False, method="frequency")
             
-            # Get CSMF using the frequency method
-            csmf_series = interva5_obj.get_csmf(top=top, groupcode=False, method="frequency")
+            if csmf_all_series is None or len(csmf_all_series) == 0:
+                return {"categories": {}, "message": "No CSMF data available", "algorithm": algorithm}
             
-            if csmf_series is None or len(csmf_series) == 0:
-                return {"csmf": {}, "message": "No CSMF data available", "algorithm": algorithm}
+            csmf_all_dict = csmf_all_series.to_dict()
             
-            # Convert to dictionary
-            csmf_dict = csmf_series.to_dict()
+            # Get the COD DataFrame for per-record filtering
+            results = interva5_obj.results
+            if isinstance(results, dict) and "COD" in results:
+                cod_df = pd.DataFrame(results["COD"]) if isinstance(results["COD"], list) else results["COD"].copy()
+            else:
+                # Fallback: return only "all" if we can't get per-record data
+                return {
+                    "categories": {"all": {"csmf": csmf_all_dict, "count": len(csmf_all_dict)}},
+                    "top": top,
+                    "algorithm": algorithm
+                }
         
-        # Handle InterVA-6
         elif "interva6_obj" in session:
             interva6_obj = session["interva6_obj"]
             
-            # Get COD results
             if not interva6_obj.results or "COD" not in interva6_obj.results:
-                return {"csmf": {}, "message": "No results found in InterVA-6 object", "algorithm": algorithm}
+                return {"categories": {}, "message": "No results found in InterVA-6 object", "algorithm": algorithm}
             
             cod_results = interva6_obj.results["COD"]
+            cod_df = pd.DataFrame(cod_results) if isinstance(cod_results, list) else cod_results.copy()
             
-            # Convert to DataFrame if it's a list
-            if isinstance(cod_results, list):
-                cod_results_df = pd.DataFrame(cod_results)
-            else:
-                cod_results_df = cod_results
+            # Compute "all" CSMF the same way as before
+            cause1 = cod_df["CAUSE1"]
+            valid = cause1[cause1 != " "]
+            counts = valid.value_counts()
+            total = len(valid)
             
-            # Extract CAUSE1 column (primary cause of death for each record)
-            cause1_column = cod_results_df["CAUSE1"]
+            if total == 0:
+                return {"categories": {}, "message": "No valid causes found", "algorithm": algorithm}
             
-            # Filter out empty spaces (undetermined causes)
-            valid_causes = cause1_column[cause1_column != " "]
-            
-            # Count the frequency of each cause
-            cause_counts = valid_causes.value_counts()
-            
-            # Get the total number of valid causes
-            total_causes = len(valid_causes)
-            
-            if total_causes == 0:
-                return {"csmf": {}, "message": "No valid causes found", "algorithm": algorithm}
-            
-            # Calculate CSMF (as proportion of total)
-            csmf_series = (cause_counts / total_causes).head(top)
-            
-            # Convert to dictionary
-            csmf_dict = csmf_series.to_dict()
+            csmf_all_dict = (counts / total).head(top).to_dict()
         
-        # Don't clean up session here - we may need it for error log and CSV downloads
-        # Session will be cleaned up after all downloads are complete or on timeout
+        # ── Step 2: Build ID-based demographic lookup from input data ────
+        # The demographic columns (Id10019, isAdult, isChild, isNeonatal) are in
+        # the original input DataFrame, not the InterVA output. We use instanceID
+        # from the input to match against ID in the results.
+        
+        # Prepare category ID lists
+        male_ids = []
+        female_ids = []
+        adult_ids = []
+        child_ids = []
+        neonatal_ids = []
+        
+        input_df = session.get("input_df")
+        id_column = session.get("id_column", "instanceID")
+        demographics_available = False
+        
+        if input_df is not None and id_column in input_df.columns:
+            demographics_available = True
+            
+            for _, row in input_df.iterrows():
+                rid = str(row.get(id_column, "")).strip()
+                if not rid:
+                    continue
+                
+                # Gender classification from Id10019
+                gender = str(row.get("Id10019", "")).strip().lower()
+                if gender == "male":
+                    male_ids.append(rid)
+                elif gender == "female":
+                    female_ids.append(rid)
+                
+                # Age group classification from isAdult, isChild, isNeonatal
+                # These are the FINAL columns (not the intermediate "1"-suffixed ones)
+                is_adult = str(row.get("isAdult", "")).strip()
+                is_child = str(row.get("isChild", "")).strip()
+                is_neonatal = str(row.get("isNeonatal", "")).strip()
+                
+                if is_neonatal == "1":
+                    neonatal_ids.append(rid)
+                elif is_child == "1":
+                    child_ids.append(rid)
+                elif is_adult == "1":
+                    adult_ids.append(rid)
+        
+        # ── Step 3: Helper to compute CSMF for a subset of IDs ──────────
+        
+        def compute_csmf_for_ids(id_list, top_n):
+            """Given a list of instanceIDs, filter COD results and compute CSMF."""
+            if not id_list:
+                return {}, 0
+            
+            id_set = set(id_list)
+            filtered = cod_df[cod_df["ID"].isin(id_set)]
+            
+            if filtered.empty or "CAUSE1" not in filtered.columns:
+                return {}, 0
+            
+            cause1 = filtered["CAUSE1"]
+            valid = cause1[cause1 != " "]
+            total = len(valid)
+            
+            if total == 0:
+                return {}, 0
+            
+            counts = valid.value_counts()
+            csmf = (counts / total).head(top_n)
+            return csmf.to_dict(), total
+        
+        # ── Step 4: Build categorized response ──────────────────────────
+        
+        # Count total records for "all"
+        all_cause1 = cod_df["CAUSE1"] if "CAUSE1" in cod_df.columns else pd.Series()
+        all_valid_count = len(all_cause1[all_cause1 != " "]) if len(all_cause1) > 0 else 0
+        
+        categories = {
+            "all": {
+                "csmf": csmf_all_dict,
+                "count": all_valid_count,
+                "label": "All Population"
+            }
+        }
+        
+        if demographics_available:
+            # Gender categories
+            if male_ids:
+                male_csmf, male_count = compute_csmf_for_ids(male_ids, top)
+                if male_csmf:
+                    categories["male"] = {
+                        "csmf": male_csmf,
+                        "count": male_count,
+                        "label": "Male"
+                    }
+            
+            if female_ids:
+                female_csmf, female_count = compute_csmf_for_ids(female_ids, top)
+                if female_csmf:
+                    categories["female"] = {
+                        "csmf": female_csmf,
+                        "count": female_count,
+                        "label": "Female"
+                    }
+            
+            # Age group categories
+            if adult_ids:
+                adult_csmf, adult_count = compute_csmf_for_ids(adult_ids, top)
+                if adult_csmf:
+                    categories["adult"] = {
+                        "csmf": adult_csmf,
+                        "count": adult_count,
+                        "label": "Adult"
+                    }
+            
+            if child_ids:
+                child_csmf, child_count = compute_csmf_for_ids(child_ids, top)
+                if child_csmf:
+                    categories["child"] = {
+                        "csmf": child_csmf,
+                        "count": child_count,
+                        "label": "Child"
+                    }
+            
+            if neonatal_ids:
+                neonatal_csmf, neonatal_count = compute_csmf_for_ids(neonatal_ids, top)
+                if neonatal_csmf:
+                    categories["neonatal"] = {
+                        "csmf": neonatal_csmf,
+                        "count": neonatal_count,
+                        "label": "Neonatal"
+                    }
         
         return {
-            "csmf": csmf_dict,
+            "categories": categories,
             "top": top,
-            "total_causes": len(csmf_dict),
-            "algorithm": algorithm
+            "algorithm": algorithm,
+            "demographics_available": demographics_available
         }
         
     except Exception as e:
-        print(f"❌ Error getting CSMF: {str(e)}")
+        print(f"[ERROR] Error getting CSMF: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error getting CSMF: {str(e)}")
@@ -768,7 +896,7 @@ async def get_error_log(session_id: str):
         }
         
     except Exception as e:
-        print(f"❌ Error getting error log: {str(e)}")
+        print(f"[ERROR] Error getting error log: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error getting error log: {str(e)}")
@@ -781,15 +909,15 @@ async def cleanup_session(session_id: str):
     """
     if session_id in sessions:
         del sessions[session_id]
-        print(f"✓ Session {session_id} cleaned up")
+        print(f"[OK] Session {session_id} cleaned up")
         return {"status": "cleaned", "session_id": session_id}
     
     return {"status": "not_found", "session_id": session_id}
 
 
-async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who_version: str):
+async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who_version: str, id_column: str = "instanceID"):
     """
-    Process WHO VA data → pycrossva → InterVA5 with SSE progress updates.
+    Process WHO VA data -> pycrossva -> InterVA5 with SSE progress updates.
     """
     try:
         if vman3 is None:
@@ -830,7 +958,7 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
             detected_version = vman3.detectwhoqn(input_df)
             await queue.put({
                 "type": "progress",
-                "message": f"✓ Detected: {detected_version}"
+                "message": f"[OK] Detected: {detected_version}"
             })
             
             # Force WHO 2016 for InterVA5
@@ -845,7 +973,7 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
                 # If 2022 selected but running IV5, show warning
                 await queue.put({
                     "type": "progress",
-                    "message": "⚠ Warning: InterVA5 works best with WHO 2016 data"
+                    "message": "[WARN] Warning: InterVA5 works best with WHO 2016 data"
                 })
                 input_format = "2016WHOv151"
                 output_format = "InterVA5"
@@ -862,21 +990,21 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
         # Transform using pycrossva
         await queue.put({
             "type": "progress",
-            "message": f"Transforming data ({input_format} → {output_format})..."
+            "message": f"Transforming data ({input_format} >> {output_format})..."
         })
         
         ccva_df = vman3.pycrossva(
             input_data=input_df,
             input_format=input_format,
             output_format=output_format,
-            raw_data_id="instanceID",
+            raw_data_id=id_column,
             lower=True,
             verbose=0
         )
         
         await queue.put({
             "type": "progress",
-            "message": f"✓ Transformation complete: {ccva_df.shape[0]} rows, {ccva_df.shape[1]} columns"
+            "message": f"[OK] Transformation complete: {ccva_df.shape[0]} rows, {ccva_df.shape[1]} columns"
         })
         
         # Check for cancellation
@@ -923,6 +1051,8 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
         # Store the InterVA5 object for CSMF calculation
         session["interva5_obj"] = interva5_obj
         session["algorithm"] = "InterVA-5"
+        session["input_df"] = input_df  # Store input data for demographic filtering in CSMF
+        session["id_column"] = id_column
         
         # Stop progress monitoring
         progress_task.cancel()
@@ -941,7 +1071,7 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
         
         await queue.put({
             "type": "progress",
-            "message": f"✓ Analysis complete! Generated {results_df.shape[0]} result rows"
+            "message": f"[OK] Analysis complete! Generated {results_df.shape[0]} result rows"
         })
         
         # Convert to CSV
@@ -965,16 +1095,16 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
             "result_size": len(result_bytes)
         })
         
-        print(f"✓ InterVA5 analysis complete for session {session_id}")
+        print(f"[OK] InterVA5 analysis complete for session {session_id}")
         
     except asyncio.CancelledError:
-        print(f"→ Task cancelled for session {session_id}")
+        print(f"-> Task cancelled for session {session_id}")
         await queue.put({
             "type": "error",
             "message": "Operation cancelled"
         })
     except Exception as e:
-        print(f"❌ Error in process_vman3_interva5: {str(e)}")
+        print(f"[ERROR] Error in process_vman3_interva5: {str(e)}")
         import traceback
         traceback.print_exc()
         

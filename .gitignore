@@ -35,3 +35,4 @@ Thumbs.db
 # Test files
 test_*.csv
 sample_large*.csv
+__pycache__/main.cpython-312.pyc

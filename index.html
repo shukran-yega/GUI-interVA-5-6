@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VMan3 public portal</title>
-  <!-- Libraries for PDF and ZIP generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -109,12 +108,10 @@
       .main-wrapper {
         flex-direction: column;
       }
-      
       .disclaimer-box {
         width: 100%;
         max-width: 600px;
       }
-      
       .container {
         min-width: auto;
         width: 100%;
@@ -265,13 +262,6 @@
       opacity: 1;
     }
 
-    .progress-status {
-      margin-top: 8px;
-      font-size: 12px;
-      color: #555;
-      text-align: center;
-    }
-
     .time-elapsed {
       margin-top: 6px;
       font-size: 11px;
@@ -409,10 +399,180 @@
       text-align: left;
     }
 
+    .csmf-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 15px;
+    }
+
+    .csmf-card {
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: #fafafa;
+      position: relative;
+    }
+
+    .csmf-card:hover {
+      border-color: #007bff;
+      box-shadow: 0 2px 12px rgba(0, 123, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .csmf-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .csmf-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .csmf-card-count {
+      font-size: 11px;
+      color: #888;
+      background: #eee;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .csmf-card-expand {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 14px;
+      color: #aaa;
+      transition: color 0.2s;
+    }
+
+    .csmf-card:hover .csmf-card-expand {
+      color: #007bff;
+    }
+
+    .csmf-mini-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .mini-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mini-bar-label {
+      flex: 0 0 100px;
+      text-align: right;
+      font-size: 10px;
+      color: #666;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mini-bar-track {
+      flex: 1;
+      height: 16px;
+      background: #eee;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .mini-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.6s ease-out;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 4px;
+    }
+
+    .mini-bar-value {
+      font-size: 9px;
+      font-weight: 600;
+      color: white;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+    }
+
+    /* ── Expanded modal ── */
+    .csmf-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 30px;
+    }
+
+    .csmf-modal-overlay.active {
+      display: flex;
+    }
+
+    .csmf-modal {
+      background: white;
+      border-radius: 14px;
+      padding: 30px;
+      max-width: 750px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+      position: relative;
+      animation: modalSlideIn 0.25s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .csmf-modal-close {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      font-size: 22px;
+      cursor: pointer;
+      color: #999;
+      background: none;
+      border: none;
+      min-width: auto;
+      padding: 4px 8px;
+      line-height: 1;
+    }
+
+    .csmf-modal-close:hover {
+      color: #333;
+    }
+
+    .csmf-modal h3 {
+      margin: 0 0 6px 0;
+      font-size: 18px;
+      color: #333;
+    }
+
+    .csmf-modal .modal-subtitle {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 20px;
+    }
+
     .chart-container {
       position: relative;
       width: 100%;
-      height: 400px;
       margin-top: 15px;
     }
 
@@ -472,103 +632,331 @@
       color: #999;
       font-size: 14px;
     }
+
+    /* ── ID column mapping ── */
+    .id-mapping-row {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 10px 14px;
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #555;
+    }
+
+    .id-mapping-row.active {
+      display: flex;
+    }
+
+    .id-mapping-row select {
+      min-width: 180px;
+    }
+
+    .id-mapping-row .id-status {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .id-mapping-row .id-status.ok { color: #28a745; }
+    .id-mapping-row .id-status.err { color: #dc3545; }
+
+    /* ── Tab system ── */
+    .results-tabs {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .results-tabs.active {
+      display: block;
+    }
+
+    .tab-header {
+      display: flex;
+      border-bottom: 2px solid #e0e0e0;
+      gap: 0;
+    }
+
+    .tab-btn {
+      padding: 10px 24px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #888;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: 0;
+      min-width: auto;
+      position: relative;
+    }
+
+    .tab-btn:hover:not(:disabled) {
+      color: #333;
+      background: #f8f9fa;
+    }
+
+    .tab-btn.active {
+      color: #007bff;
+      border-bottom-color: #007bff;
+    }
+
+    .tab-btn:disabled {
+      color: #bbb;
+      cursor: not-allowed;
+      opacity: 1;
+    }
+
+    .tab-btn .tab-badge {
+      display: none;
+      margin-left: 6px;
+      padding: 1px 7px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      background: #28a745;
+      color: white;
+      animation: badgePulse 1.5s ease-in-out 3;
+    }
+
+    .tab-btn .tab-badge.visible {
+      display: inline-block;
+    }
+
+    @keyframes badgePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+
+    .tab-panel {
+      display: none;
+      padding: 20px 0;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* ── Explore panel ── */
+    .explore-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .explore-card {
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 16px;
+      background: #fafafa;
+    }
+
+    .explore-card h4 {
+      margin: 0 0 4px 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .explore-card .explore-subtitle {
+      font-size: 11px;
+      color: #999;
+      margin-bottom: 10px;
+    }
+
+    .explore-stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      font-size: 12px;
+      color: #555;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .explore-stat-row:last-child {
+      border-bottom: none;
+    }
+
+    .explore-stat-row .stat-label {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding-right: 8px;
+    }
+
+    .explore-stat-row .stat-value {
+      font-weight: 600;
+      color: #333;
+      white-space: nowrap;
+    }
+
+    .explore-stat-bar {
+      height: 6px;
+      background: #eee;
+      border-radius: 3px;
+      margin-top: 3px;
+      overflow: hidden;
+    }
+
+    .explore-stat-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.5s ease-out;
+    }
+
+    .explore-summary {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .explore-summary-item {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      flex: 1;
+      min-width: 140px;
+      text-align: center;
+    }
+
+    .explore-summary-item .summary-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .explore-summary-item .summary-label {
+      font-size: 11px;
+      color: #888;
+      margin-top: 2px;
+    }
   </style>
 </head>
 <body>
   <div class="main-wrapper">
     <div class="container">
-    <h1>VMan3 Public Portal for Processing Verbal Autopsy Data</h1>
-    <div class="file-info" id="fileInfo">Select a CSV file to begin</div>
+      <h1>VMan3 Public Portal for Processing Verbal Autopsy Data</h1>
+      <div class="file-info" id="fileInfo">Select a CSV file to begin</div>
 
-    <div class="controls-row">
-      <div class="file-input-wrapper">
-        <input type="file" id="fileInput" accept=".csv" />
-        <div class="file-button" id="fileButton"> Choose CSV File</div>
+      <div class="controls-row">
+        <div class="file-input-wrapper">
+          <input type="file" id="fileInput" accept=".csv" />
+          <div class="file-button" id="fileButton"> Choose CSV File</div>
+        </div>
+        
+        <select id="whoVersionSelect">
+          <option value="auto">Auto-detect WHO</option>
+          <option value="2016WHOv151">WHO 2016</option>
+          <option value="2022WHOv0101">WHO 2022</option>
+        </select>
+        
+        <select id="algorithmSelect">
+          <option value="InterVA-5">InterVA-5</option>
+          <option value="InterVA-6">InterVA-6</option>
+        </select>
+
+        <button id="runBtn" disabled>Run Analysis</button>
+        <button id="cancelBtn" disabled>Cancel</button>
       </div>
-      
-      <select id="whoVersionSelect">
-        <option value="auto">Auto-detect WHO</option>
-        <option value="2016WHOv151">WHO 2016</option>
-        <option value="2022WHOv0101">WHO 2022</option>
-      </select>
-      
-      <select id="algorithmSelect">
-        <option value="InterVA-5">InterVA-5</option>
-        <option value="InterVA-6">InterVA-6</option>
-      </select>
 
-      <button id="runBtn" disabled>Run Analysis</button>
-      <button id="cancelBtn" disabled>Cancel</button>
-    </div>
+      <!-- ID column mapping (shown when auto-detect fails) -->
+      <div class="id-mapping-row" id="idMappingRow">
+        <span>ID column:</span>
+        <select id="idColumnSelect"></select>
+        <span class="id-status" id="idStatus"></span>
+      </div>
 
-    <div class="progress-section" id="progressSection">
-      <div class="progress-bar">
-        <div class="progress-fill" id="progressFill" style="width: 0%">
-          <span id="progressPercent">0%</span>
+      <div class="progress-section" id="progressSection">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 0%">
+            <span id="progressPercent">0%</span>
+          </div>
+        </div>
+        <div class="time-elapsed" id="timeElapsed">Time Elapsed: 0:00</div>
+      </div>
+
+      <div class="output-box" id="outputBox"></div>
+
+      <div class="action-row" style="padding-top: 15px;">
+        <a class="download-link" id="downloadLink"> Download Results</a>
+        
+        <div class="checkbox-wrapper">
+          <input type="checkbox" id="checkbox1" disabled>
+          <label for="checkbox1">Include ind. records</label>
+        </div>
+        
+        <div class="checkbox-wrapper">
+          <input type="checkbox" id="checkbox2" disabled>
+          <label for="checkbox2">include error log</label>
         </div>
       </div>
-      <div class="time-elapsed" id="timeElapsed">⏱ Time: 0:00</div>
-    </div>
 
-    <div class="output-box" id="outputBox">
-    </div>
+      <!-- Tab system: Explore Data + CSMF Results -->
+      <div class="results-tabs" id="resultsTabs">
+        <div class="tab-header">
+          <button class="tab-btn active" id="tabExplore" data-tab="explore">Explore Data</button>
+          <button class="tab-btn" id="tabCsmf" data-tab="csmf" disabled>CSMF Results<span class="tab-badge" id="csmfBadge">Ready</span></button>
+        </div>
 
-    <div class="action-row" style="padding-top: 15px;">
-      
-      <a class="download-link" id="downloadLink"> Download Results</a>
-      
-      <div class="checkbox-wrapper">
-        <input type="checkbox" id="checkbox1" disabled>
-        <label for="checkbox1">Include ind. records</label>
+        <div class="tab-panel active" id="panelExplore">
+          <div id="exploreContent"></div>
+        </div>
+
+        <div class="tab-panel" id="panelCsmf">
+          <div class="csmf-section active" id="csmfSection" style="display:block;box-shadow:none;margin-top:0;padding:0;">
+            <h3 id="csmfTitle">CSMF Results</h3>
+            <div class="csmf-grid" id="csmfGrid"></div>
+          </div>
+        </div>
       </div>
-      
-      <div class="checkbox-wrapper">
-        <input type="checkbox" id="checkbox2" disabled>
-        <label for="checkbox2">include error log </label>
+
+      <!-- Modal for expanded chart view -->
+      <div class="csmf-modal-overlay" id="csmfModalOverlay">
+        <div class="csmf-modal">
+          <button class="csmf-modal-close" id="csmfModalClose">&times;</button>
+          <h3 id="csmfModalTitle">CSMF</h3>
+          <div class="modal-subtitle" id="csmfModalSubtitle"></div>
+          <div class="chart-container">
+            <div class="bar-chart" id="csmfModalChart"></div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="csmf-section" id="csmfSection">
-      <h3>CSMF for all population</h3>
-      <div class="chart-container">
-        <div class="bar-chart" id="barChart"></div>
+    <div class="disclaimer-box">
+      <p style="color: #007bff; font-size: 20px;"><strong>Important Notice</strong></p>
+      <p>This is a beta version of the VMan3 Public Portal for processing Verbal Autopsy data.</p>
+      <p>• The tool loads verbal autopsy data collected using WHO VA standard instrument, auto-detect which instrument, and allow processing of the cause of death data based on selected algorithm.</p>
+      <p style="font-size: 15px; font-weight: 500;">Current supported Instruments and algorithms are:</p>
+      <div class="version-info">
+        <ul>
+          <li><b>WHO VA V1.5.2</b> and <b>InterVA5.</b> The InterVA5 source code has been copied from <a href="https://github.com/verbal-autopsy-software/InterVA5" target="_blank" style="color: #007bff; text-decoration: underline;">here</a></li>
+          <li><b> WHO VA 2022</b> and <b>InterVA6</b> is a python version of the <a href="https://github.com/verbal-autopsy-software/InterVA2022" target="_blank" style="color: #007bff; text-decoration: underline;">InterVA2022</a> (R-version)</li>
+        </ul>
       </div>
-    </div>
-  </div>
-
-  <div class="disclaimer-box">
-    <!-- <h2>
-      Beta Version
-      <span class="beta-badge">v1.0</span>
-    </h2> -->
-    
-    <p style="color: #007bff; font-size: 20px;"><strong>Important Notice</strong></p>
-    
-    <p>This is a beta version of the VMan3 Public Portal for processing Verbal Autopsy data.</p>
-    
-    <p>• The tool loads verbal autopsy data collected using WHO VA standard instrument, auto-detect which instrument, and allow processing of the cause of death data based on selected algorithm.</p>
-    
-    <p style="font-size: 15px; font-weight: 500;">Current supported Instruments and algorithms are:</p>
-    <div class="version-info">
-      <ul>
-        <li><b>WHO VA V1.5.2</b> and <b>InterVA5.</b> The InterVA5 source code has been copied from <a href="https://github.com/verbal-autopsy-software/InterVA5" target="_blank" style="color: #007bff; text-decoration: underline;">here</a></li>
-        <li><b> WHO VA 2022</b> and <b>InterVA6</b> is a python version of the <a href="https://github.com/verbal-autopsy-software/InterVA2022" target="_blank" style="color: #007bff; text-decoration: underline;">InterVA2022</a> (R-version)</strong></li>
-      </ul>
-    </div>
       <p>• This service is provided "as-is", for research and evaluation purposes only.</p>
-      <p style="color: #007bff;"><b>• This service does not store any data.</bold></p>
-  </div>
-  
-
-
+      <p style="color: #ff0000;"><b>• This service does not store any data.</b></p>
+    </div>
   </div>
 
   <script>
-    // Configuration - change this to your backend URL
-    const API_BASE_URL = window.location.origin; // Uses same domain as the page
-    const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
-    
-    // State management
+    // =========================================================================
+    // CONFIG
+    // =========================================================================
+    const API_BASE_URL = window.location.origin;
+    const CHUNK_SIZE = 5 * 1024 * 1024;
+
+    // =========================================================================
+    // STATE
+    // =========================================================================
     let uploadedData = null;
     let resultBlob = null;
     let currentSessionId = null;
@@ -577,9 +965,34 @@
     let isLoading = false;
     let startTime = null;
     let timerInterval = null;
-    let currentAlgorithm = null; // Store current algorithm for CSMF check
-    
-    // DOM elements
+    let currentAlgorithm = null;
+    let detectedIdColumn = null;  // Auto-detected or user-selected ID column
+
+    // Progress ticker state
+    let progressTicker = null;
+    let processingDone = false;
+    let waitingMessageInterval = null;
+    let waitingMessageIndex = 0;
+
+    // Friendly messages shown when bar reaches 90% and backend is still working
+    const WAITING_MESSAGES = [
+      ' Almost there, finishing up...',
+      ' Still crunching the numbers...',
+      ' Just a little longer...',
+      ' Wrapping up the analysis...',
+      ' This is a big dataset, hang tight...',
+      ' Putting the final touches on results...',
+      ' Nearly done, thanks for your patience...',
+      ' Double-checking everything...',
+      ' Just a moment more...',
+      ' We\'re not stuck, just being thorough...',
+      ' Good things take time...',
+      ' Final calculations in progress...'
+    ];
+
+    // =========================================================================
+    // DOM ELEMENTS
+    // =========================================================================
     const fileInput = document.getElementById('fileInput');
     const fileButton = document.getElementById('fileButton');
     const fileInfo = document.getElementById('fileInfo');
@@ -592,157 +1005,479 @@
     const progressSection = document.getElementById('progressSection');
     const progressFill = document.getElementById('progressFill');
     const progressPercent = document.getElementById('progressPercent');
-    const progressStatus = document.getElementById('progressStatus');
     const timeElapsed = document.getElementById('timeElapsed');
     const csmfSection = document.getElementById('csmfSection');
-    const barChart = document.getElementById('barChart');
-    const checkbox1 = document.getElementById('checkbox1'); // Include individual records
-    const checkbox2 = document.getElementById('checkbox2'); // Include error log
+    const checkbox1 = document.getElementById('checkbox1');
+    const checkbox2 = document.getElementById('checkbox2');
+    const idMappingRow = document.getElementById('idMappingRow');
+    const idColumnSelect = document.getElementById('idColumnSelect');
+    const idStatus = document.getElementById('idStatus');
+    const resultsTabs = document.getElementById('resultsTabs');
+    const tabExplore = document.getElementById('tabExplore');
+    const tabCsmf = document.getElementById('tabCsmf');
+    const panelExplore = document.getElementById('panelExplore');
+    const panelCsmf = document.getElementById('panelCsmf');
+    const csmfBadge = document.getElementById('csmfBadge');
+    const exploreContent = document.getElementById('exploreContent');
 
-    // File input change handler - auto-load in background
-    fileInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        if (!file.name.endsWith('.csv')) {
-          addLogMessage('❌ Please select a valid CSV file', 'error');
-          fileButton.textContent = 'Choose CSV File';
-          uploadedData = null;
-          runBtn.disabled = true;
+    // =========================================================================
+    // PROGRESS BAR
+    //
+    // Phases:
+    //   0-5%   : Preparing / connecting
+    //   5-30%  : Uploading chunks (driven by upload loop)
+    //   30-90% : Client-side ticker, +1% every 4 seconds (NEVER stalls)
+    //   90%    : Hold here if backend not done, show friendly messages
+    //   100%   : Jump here instantly when backend sends 'complete'
+    //
+    // Rule: bar NEVER goes backward except on reset to 0 (error/cancel)
+    // Rule: bar NEVER stalls — the client ticker keeps it moving
+    // Rule: SSE messages go to the log box only, NOT the progress bar
+    // =========================================================================
+
+    function setProgress(percent) {
+      const rounded = Math.round(percent);
+      const current = getCurrentProgress();
+      if (rounded > current || rounded === 0) {
+        progressFill.style.width = rounded + '%';
+        progressPercent.textContent = rounded + '%';
+      }
+    }
+
+    function getCurrentProgress() {
+      return parseFloat(progressFill.style.width) || 0;
+    }
+
+    // =========================================================================
+    // CLIENT-SIDE PROGRESS TICKER
+    //
+    // Starts after all chunks are uploaded (at 30%).
+    // Ticks +1% every 4 seconds until 90%.
+    // At 90%, stops ticking and starts cycling friendly wait messages.
+    // If backend finishes at ANY point, we jump to 100% immediately.
+    // =========================================================================
+
+    function startProgressTicker() {
+      stopProgressTicker();
+      processingDone = false;
+
+      progressTicker = setInterval(() => {
+        // If backend already finished, stop immediately
+        if (processingDone) {
+          stopProgressTicker();
           return;
         }
 
-        // Update button text to show filename
-        const shortName = file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name;
-        fileButton.textContent = `📄 ${shortName}`;
-        
-        // Clear logs for new file
-        outputBox.innerHTML = '';
-        
-        // Auto-load in background
-        addLogMessage(`→ Loading ${file.name}...`);
-        
-        uploadedData = null;
+        const current = getCurrentProgress();
+
+        if (current < 90) {
+          setProgress(current + 1);
+        } else {
+          // Hit 90% — backend isn't done yet
+          // Stop ticking, start showing friendly messages
+          stopTickerOnly();
+          startWaitingMessages();
+        }
+      }, 6000); // wait for 6 seconds
+    }
+
+    function stopTickerOnly() {
+      if (progressTicker) {
+        clearInterval(progressTicker);
+        progressTicker = null;
+      }
+    }
+
+    function stopProgressTicker() {
+      stopTickerOnly();
+      stopWaitingMessages();
+    }
+
+    function startWaitingMessages() {
+      stopWaitingMessages();
+      waitingMessageIndex = 0;
+
+      // Show first message right away
+      addLogMessage(WAITING_MESSAGES[0]);
+
+      // Cycle through messages every 8 seconds
+      waitingMessageInterval = setInterval(() => {
+        if (processingDone) {
+          stopWaitingMessages();
+          return;
+        }
+        waitingMessageIndex = (waitingMessageIndex + 1) % WAITING_MESSAGES.length;
+        addLogMessage(WAITING_MESSAGES[waitingMessageIndex]);
+      }, 8000);
+    }
+
+    function stopWaitingMessages() {
+      if (waitingMessageInterval) {
+        clearInterval(waitingMessageInterval);
+        waitingMessageInterval = null;
+      }
+    }
+
+    // =========================================================================
+    // SSE CONNECTION & MESSAGE HANDLER
+    //
+    // SSE messages go to the log box ONLY.
+    // The progress bar is driven entirely by:
+    //   - Upload loop (0-30%)
+    //   - Client ticker (30-90%)
+    //   - 'complete' event (jump to 100%)
+    // =========================================================================
+
+    function connectSSE(sessionId) {
+      return new Promise((resolve, reject) => {
+        closeSSE();
+        addLogMessage('-> Connecting to server...');
+
+        eventSource = new EventSource(`${API_BASE_URL}/stream/${sessionId}`);
+
+        eventSource.onopen = () => {
+          addLogMessage('[OK] Connected to server');
+          resolve();
+        };
+
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data.replace(/'/g, '"'));
+            handleSSEMessage(data, sessionId);
+          } catch (e) {
+            console.error('SSE parse error:', e, event.data);
+          }
+        };
+
+        eventSource.onerror = (error) => {
+          console.error('SSE error:', error);
+          if (eventSource && eventSource.readyState === EventSource.CLOSED) {
+            console.log('SSE connection closed');
+          }
+        };
+      });
+    }
+
+    function handleSSEMessage(data, sessionId) {
+      switch (data.type) {
+
+        case 'connected':
+          // Already handled in onopen
+          break;
+
+        case 'chunk_received':
+          // Progress handled by upload loop — ignore here
+          break;
+
+        case 'progress':
+          // Log to output box ONLY — progress bar is driven by the ticker
+          addLogMessage(`-> ${data.message}`);
+          break;
+
+        case 'complete':
+          // Backend is done! Jump to 100% immediately
+          processingDone = true;
+          stopProgressTicker();
+          addLogMessage(`[OK] ${data.message}`, 'success');
+          setProgress(100);
+          handleProcessingComplete(sessionId);
+          break;
+
+        case 'error':
+          processingDone = true;
+          stopProgressTicker();
+          addLogMessage(`[ERROR] ${data.message}`, 'error');
+          setProgress(0);
+          progressSection.classList.remove('active');
+          stopTimer();
+          closeSSE();
+          runBtn.disabled = false;
+          cancelBtn.disabled = true;
+          break;
+
+        default:
+          console.log('Unknown SSE type:', data.type, data);
+          break;
+      }
+    }
+
+    function closeSSE() {
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+    }
+
+    // =========================================================================
+    // MAIN PROCESSING FLOW
+    // =========================================================================
+
+    async function processDataWithChunking(algorithm, whoVersion) {
+      try {
+        currentAlgorithm = algorithm;
         runBtn.disabled = true;
+        cancelBtn.disabled = false;
         downloadLink.classList.remove('active');
-        resetOutput();
-        csmfSection.classList.remove('active');
-        
-        await loadCSVData(file);
-      }
-    });
+        resultBlob = null;
 
-    // WHO version select change handler - suggest algorithm but allow override
-    whoVersionSelect.addEventListener('change', () => {
-      const whoVersion = whoVersionSelect.value;
-      
-      if (whoVersion === '2016WHOv151') {
-        // WHO 2016 recommended with InterVA-5
-        algorithmSelect.value = 'InterVA-5';
-        addLogMessage('ℹ WHO 2016 → InterVA-5 (recommended)');
-      } else if (whoVersion === '2022WHOv0101') {
-        // WHO 2022 recommended with InterVA-6
-        algorithmSelect.value = 'InterVA-6';
-        addLogMessage('ℹ WHO 2022 → InterVA-6 (recommended)');
-      }
-    });
+        // Show tabs with explore active, CSMF locked
+        resultsTabs.classList.add('active');
+        lockCsmfTab();
+        switchTab('explore');
 
-    // Run button
-    runBtn.addEventListener('click', async () => {
-      const algorithm = algorithmSelect.value;
-      const whoVersion = whoVersionSelect.value;
+        // Run exploration immediately (client-side, instant)
+        runExploration(uploadedData);
 
-      await processDataWithChunking(algorithm, whoVersion);
-    });
+        progressSection.classList.add('active');
+        setProgress(0);
+        startTimer();
 
-    // Cancel button - stops current processing
-    cancelBtn.addEventListener('click', async () => {
-      if (currentSessionId) {
-        try {
-          addLogMessage('→ Cancelling operation...', 'error');
-          
-          // Send cancel request to backend
-          const response = await fetch(`${API_BASE_URL}/cancel/${currentSessionId}`, {
-            method: 'POST'
+        outputBox.innerHTML = '';
+        addLogMessage('-> Preparing data for upload...');
+
+        // Determine which ID column to use
+        const idCol = detectedIdColumn || 'instanceID';
+        addLogMessage(`-> Using ID column: ${idCol}`);
+
+        // Convert to CSV text
+        const csvText = uploadedData.map(row =>
+          row.map(cell => {
+            const s = String(cell);
+            if (s.includes(',') || s.includes('\n') || s.includes('"')) {
+              return `"${s.replace(/"/g, '""')}"`;
+            }
+            return s;
+          }).join(',')
+        ).join('\n');
+
+        const fileSizeKB = (csvText.length / 1024).toFixed(2);
+        addLogMessage(`-> CSV size: ${fileSizeKB} KB`);
+
+        // Session
+        currentSessionId = generateSessionId();
+
+        // Connect SSE
+        await connectSSE(currentSessionId);
+        await sleep(300);
+
+        // Split into chunks
+        const chunks = [];
+        for (let i = 0; i < csvText.length; i += CHUNK_SIZE) {
+          chunks.push(csvText.slice(i, i + CHUNK_SIZE));
+        }
+        const totalChunks = chunks.length;
+        addLogMessage(`-> Uploading ${totalChunks} chunk(s)...`);
+
+        setProgress(5);
+
+        // Upload chunks -- drives progress from 5% to 30%
+        for (let i = 0; i < chunks.length; i++) {
+          const response = await fetch(`${API_BASE_URL}/upload-chunk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              session_id: currentSessionId,
+              chunk_index: i,
+              total_chunks: totalChunks,
+              algorithm: algorithm,
+              who_version: whoVersion,
+              id_column: idCol,
+              data: chunks[i]
+            })
           });
 
-          if (response.ok) {
-            addLogMessage('✓ Cancellation request sent to server', 'error');
+          if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.detail || `Upload failed: ${response.status}`);
           }
-          
-          // Close SSE connection
-          closeSSE();
-          
-          // Update UI
-          addLogMessage('✓ Operation cancelled by user', 'error');
-          setProgress(0, 'Cancelled');
-          progressSection.classList.remove('active');
-          
-          // Stop timer
-          stopTimer();
-          
-          // Reset buttons
-          cancelBtn.disabled = true;
-          runBtn.disabled = false;
-          
-        } catch (error) {
-          console.error('Cancel error:', error);
-          addLogMessage(`❌ Cancel failed: ${error.message}`, 'error');
+
+          const uploadProgress = 5 + (25 * (i + 1) / totalChunks);
+          setProgress(uploadProgress);
+          addLogMessage(`[OK] Uploaded chunk ${i + 1}/${totalChunks}`);
         }
+
+        // All chunks uploaded -- hand off to client ticker
+        addLogMessage('[OK] All chunks uploaded');
+        setProgress(30);
+        addLogMessage(`-> Analyzing with ${algorithm}... this may take several minutes`);
+
+        // START THE TICKER: +1% every 4 seconds from 30% -> 90%
+        startProgressTicker();
+
+      } catch (error) {
+        console.error('Processing error:', error);
+        addLogMessage(`[ERROR] ${error.message}`, 'error');
+        processingDone = true;
+        stopProgressTicker();
+        setProgress(0);
+        progressSection.classList.remove('active');
+        stopTimer();
+        closeSSE();
+        resultBlob = null;
+        runBtn.disabled = false;
+        cancelBtn.disabled = true;
+      }
+    }
+
+    // =========================================================================
+    // HANDLE COMPLETION
+    // =========================================================================
+
+    async function handleProcessingComplete(sessionId) {
+      try {
+        await sleep(300);
+        addLogMessage('-> Downloading results from server...');
+
+        const response = await fetch(`${API_BASE_URL}/download-result/${sessionId}`);
+        if (!response.ok) {
+          throw new Error(`Download failed: ${response.status}`);
+        }
+
+        resultBlob = await response.blob();
+        addLogMessage(`[OK] Results ready (${(resultBlob.size / 1024).toFixed(2)} KB)`, 'success');
+        addLogMessage('[OK] Processing complete!', 'success');
+
+        downloadLink.classList.add('active');
+        checkbox1.disabled = false;
+        checkbox2.disabled = false;
+
+        if (currentAlgorithm === 'InterVA-5' || currentAlgorithm === 'InterVA-6') {
+          await fetchAndDisplayCSMF(sessionId);
+          // Unlock CSMF tab and notify user
+          unlockCsmfTab();
+        }
+
+        closeSSE();
+        stopTimer();
+
+        await sleep(2000);
+        progressSection.classList.remove('active');
+
+      } catch (error) {
+        console.error('Download error:', error);
+        addLogMessage(`[ERROR] Failed to download: ${error.message}`, 'error');
+        setProgress(0);
+        progressSection.classList.remove('active');
+        stopTimer();
+      } finally {
+        runBtn.disabled = false;
+        cancelBtn.disabled = true;
+      }
+    }
+
+    // =========================================================================
+    // EVENT LISTENERS
+    // =========================================================================
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (!file.name.endsWith('.csv')) {
+        addLogMessage('Please select a valid CSV file', 'error');
+        fileButton.textContent = 'Choose CSV File';
+        uploadedData = null;
+        runBtn.disabled = true;
+        return;
+      }
+
+      const shortName = file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name;
+      fileButton.textContent = shortName;
+
+      outputBox.innerHTML = '';
+      addLogMessage(`-> Loading ${file.name}...`);
+
+      uploadedData = null;
+      runBtn.disabled = true;
+      downloadLink.classList.remove('active');
+      resetOutput();
+
+      await loadCSVData(file);
+    });
+
+    whoVersionSelect.addEventListener('change', () => {
+      const v = whoVersionSelect.value;
+      if (v === '2016WHOv151') {
+        algorithmSelect.value = 'InterVA-5';
+        addLogMessage('[INFO] WHO 2016 --> InterVA-5 (recommended)');
+      } else if (v === '2022WHOv0101') {
+        algorithmSelect.value = 'InterVA-6';
+        addLogMessage('[INFO] WHO 2022 --> InterVA-6 (recommended)');
       }
     });
 
-    // Download link - generates ZIP with PDF, optional CSV and error log
+    runBtn.addEventListener('click', async () => {
+      await processDataWithChunking(algorithmSelect.value, whoVersionSelect.value);
+    });
+
+    cancelBtn.addEventListener('click', async () => {
+      if (!currentSessionId) return;
+      try {
+        addLogMessage('-> Cancelling...', 'error');
+        await fetch(`${API_BASE_URL}/cancel/${currentSessionId}`, { method: 'POST' });
+        processingDone = true;
+        stopProgressTicker();
+        closeSSE();
+        addLogMessage('[OK] Operation cancelled', 'error');
+        setProgress(0);
+        progressSection.classList.remove('active');
+        stopTimer();
+        cancelBtn.disabled = true;
+        runBtn.disabled = false;
+      } catch (error) {
+        addLogMessage(`[ERROR] Cancel failed: ${error.message}`, 'error');
+      }
+    });
+
     downloadLink.addEventListener('click', async () => {
       if (!resultBlob && !currentSessionId) {
-        addLogMessage('❌ No results available to download', 'error');
+        addLogMessage('[ERROR] No results available', 'error');
         return;
       }
-      
+
       try {
-        addLogMessage('→ Preparing download package...');
+        addLogMessage('-> Preparing download package...');
         downloadLink.style.pointerEvents = 'none';
         downloadLink.textContent = 'Preparing...';
-        
+
         const zip = new JSZip();
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-        const algorithmName = currentAlgorithm === 'InterVA-5' ? 'interva5' : 'interva6';
-        const folderName = `${algorithmName}_results_${timestamp}`;
-        
-        // 1. Always generate CSMF PDF
-        addLogMessage('→ Generating CSMF report...');
+        const algName = currentAlgorithm === 'InterVA-5' ? 'interva5' : 'interva6';
+        const folderName = `${algName}_results_${timestamp}`;
+
+        // CSMF PDF
+        addLogMessage('-> Generating CSMF report...');
         const pdfBlob = await generateCSMFPdf();
         if (pdfBlob) {
           zip.file(`${folderName}/CSMF_Report.pdf`, pdfBlob);
-          addLogMessage('✓ CSMF report added');
+          addLogMessage('[OK] CSMF report added');
         }
-        
-        // 2. Optionally include individual records CSV
+
+        // Individual records CSV
         if (checkbox1.checked && resultBlob) {
           zip.file(`${folderName}/individual_results.csv`, resultBlob);
-          addLogMessage('✓ Individual records CSV added');
+          addLogMessage('[OK] Individual records CSV added');
         }
-        
-        // 3. Optionally include error log
+
+        // Error log
         if (checkbox2.checked && currentSessionId) {
           try {
-            const errorLogResponse = await fetch(`${API_BASE_URL}/get-error-log/${currentSessionId}`);
-            if (errorLogResponse.ok) {
-              const errorLogData = await errorLogResponse.json();
-              if (errorLogData.error_log) {
-                const errorLogBlob = new Blob([errorLogData.error_log], { type: 'text/plain' });
-                zip.file(`${folderName}/error_log.txt`, errorLogBlob);
-                addLogMessage('✓ Error log added');
+            const resp = await fetch(`${API_BASE_URL}/get-error-log/${currentSessionId}`);
+            if (resp.ok) {
+              const d = await resp.json();
+              if (d.error_log) {
+                zip.file(`${folderName}/error_log.txt`, new Blob([d.error_log], { type: 'text/plain' }));
+                addLogMessage('[OK] Error log added');
               }
             }
           } catch (e) {
-            addLogMessage('ℹ Error log not available');
+            addLogMessage('[INFO] Error log not available');
           }
         }
-        
-        // Generate ZIP and trigger download
-        addLogMessage('→ Creating ZIP archive...');
+
+        addLogMessage('-> Creating ZIP...');
         const zipBlob = await zip.generateAsync({ type: 'blob' });
-        
+
         const url = URL.createObjectURL(zipBlob);
         const a = document.createElement('a');
         a.href = url;
@@ -751,708 +1486,812 @@
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
-        addLogMessage('✓ Download complete!', 'success');
-        
-        // Cleanup session on server after successful download
+
+        addLogMessage('[OK] Download complete!', 'success');
+
         if (currentSessionId) {
-          try {
-            await fetch(`${API_BASE_URL}/cleanup-session/${currentSessionId}`, { method: 'POST' });
-          } catch (e) {
-            console.log('Session cleanup skipped');
-          }
+          try { await fetch(`${API_BASE_URL}/cleanup-session/${currentSessionId}`, { method: 'POST' }); }
+          catch (e) { /* ok */ }
         }
-        
+
       } catch (error) {
-        console.error('Download error:', error);
-        addLogMessage(`❌ Download failed: ${error.message}`, 'error');
+        addLogMessage(`[ERROR] Download failed: ${error.message}`, 'error');
       } finally {
         downloadLink.style.pointerEvents = 'auto';
         downloadLink.textContent = 'Download Results';
       }
     });
 
-    // Generate CSMF PDF from chart
-    async function generateCSMFPdf() {
-      try {
-        // Make sure CSMF section is visible
-        if (!csmfSection.classList.contains('active')) {
-          return null;
-        }
-        
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        
-        // Title
-        pdf.setFontSize(18);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Cause-Specific Mortality Fraction (CSMF) Report', pageWidth / 2, 20, { align: 'center' });
-        
-        // Algorithm and timestamp
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'normal');
-        const algorithm = currentAlgorithm || 'InterVA';
-        pdf.text(`Algorithm: ${algorithm}`, 14, 35);
-        pdf.text(`Generated: ${new Date().toLocaleString()}`, 14, 42);
-        
-        // Capture chart as image
-        const chartContainer = csmfSection.querySelector('.chart-container');
-        if (chartContainer) {
-          const canvas = await html2canvas(chartContainer, {
-            scale: 2,
-            backgroundColor: '#ffffff',
-            logging: false
-          });
-          
-          const imgData = canvas.toDataURL('image/png');
-          const imgWidth = pageWidth - 28;
-          const imgHeight = (canvas.height * imgWidth) / canvas.width;
-          
-          // Add chart image
-          pdf.addImage(imgData, 'PNG', 14, 50, imgWidth, Math.min(imgHeight, 180));
-        }
-        
-        // Add cause breakdown table on new page
-        pdf.addPage();
-        pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('CSMF Breakdown by Cause of Death', 14, 20);
-        
-        // Get causes from the chart
-        const barRows = barChart.querySelectorAll('.bar-row');
-        let yPos = 35;
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'normal');
-        
-        // Table header
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Rank', 14, yPos);
-        pdf.text('Cause of Death', 30, yPos);
-        pdf.text('CSMF (%)', 160, yPos);
-        yPos += 8;
-        
-        // Draw line under header
-        pdf.setDrawColor(200);
-        pdf.line(14, yPos - 4, pageWidth - 14, yPos - 4);
-        
-        pdf.setFont('helvetica', 'normal');
-        barRows.forEach((row, index) => {
-          const label = row.querySelector('.bar-label')?.textContent || '';
-          const value = row.querySelector('.bar-value')?.textContent || '';
-          
-          if (yPos > 270) {
-            pdf.addPage();
-            yPos = 20;
-          }
-          
-          pdf.text(`${index + 1}`, 14, yPos);
-          // Truncate long cause names
-          const truncatedLabel = label.length > 60 ? label.substring(0, 57) + '...' : label;
-          pdf.text(truncatedLabel, 30, yPos);
-          pdf.text(value, 160, yPos);
-          yPos += 7;
-        });
-        
-        return pdf.output('blob');
-        
-      } catch (error) {
-        console.error('PDF generation error:', error);
-        addLogMessage('⚠ Could not generate PDF report');
-        return null;
-      }
-    }
+    // =========================================================================
+    // CSV LOADING
+    // =========================================================================
 
-    // Load CSV data
     async function loadCSVData(file) {
       try {
         isLoading = true;
         runBtn.disabled = true;
-        
+        detectedIdColumn = null;
+        idMappingRow.classList.remove('active');
+
         const text = await file.text();
-        
         const lines = text.split('\n').filter(line => line.trim());
-        
+
         if (lines.length < 2) {
-          throw new Error('CSV file must have at least a header row and one data row');
+          throw new Error('CSV must have at least a header and one data row');
         }
 
-        // Parse CSV properly (handles quoted fields)
         const csvData = lines.map(line => parseCSVLine(line));
+        const rowCount = lines.length - 1;
+        const MAX_ROWS = 1000000;
 
-        addLogMessage(`✓ loaded ${lines.length} rows, ${csvData[0].length} columns`);
-        
+        addLogMessage(`[OK] Loaded ${rowCount} rows, ${csvData[0].length} columns`);
+
+        if (rowCount > MAX_ROWS) {
+          addLogMessage(`CSV exceeds maximum of ${MAX_ROWS} rows (found ${rowCount}). Please reduce your dataset.`, 'error');
+          uploadedData = null;
+          runBtn.disabled = true;
+          return;
+        }
+
         uploadedData = csvData;
-        
-        // Try to detect WHO version from headers
-        const headers = csvData[0].map(h => h.toLowerCase().trim());
-        detectedWhoVersion = detectWHOVersion(headers);
-        
+
+        // Detect ID column
+        const headers = csvData[0];
+        const dataRows = csvData.slice(1);
+        const idResult = detectIdColumn(headers, dataRows);
+
+        if (idResult) {
+          detectedIdColumn = idResult.column;
+          addLogMessage(`[OK] ID column detected: ${idResult.column} (${idResult.total} unique records)`);
+        } else {
+          addLogMessage('[WARN] Could not auto-detect ID column -- please select manually');
+          showIdColumnPicker(headers, dataRows);
+        }
+
+        // Detect WHO version
+        const headersLower = headers.map(h => h.toLowerCase().trim());
+        detectedWhoVersion = detectWHOVersion(headersLower);
+
         if (detectedWhoVersion) {
           whoVersionSelect.value = detectedWhoVersion;
-          
-          // Auto-select recommended algorithm based on WHO version
           if (detectedWhoVersion === '2016WHOv151') {
             algorithmSelect.value = 'InterVA-5';
-            addLogMessage(`✓ Detected WHO 2016 → recommend InterVA-5`);
+            addLogMessage('[OK] Detected WHO 2016 -> recommend InterVA-5');
           } else if (detectedWhoVersion === '2022WHOv0101') {
             algorithmSelect.value = 'InterVA-6';
-            addLogMessage(`✓ Detected WHO 2022 → recommend InterVA-6`);
+            addLogMessage('[OK] Detected WHO 2022 -> recommend InterVA-6');
           }
-          
-          // addLogMessage(`✓ ${file.name} loaded (${csvData.length - 1} rows, WHO ${detectedWhoVersion.includes('2016') ? '2016' : '2022'})`, 'success');
         } else {
-          addLogMessage('⚠ Could not auto-detect WHO version - please select manually');
-          addLogMessage(`✓ ${file.name} loaded (${csvData.length - 1} rows) - Select WHO version`);
+          addLogMessage('[WARN] Could not auto-detect WHO version -- please select manually');
         }
-        
-        runBtn.disabled = false;
-        
+
+        // Only enable Run if we have an ID column
+        if (detectedIdColumn) {
+          runBtn.disabled = false;
+        }
+
       } catch (error) {
-        addLogMessage(`❌ Failed to load CSV: ${error.message}`, 'error');
+        addLogMessage(`[ERROR] Failed to load CSV: ${error.message}`, 'error');
         uploadedData = null;
       } finally {
         isLoading = false;
       }
     }
 
-    // Detect WHO version from CSV headers
+    // =========================================================================
+    // WHO DETECTION
+    // =========================================================================
+
     function detectWHOVersion(headers) {
-      // Create a Set for faster lookup (case-insensitive)
-      const columnSet = new Set(headers.map(h => h.toLowerCase().trim()));
-      
-      // Define key signature variables for each version
-      // These are variables that are unique to each version
-      
-      // 2016 signature variables (unique to WHO 2016)
-      const who2016Signatures = [
-        'id10077note',
-        'id10077_note',
-        'id10444',
-        'id10445',
-        'id10446',
-        'id10450',
-        'id10451',
-        'id10453',
-        'id10454',
-        'id10260_check2',
-        'id1036x_check'
-      ];
-      
-      // 2022 signature variables (unique to WHO 2022)
-      const who2022Signatures = [
-        'language',
-        'id10476_audio',
-        'noteon',
-        'notenarr',
-        'note_s_s',
-        'nmh',
-        'botecrn',
-        'noteccd',
-        'noteend'
-      ];
-      
-      // Count matches for each version
-      let count2016 = 0;
-      let count2022 = 0;
-      
-      for (const sig of who2016Signatures) {
-        if (columnSet.has(sig.toLowerCase())) {
-          count2016++;
-        }
-      }
-      
-      for (const sig of who2022Signatures) {
-        if (columnSet.has(sig.toLowerCase())) {
-          count2022++;
-        }
-      }
-      
-      console.log(`WHO Detection: 2016 signatures=${count2016}, 2022 signatures=${count2022}`);
-      
-      // Make decision based on signature matches (need at least 3 matches)
-      if (count2016 > count2022 && count2016 >= 3) {
-        return '2016WHOv151';
-      } else if (count2022 > count2016 && count2022 >= 3) {
-        return '2022WHOv0101';
-      } else {
-        // If still unclear, use some key discriminators
-        if (columnSet.has('id10077_note')) {
-          return '2016WHOv151';
-        } else if (columnSet.has('language')) {
-          return '2022WHOv0101';
-        } else {
-          return null; // unknown
-        }
-      }
+      const s = new Set(headers);
+      const sig2016 = ['id10077note','id10077_note','id10444','id10445','id10446','id10450','id10451','id10453','id10454','id10260_check2','id1036x_check'];
+      const sig2022 = ['language','id10476_audio','noteon','notenarr','note_s_s','nmh','botecrn','noteccd','noteend'];
+
+      let c16 = 0, c22 = 0;
+      for (const x of sig2016) { if (s.has(x)) c16++; }
+      for (const x of sig2022) { if (s.has(x)) c22++; }
+
+      if (c16 > c22 && c16 >= 3) return '2016WHOv151';
+      if (c22 > c16 && c22 >= 3) return '2022WHOv0101';
+      if (s.has('id10077_note')) return '2016WHOv151';
+      if (s.has('language')) return '2022WHOv0101';
+      return null;
     }
 
-    // Process data with chunking and SSE
-    async function processDataWithChunking(algorithm, whoVersion) {
-      try {
-        // Store algorithm globally for use in completion handler
-        currentAlgorithm = algorithm;
-        
-        runBtn.disabled = true;
-        cancelBtn.disabled = false;
-        downloadLink.classList.remove('active');
-        resultBlob = null;
+    // =========================================================================
+    // ID COLUMN DETECTION
+    // =========================================================================
 
-        // Show progress section
-        progressSection.classList.add('active');
-        setProgress(0, 'Preparing file for upload...');
-        
-        // Start timer
-        startTimer();
-        
-        outputBox.innerHTML = '';
-        addLogMessage('→ Converting data to CSV text');
+    // Priority-ordered list of candidate ID column names (case-insensitive match)
+    const ID_CANDIDATES = ['instanceid', 'instanceID', 'key', 'KEY', 'uuid', 'UUID', 'ID', 'Id', 'id'];
 
-        // Convert uploadedData back to CSV text
-        const csvText = uploadedData.map(row => 
-          row.map(cell => {
-            // Escape quotes and wrap in quotes if contains comma or newline
-            const cellStr = String(cell);
-            if (cellStr.includes(',') || cellStr.includes('\n') || cellStr.includes('"')) {
-              return `"${cellStr.replace(/"/g, '""')}"`;
-            }
-            return cellStr;
-          }).join(',')
-        ).join('\n');
+    function detectIdColumn(headers, dataRows) {
+      // headers: original-case array from csvData[0]
+      // dataRows: array of arrays (rows without header)
+      const headerLower = headers.map(h => h.trim().toLowerCase());
 
-        const fileSizeKB = (csvText.length / 1024).toFixed(2);
-        addLogMessage(`→ CSV size: ${fileSizeKB} KB`);
+      for (const candidate of ID_CANDIDATES) {
+        const idx = headerLower.indexOf(candidate.toLowerCase());
+        if (idx === -1) continue;
 
-        // Generate session ID
-        currentSessionId = generateSessionId();
-        addLogMessage(`→ Session ID: ${currentSessionId}`);
-
-        // Connect to SSE endpoint
-        await connectSSE(currentSessionId);
-        await sleep(300); // Give SSE time to connect
-
-        // Split into chunks
-        const chunks = [];
-        for (let i = 0; i < csvText.length; i += CHUNK_SIZE) {
-          chunks.push(csvText.slice(i, i + CHUNK_SIZE));
+        // Check uniqueness
+        const values = dataRows.map(r => (r[idx] || '').trim()).filter(v => v !== '');
+        const uniqueSet = new Set(values);
+        if (values.length > 0 && uniqueSet.size === values.length) {
+          return { column: headers[idx], index: idx, unique: true, total: values.length };
         }
-
-        const totalChunks = chunks.length;
-        addLogMessage(`→ Split into ${totalChunks} chunk(s) (${(CHUNK_SIZE / 1024 / 1024).toFixed(1)}MB each)`);
-
-        setProgress(5, 'Starting upload...');
-
-        // Upload chunks sequentially
-        for (let i = 0; i < chunks.length; i++) {
-          const chunkPayload = {
-            session_id: currentSessionId,
-            chunk_index: i,
-            total_chunks: totalChunks,
-            algorithm: algorithm,
-            who_version: whoVersion,
-            data: chunks[i]
-          };
-
-          const response = await fetch(`${API_BASE_URL}/upload-chunk`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(chunkPayload)
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `Chunk upload failed: ${response.status}`);
-          }
-
-          // Update progress (5% to 30% for uploads)
-          const uploadProgress = 5 + (25 * (i + 1) / totalChunks);
-          setProgress(uploadProgress, `Uploading chunk ${i + 1}/${totalChunks}...`);
-          addLogMessage(`✓ Uploaded chunk ${i + 1}/${totalChunks}`);
-        }
-
-        addLogMessage(`✓ All chunks uploaded successfully`);
-        setProgress(30, 'Processing data...');
-        addLogMessage(`→ Backend is analyzing data with ${algorithm}...`);
-
-        // SSE will handle the rest of the progress updates
-        // The download link will be enabled when processing completes
-
-      } catch (error) {
-        console.error('Processing error:', error);
-        addLogMessage(`❌ Error: ${error.message}`, 'error');
-        setProgress(0, 'Error occurred');
-        progressSection.classList.remove('active');
-        stopTimer();
-        closeSSE();
-        resultBlob = null;
-        runBtn.disabled = false;
-        cancelBtn.disabled = true;
       }
+      return null; // No auto-detected column
     }
 
-    // Connect to SSE endpoint
-    async function connectSSE(sessionId) {
-      return new Promise((resolve, reject) => {
-        closeSSE(); // Close any existing connection
-        
-        addLogMessage('→ Connecting to server event stream...');
-        
-        eventSource = new EventSource(`${API_BASE_URL}/stream/${sessionId}`);
-        
-        eventSource.onopen = () => {
-          addLogMessage('✓ Connected to server');
-          resolve();
-        };
-        
-        eventSource.onmessage = (event) => {
-          try {
-            // Parse the message
-            const data = JSON.parse(event.data.replace(/'/g, '"'));
-            
-            console.log('SSE message:', data);
-            
-            if (data.type === 'connected') {
-              addLogMessage(data.message);
-            } else if (data.type === 'chunk_received') {
-              // Don't update progress here - already handled in upload loop
-              // Just log the message
-              // addLogMessage(`✓ ${data.message}`);
-            } else if (data.type === 'progress') {
-              addLogMessage(`→ ${data.message}`);
-              
-              // Extract percentage from message if available (e.g., "Processing: 45%")
-              const percentMatch = data.message.match(/(\d+)%/);
-              if (percentMatch) {
-                const backendPercent = parseInt(percentMatch[1]);
-                // Map backend progress (0-100%) to UI progress (30-95%)
-                const uiPercent = 30 + (backendPercent * 0.65);
-                setProgress(uiPercent, data.message);
-              } else {
-                // Gradually increase if no percentage in message
-                const currentProgress = getCurrentProgress();
-                if (currentProgress < 95) {
-                  setProgress(Math.min(currentProgress + 3, 95), data.message);
-                }
-              }
-            } else if (data.type === 'complete') {
-              addLogMessage(`✓ ${data.message}`, 'success');
-              setProgress(100, 'Complete!');
-              handleProcessingComplete(sessionId);
-            } else if (data.type === 'error') {
-              addLogMessage(`❌ ${data.message}`, 'error');
-              setProgress(0, 'Error');
-              progressSection.classList.remove('active');
-              stopTimer();
-              closeSSE();
-              runBtn.disabled = false;
-              cancelBtn.disabled = true;
-            }
-          } catch (e) {
-            console.error('Error parsing SSE message:', e, event.data);
-          }
-        };
-        
-        eventSource.onerror = (error) => {
-          console.error('SSE error:', error);
-          // Don't treat as error if we're completing
-          if (eventSource.readyState === EventSource.CLOSED) {
-            console.log('SSE connection closed');
-          }
-        };
+    function showIdColumnPicker(headers, dataRows) {
+      idMappingRow.classList.add('active');
+      idColumnSelect.innerHTML = '<option value="">-- Select ID column --</option>';
+
+      headers.forEach((h, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = h;
+        idColumnSelect.appendChild(opt);
       });
+
+      idStatus.textContent = '';
+      idStatus.className = 'id-status';
+      runBtn.disabled = true;
     }
 
-    // Close SSE connection
-    function closeSSE() {
-      if (eventSource) {
-        eventSource.close();
-        eventSource = null;
+    function validateIdColumn(colIndex, headers, dataRows) {
+      const values = dataRows.map(r => (r[colIndex] || '').trim()).filter(v => v !== '');
+      const uniqueSet = new Set(values);
+
+      if (values.length === 0) {
+        idStatus.textContent = 'Column is empty';
+        idStatus.className = 'id-status err';
+        runBtn.disabled = true;
+        detectedIdColumn = null;
+        return;
       }
+
+      if (uniqueSet.size !== values.length) {
+        const dupes = values.length - uniqueSet.size;
+        idStatus.textContent = `Not unique: ${dupes} duplicate(s) found`;
+        idStatus.className = 'id-status err';
+        runBtn.disabled = true;
+        detectedIdColumn = null;
+        return;
+      }
+
+      detectedIdColumn = headers[colIndex];
+      idStatus.textContent = `Valid: ${uniqueSet.size} unique records`;
+      idStatus.className = 'id-status ok';
+      runBtn.disabled = false;
     }
 
-    // Handle processing complete
-    async function handleProcessingComplete(sessionId) {
+    idColumnSelect.addEventListener('change', () => {
+      const idx = idColumnSelect.value;
+      if (idx === '' || !uploadedData) return;
+      validateIdColumn(parseInt(idx), uploadedData[0], uploadedData.slice(1));
+    });
+
+    // =========================================================================
+    // TAB SWITCHING
+    // =========================================================================
+
+    function switchTab(tabName) {
+      // Update buttons
+      tabExplore.classList.toggle('active', tabName === 'explore');
+      tabCsmf.classList.toggle('active', tabName === 'csmf');
+
+      // Update panels
+      panelExplore.classList.toggle('active', tabName === 'explore');
+      panelCsmf.classList.toggle('active', tabName === 'csmf');
+    }
+
+    tabExplore.addEventListener('click', () => switchTab('explore'));
+    tabCsmf.addEventListener('click', () => {
+      if (!tabCsmf.disabled) switchTab('csmf');
+    });
+
+    function lockCsmfTab() {
+      tabCsmf.disabled = true;
+      tabCsmf.title = 'Results not yet available';
+      csmfBadge.classList.remove('visible');
+    }
+
+    function unlockCsmfTab() {
+      tabCsmf.disabled = false;
+      tabCsmf.title = '';
+      csmfBadge.classList.add('visible');
+    }
+
+    // =========================================================================
+    // EXPLORATORY ANALYSIS (client-side)
+    // =========================================================================
+
+    function runExploration(csvData) {
+      // csvData[0] = headers, csvData[1..] = rows
+      const headers = csvData[0];
+      const rows = csvData.slice(1);
+      const headerLower = headers.map(h => h.trim().toLowerCase());
+      exploreContent.innerHTML = '';
+
+      // Helper: get column index by name (case-insensitive)
+      function colIdx(name) {
+        return headerLower.indexOf(name.toLowerCase());
+      }
+
+      // Helper: count values in a column, return sorted [{label, count}]
+      function countColumn(idx) {
+        if (idx === -1) return [];
+        const counts = {};
+        rows.forEach(r => {
+          const v = (r[idx] || '').trim();
+          if (v) counts[v] = (counts[v] || 0) + 1;
+        });
+        return Object.entries(counts)
+          .map(([label, count]) => ({ label, count }))
+          .sort((a, b) => b.count - a.count);
+      }
+
+      // Helper: parse dates from a column
+      function parseDates(idx) {
+        if (idx === -1) return [];
+        return rows.map(r => {
+          const v = (r[idx] || '').trim();
+          if (!v) return null;
+          const d = new Date(v);
+          return isNaN(d.getTime()) ? null : d;
+        }).filter(d => d !== null);
+      }
+
+      // ── Summary row ──
+      const summaryDiv = document.createElement('div');
+      summaryDiv.className = 'explore-summary';
+
+      const totalRecords = rows.length;
+
+      // Gender breakdown
+      const genderIdx = colIdx('Id10019');
+      const genderCounts = countColumn(genderIdx);
+      const maleCount = genderCounts.find(g => g.label.toLowerCase() === 'male');
+      const femaleCount = genderCounts.find(g => g.label.toLowerCase() === 'female');
+
+      // Age group breakdown
+      const adultIdx = colIdx('isAdult');
+      const childIdx = colIdx('isChild');
+      const neonatalIdx = colIdx('isNeonatal');
+      let adultCount = 0, childCount = 0, neonatalCount = 0;
+      rows.forEach(r => {
+        if (neonatalIdx !== -1 && (r[neonatalIdx] || '').trim() === '1') neonatalCount++;
+        else if (childIdx !== -1 && (r[childIdx] || '').trim() === '1') childCount++;
+        else if (adultIdx !== -1 && (r[adultIdx] || '').trim() === '1') adultCount++;
+      });
+
+      // Data collection period
+      const subIdx = colIdx('SubmissionDate');
+      const startIdx = colIdx('start-time');
+      const endIdx = colIdx('end');
+      let periodStart = null, periodEnd = null;
+
+      // Try submission date first, then start-time/end
+      for (const idx of [subIdx, startIdx, endIdx]) {
+        const dates = parseDates(idx);
+        if (dates.length === 0) continue;
+        const earliest = new Date(Math.min(...dates.map(d => d.getTime())));
+        const latest = new Date(Math.max(...dates.map(d => d.getTime())));
+        if (!periodStart || earliest < periodStart) periodStart = earliest;
+        if (!periodEnd || latest > periodEnd) periodEnd = latest;
+      }
+
+      function addSummaryItem(value, label) {
+        const item = document.createElement('div');
+        item.className = 'explore-summary-item';
+        item.innerHTML = `<div class="summary-value">${value}</div><div class="summary-label">${label}</div>`;
+        summaryDiv.appendChild(item);
+      }
+
+      addSummaryItem(totalRecords.toLocaleString(), 'Total Records');
+      if (maleCount) addSummaryItem(maleCount.count.toLocaleString(), 'Male');
+      if (femaleCount) addSummaryItem(femaleCount.count.toLocaleString(), 'Female');
+      if (adultCount) addSummaryItem(adultCount.toLocaleString(), 'Adult');
+      if (childCount) addSummaryItem(childCount.toLocaleString(), 'Child');
+      if (neonatalCount) addSummaryItem(neonatalCount.toLocaleString(), 'Neonatal');
+
+      if (periodStart && periodEnd) {
+        const fmt = d => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        addSummaryItem(`${fmt(periodStart)} - ${fmt(periodEnd)}`, 'Data Collection Period');
+      }
+
+      exploreContent.appendChild(summaryDiv);
+
+      // ── Cards grid ──
+      const grid = document.createElement('div');
+      grid.className = 'explore-grid';
+
+      // Helper to create a distribution card
+      function addDistributionCard(title, subtitle, data, maxItems, color) {
+        if (!data || data.length === 0) return;
+        const card = document.createElement('div');
+        card.className = 'explore-card';
+
+        const h4 = document.createElement('h4');
+        h4.textContent = title;
+        card.appendChild(h4);
+
+        if (subtitle) {
+          const sub = document.createElement('div');
+          sub.className = 'explore-subtitle';
+          sub.textContent = subtitle;
+          card.appendChild(sub);
+        }
+
+        const items = data.slice(0, maxItems);
+        const maxCount = items[0].count;
+
+        items.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'explore-stat-row';
+
+          const lbl = document.createElement('span');
+          lbl.className = 'stat-label';
+          lbl.textContent = item.label;
+          lbl.title = item.label;
+
+          const val = document.createElement('span');
+          val.className = 'stat-value';
+          val.textContent = item.count;
+
+          row.appendChild(lbl);
+          row.appendChild(val);
+          card.appendChild(row);
+
+          // Mini bar
+          const bar = document.createElement('div');
+          bar.className = 'explore-stat-bar';
+          const fill = document.createElement('div');
+          fill.className = 'explore-stat-bar-fill';
+          fill.style.width = '0%';
+          fill.style.backgroundColor = color;
+          bar.appendChild(fill);
+          card.appendChild(bar);
+
+          setTimeout(() => { fill.style.width = `${(item.count / maxCount) * 100}%`; }, 100);
+        });
+
+        if (data.length > maxItems) {
+          const more = document.createElement('div');
+          more.style.cssText = 'text-align:center;font-size:11px;color:#aaa;margin-top:6px;';
+          more.textContent = `+ ${data.length - maxItems} more`;
+          card.appendChild(more);
+        }
+
+        grid.appendChild(card);
+      }
+
+      // Interviewer workload (Id10010)
+      const interviewerIdx = colIdx('Id10010');
+      const interviewerData = countColumn(interviewerIdx);
+      addDistributionCard(
+        'Interviewer Workload',
+        `${interviewerData.length} interviewer(s)`,
+        interviewerData, 8, '#007bff'
+      );
+
+      // Region of interview (Id10005R)
+      const regionIdx = colIdx('Id10005R');
+      const regionData = countColumn(regionIdx);
+      addDistributionCard(
+        'Interview Region',
+        `${regionData.length} region(s)`,
+        regionData, 8, '#28a745'
+      );
+
+      // Place of death (Id10058)
+      const deathLocIdx = colIdx('Id10058');
+      const deathLocData = countColumn(deathLocIdx);
+      addDistributionCard(
+        'Place of Death',
+        `${deathLocData.length} location(s)`,
+        deathLocData, 8, '#fd7e14'
+      );
+
+      // Gender distribution
+      if (genderCounts.length > 0) {
+        addDistributionCard(
+          'Gender Distribution',
+          null,
+          genderCounts, 5, '#6f42c1'
+        );
+      }
+
+      // Age group distribution
+      const ageGroupData = [];
+      if (adultCount > 0) ageGroupData.push({ label: 'Adult', count: adultCount });
+      if (childCount > 0) ageGroupData.push({ label: 'Child', count: childCount });
+      if (neonatalCount > 0) ageGroupData.push({ label: 'Neonatal', count: neonatalCount });
+      ageGroupData.sort((a, b) => b.count - a.count);
+      if (ageGroupData.length > 0) {
+        addDistributionCard(
+          'Age Group Distribution',
+          null,
+          ageGroupData, 5, '#e83e8c'
+        );
+      }
+
+      exploreContent.appendChild(grid);
+    }
+
+    // =========================================================================
+    // CSMF
+    // =========================================================================
+
+    // Store the full CSMF response for PDF generation
+    let csmfFullData = null;
+
+    const CATEGORY_COLORS = {
+      all:      { accent: '#007bff', bg: '#e7f3ff' },
+      male:     { accent: '#0d6efd', bg: '#e0ecff' },
+      female:   { accent: '#e83e8c', bg: '#fce4f0' },
+      adult:    { accent: '#28a745', bg: '#e6f4ea' },
+      child:    { accent: '#fd7e14', bg: '#fff3e0' },
+      neonatal: { accent: '#6f42c1', bg: '#f0e6ff' }
+    };
+
+    const BAR_COLORS = ['#dc3545','#007bff','#28a745','#ffc107','#6f42c1','#fd7e14','#20c997','#e83e8c','#17a2b8','#6c757d'];
+
+    async function fetchAndDisplayCSMF(sessionId) {
       try {
-        await sleep(300);
-        
-        setProgress(100, 'Preparing results...');
-        addLogMessage('→ Preparing results...');
-        
-        // Download the result
-        const response = await fetch(`${API_BASE_URL}/download-result/${sessionId}`);
-        
+        addLogMessage('-> Fetching CSMF data...');
+        const response = await fetch(`${API_BASE_URL}/get-csmf/${sessionId}`);
         if (!response.ok) {
-          throw new Error(`Download failed: ${response.status}`);
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.detail || `CSMF fetch failed: ${response.status}`);
         }
+        const data = await response.json();
         
-        resultBlob = await response.blob();
-        
-        addLogMessage(`✓ Results ready (${(resultBlob.size / 1024).toFixed(2)} KB)`, 'success');
-        addLogMessage('✓ Processing complete!', 'success');
-        
-        downloadLink.classList.add('active');
-        
-        // Enable download option checkboxes (but keep them unchecked by default)
-        checkbox1.disabled = false;
-        checkbox2.disabled = false;
-        
-        // Fetch and display CSMF for both InterVA-5 and InterVA-6
-        if (currentAlgorithm === 'InterVA-5' || currentAlgorithm === 'InterVA-6') {
-          await fetchAndDisplayCSMF(sessionId);
+        if (data && data.categories && Object.keys(data.categories).length > 0) {
+          csmfFullData = data;
+          const catCount = Object.keys(data.categories).length;
+          addLogMessage(`[OK] CSMF data received (${catCount} categor${catCount === 1 ? 'y' : 'ies'})`, 'success');
+          displayCSMFGrid(data.categories, data.algorithm || currentAlgorithm || 'InterVA');
+        } else {
+          addLogMessage('[INFO] No CSMF data available');
         }
-        
-        closeSSE();
-        
-        // Stop timer
-        stopTimer();
-        
-        // Hide progress bar after a moment
-        await sleep(2000);
-        progressSection.classList.remove('active');
-        
       } catch (error) {
-        console.error('Download error:', error);
-        addLogMessage(`❌ Failed to download: ${error.message}`, 'error');
-        setProgress(0, 'Download failed');
-        progressSection.classList.remove('active');
-        stopTimer();
-      } finally {
-        runBtn.disabled = false;
-        cancelBtn.disabled = true;
+        addLogMessage(`[INFO] CSMF not available: ${error.message}`);
       }
     }
 
-    // Generate a unique session ID
+    function displayCSMFGrid(categories, algorithm) {
+      const grid = document.getElementById('csmfGrid');
+      const title = document.getElementById('csmfTitle');
+      grid.innerHTML = '';
+      title.textContent = `CSMF Results (${algorithm})`;
+
+      // Render order: all first, then gender, then age groups
+      const order = ['all', 'male', 'female', 'adult', 'child', 'neonatal'];
+
+      for (const key of order) {
+        if (!categories[key]) continue;
+        const cat = categories[key];
+        const csmf = cat.csmf;
+        const entries = Object.entries(csmf)
+          .map(([cause, value]) => ({ cause, value: parseFloat(value) }))
+          .sort((a, b) => b.value - a.value);
+
+        if (!entries.length) continue;
+
+        const colors = CATEGORY_COLORS[key] || CATEGORY_COLORS.all;
+
+        // Build card
+        const card = document.createElement('div');
+        card.className = 'csmf-card';
+        card.style.borderLeftWidth = '3px';
+        card.style.borderLeftColor = colors.accent;
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'csmf-card-header';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'csmf-card-title';
+        titleEl.textContent = cat.label || key;
+
+        const countEl = document.createElement('div');
+        countEl.className = 'csmf-card-count';
+        countEl.textContent = `n=${cat.count}`;
+
+        const expandIcon = document.createElement('div');
+        expandIcon.className = 'csmf-card-expand';
+        expandIcon.innerHTML = '&#x2922;';
+
+        header.appendChild(titleEl);
+        header.appendChild(countEl);
+        card.appendChild(expandIcon);
+        card.appendChild(header);
+
+        // Mini chart (top 5)
+        const miniChart = document.createElement('div');
+        miniChart.className = 'csmf-mini-chart';
+        const top5 = entries.slice(0, 5);
+        const maxVal = Math.max(...top5.map(d => d.value));
+
+        top5.forEach((d, i) => {
+          const row = document.createElement('div');
+          row.className = 'mini-bar-row';
+
+          const label = document.createElement('div');
+          label.className = 'mini-bar-label';
+          label.textContent = d.cause;
+          label.title = d.cause;
+
+          const track = document.createElement('div');
+          track.className = 'mini-bar-track';
+
+          const fill = document.createElement('div');
+          fill.className = 'mini-bar-fill';
+          fill.style.width = '0%';
+          fill.style.backgroundColor = BAR_COLORS[i % BAR_COLORS.length];
+
+          const val = document.createElement('span');
+          val.className = 'mini-bar-value';
+          val.textContent = `${(d.value * 100).toFixed(1)}%`;
+
+          fill.appendChild(val);
+          track.appendChild(fill);
+          row.appendChild(label);
+          row.appendChild(track);
+          miniChart.appendChild(row);
+
+          // Animate
+          setTimeout(() => { fill.style.width = `${(d.value / maxVal) * 100}%`; }, 100 + i * 40);
+        });
+
+        if (entries.length > 5) {
+          const more = document.createElement('div');
+          more.style.cssText = 'text-align:center;font-size:10px;color:#aaa;margin-top:4px;';
+          more.textContent = `+ ${entries.length - 5} more — click to expand`;
+          miniChart.appendChild(more);
+        }
+
+        card.appendChild(miniChart);
+
+        // Click to expand
+        card.addEventListener('click', () => {
+          openCSMFModal(cat.label || key, entries, algorithm, cat.count, colors.accent);
+        });
+
+        grid.appendChild(card);
+      }
+
+      csmfSection.classList.add('active');
+    }
+
+    function openCSMFModal(label, entries, algorithm, count, accentColor) {
+      const overlay = document.getElementById('csmfModalOverlay');
+      const modalTitle = document.getElementById('csmfModalTitle');
+      const modalSub = document.getElementById('csmfModalSubtitle');
+      const modalChart = document.getElementById('csmfModalChart');
+
+      modalTitle.textContent = `CSMF — ${label} (${algorithm})`;
+      modalSub.textContent = `${count} records with determined cause of death`;
+      modalChart.innerHTML = '';
+
+      const maxVal = Math.max(...entries.map(d => d.value));
+
+      entries.forEach((d, i) => {
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+
+        const lbl = document.createElement('div');
+        lbl.className = 'bar-label';
+        lbl.textContent = d.cause;
+        lbl.title = d.cause;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'bar-wrapper';
+
+        const fill = document.createElement('div');
+        fill.className = 'bar-fill';
+        fill.style.width = '0%';
+        fill.style.backgroundColor = BAR_COLORS[i % BAR_COLORS.length];
+
+        const val = document.createElement('span');
+        val.className = 'bar-value';
+        val.textContent = `${(d.value * 100).toFixed(2)}%`;
+
+        fill.appendChild(val);
+        wrapper.appendChild(fill);
+        row.appendChild(lbl);
+        row.appendChild(wrapper);
+        modalChart.appendChild(row);
+
+        setTimeout(() => { fill.style.width = `${(d.value / maxVal) * 100}%`; }, 80 + i * 40);
+      });
+
+      overlay.classList.add('active');
+    }
+
+    // Close modal
+    document.getElementById('csmfModalClose').addEventListener('click', () => {
+      document.getElementById('csmfModalOverlay').classList.remove('active');
+    });
+    document.getElementById('csmfModalOverlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        e.currentTarget.classList.remove('active');
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.getElementById('csmfModalOverlay').classList.remove('active');
+      }
+    });
+
+    // =========================================================================
+    // PDF GENERATION
+    // =========================================================================
+
+    async function generateCSMFPdf() {
+      try {
+        if (!csmfSection.classList.contains('active') || !csmfFullData) return null;
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pw = pdf.internal.pageSize.getWidth();
+        const algorithm = csmfFullData.algorithm || currentAlgorithm || 'InterVA';
+
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Cause-Specific Mortality Fraction (CSMF) Report', pw / 2, 20, { align: 'center' });
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Algorithm: ${algorithm}`, 14, 35);
+        pdf.text(`Generated: ${new Date().toLocaleString()}`, 14, 42);
+
+        // Capture the grid view as an image for page 1
+        const gridEl = document.getElementById('csmfGrid');
+        if (gridEl) {
+          const canvas = await html2canvas(gridEl, { scale: 2, backgroundColor: '#fff', logging: false });
+          const imgData = canvas.toDataURL('image/png');
+          const imgW = pw - 28;
+          const imgH = (canvas.height * imgW) / canvas.width;
+          pdf.addImage(imgData, 'PNG', 14, 50, imgW, Math.min(imgH, 200));
+        }
+
+        // One page per category with tabular data
+        const categories = csmfFullData.categories || {};
+        const order = ['all', 'male', 'female', 'adult', 'child', 'neonatal'];
+
+        for (const key of order) {
+          if (!categories[key]) continue;
+          const cat = categories[key];
+          const entries = Object.entries(cat.csmf)
+            .map(([cause, value]) => ({ cause, value: parseFloat(value) }))
+            .sort((a, b) => b.value - a.value);
+
+          if (!entries.length) continue;
+
+          pdf.addPage();
+          let y = 20;
+
+          pdf.setFontSize(14);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`CSMF — ${cat.label || key} (n=${cat.count})`, 14, y);
+          y += 12;
+
+          // Table header
+          pdf.setFontSize(10);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('Rank', 14, y);
+          pdf.text('Cause of Death', 30, y);
+          pdf.text('CSMF (%)', 160, y);
+          y += 8;
+          pdf.setDrawColor(200);
+          pdf.line(14, y - 4, pw - 14, y - 4);
+
+          pdf.setFont('helvetica', 'normal');
+          entries.forEach((d, i) => {
+            if (y > 270) { pdf.addPage(); y = 20; }
+            pdf.text(`${i + 1}`, 14, y);
+            const lbl = d.cause.length > 60 ? d.cause.substring(0, 57) + '...' : d.cause;
+            pdf.text(lbl, 30, y);
+            pdf.text(`${(d.value * 100).toFixed(2)}%`, 160, y);
+            y += 7;
+          });
+        }
+
+        return pdf.output('blob');
+      } catch (e) {
+        console.error('PDF error:', e);
+        addLogMessage('[WARN] Could not generate PDF');
+        return null;
+      }
+    }
+
+    // =========================================================================
+    // UTILITIES
+    // =========================================================================
+
     function generateSessionId() {
       return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
-    // UI Helper functions
-    function setProgress(percent, statusText) {
-      progressFill.style.width = Math.round(percent) + '%';
-      progressPercent.textContent = Math.round(percent) + '%';
-      if (progressStatus) {
-        progressStatus.textContent = statusText;
-      }
-    }
-
-    function getCurrentProgress() {
-      return parseFloat(progressFill.style.width) || 0;
-    }
-
     function addLogMessage(message, type = 'info') {
-      const logDiv = document.createElement('div');
-      logDiv.className = 'log-message' + (type !== 'info' ? ' ' + type : '');
-      logDiv.textContent = message;
-      outputBox.appendChild(logDiv);
-      
-      // Auto-scroll to bottom
+      const div = document.createElement('div');
+      div.className = 'log-message' + (type !== 'info' ? ' ' + type : '');
+      div.textContent = message;
+      outputBox.appendChild(div);
       outputBox.scrollTop = outputBox.scrollHeight;
     }
 
     function resetOutput() {
       outputBox.className = 'output-box';
-      // outputBox.innerHTML = '<div class="status-message">Ready to process data</div>';
       progressSection.classList.remove('active');
       csmfSection.classList.remove('active');
-      // Reset checkboxes
+      csmfFullData = null;
       checkbox1.disabled = true;
       checkbox1.checked = false;
       checkbox2.disabled = true;
       checkbox2.checked = false;
-      // Reset download link
       downloadLink.classList.remove('active');
+      resultsTabs.classList.remove('active');
+      lockCsmfTab();
+      exploreContent.innerHTML = '';
+      idMappingRow.classList.remove('active');
+      detectedIdColumn = null;
     }
 
     function sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
+      return new Promise(r => setTimeout(r, ms));
     }
 
-    // Timer functions
     function startTimer() {
       startTime = Date.now();
       timeElapsed.textContent = 'Time Elapsed: 0:00';
-      
       timerInterval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        const minutes = Math.floor(elapsed / 60);
-        const seconds = elapsed % 60;
-        timeElapsed.textContent = `Time Elapsed: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        const s = Math.floor((Date.now() - startTime) / 1000);
+        timeElapsed.textContent = `Time Elapsed: ${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
       }, 1000);
     }
 
     function stopTimer() {
-      if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-      }
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     }
 
-    // Fetch and display CSMF data
-    async function fetchAndDisplayCSMF(sessionId) {
-      try {
-        addLogMessage('→ Fetching CSMF data...');
-        
-        const response = await fetch(`${API_BASE_URL}/get-csmf/${sessionId}`);
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || `CSMF fetch failed: ${response.status}`);
-        }
-        
-        const csmfData = await response.json();
-        
-        if (csmfData && csmfData.csmf && Object.keys(csmfData.csmf).length > 0) {
-          const algorithm = csmfData.algorithm || currentAlgorithm || 'InterVA';
-          addLogMessage(`✓ CSMF data received (${Object.keys(csmfData.csmf).length} causes)`, 'success');
-          displayCSMFChart(csmfData.csmf, algorithm);
-        } else {
-          addLogMessage('ℹ No CSMF data available for this analysis');
-        }
-        
-      } catch (error) {
-        console.error('CSMF fetch error:', error);
-        addLogMessage(`ℹ CSMF chart not available: ${error.message}`);
-      }
-    }
-
-    // Display CSMF as bar chart
-    function displayCSMFChart(csmfData, algorithm = 'InterVA') {
-      barChart.innerHTML = '';
-      
-      // Update the CSMF section title with algorithm name
-      const csmfTitle = csmfSection.querySelector('h3');
-      if (csmfTitle) {
-        csmfTitle.textContent = `CSMF for all population (${algorithm})`;
-      }
-      
-      // Convert to array and sort by value (descending)
-      const csmfArray = Object.entries(csmfData).map(([cause, value]) => ({
-        cause: cause,
-        value: parseFloat(value)
-      }));
-      
-      csmfArray.sort((a, b) => b.value - a.value);
-      
-      if (csmfArray.length === 0) {
-        barChart.innerHTML = '<div class="no-csmf-message">No CSMF data available</div>';
-        return;
-      }
-      
-      // Color palette - top cause is red, rest are various colors
-      const colors = [
-        '#dc3545', // Red for top cause
-        '#007bff', // Blue
-        '#28a745', // Green
-        '#ffc107', // Yellow/Gold
-        '#6f42c1', // Purple
-        '#fd7e14', // Orange
-        '#20c997', // Teal
-        '#e83e8c', // Pink
-        '#17a2b8', // Cyan
-        '#6c757d'  // Gray
-      ];
-      
-      // Find max value for scaling
-      const maxValue = Math.max(...csmfArray.map(d => d.value));
-      
-      // Create bars
-      csmfArray.forEach((data, index) => {
-        const barRow = document.createElement('div');
-        barRow.className = 'bar-row';
-        
-        const barLabel = document.createElement('div');
-        barLabel.className = 'bar-label';
-        barLabel.textContent = data.cause;
-        barLabel.title = data.cause; // Tooltip for long names
-        
-        const barWrapper = document.createElement('div');
-        barWrapper.className = 'bar-wrapper';
-        
-        const barFill = document.createElement('div');
-        barFill.className = 'bar-fill';
-        const percentage = (data.value / maxValue) * 100;
-        barFill.style.width = '0%'; // Start at 0 for animation
-        barFill.style.backgroundColor = colors[index % colors.length];
-        
-        const barValue = document.createElement('span');
-        barValue.className = 'bar-value';
-        barValue.textContent = `${(data.value * 100).toFixed(2)}%`;
-        
-        barFill.appendChild(barValue);
-        barWrapper.appendChild(barFill);
-        barRow.appendChild(barLabel);
-        barRow.appendChild(barWrapper);
-        barChart.appendChild(barRow);
-        
-        // Animate bar after a short delay
-        setTimeout(() => {
-          barFill.style.width = `${percentage}%`;
-        }, 100 + (index * 50));
-      });
-      
-      // Show the CSMF section
-      csmfSection.classList.add('active');
-    }
-
-    // Proper CSV parsing function that handles quoted fields
     function parseCSVLine(line) {
       const result = [];
       let current = '';
       let inQuotes = false;
-      
       for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        const nextChar = line[i + 1];
-        
-        if (char === '"') {
-          if (inQuotes && nextChar === '"') {
-            // Escaped quote
-            current += '"';
-            i++; // Skip next quote
-          } else {
-            // Toggle quotes
-            inQuotes = !inQuotes;
-          }
-        } else if (char === ',' && !inQuotes) {
-          // Field separator
+        const c = line[i];
+        if (c === '"') {
+          if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+          else { inQuotes = !inQuotes; }
+        } else if (c === ',' && !inQuotes) {
           result.push(current.trim());
           current = '';
         } else {
-          current += char;
+          current += c;
         }
       }
-      
-      // Add last field
       result.push(current.trim());
-      
       return result;
     }
 
-    // Initialize
+    // =========================================================================
+    // INIT
+    // =========================================================================
+
     resetOutput();
-    
-    // Set version info
+
     fileInfo.innerHTML = 'Beta Version <span style="background: #007bff; color: white; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;">v1.0</span>';
     fileInfo.style.color = '#007bff';
-    
-    // Test connection on load
+
     fetch(`${API_BASE_URL}/health`)
       .then(r => r.json())
-      .then(data => {
-        console.log('Backend health check:', data);
-        if (data.status === 'healthy') {
-          // addLogMessage('Backend server is healthy and ready');
-        }else{
-          addLogMessage("Could not connect to the backend service")
-        }
-      })
-      .catch(err => {
-        console.error('Backend connection failed:', err);
-        addLogMessage('Cannot connect to server. Make sure backend is running.', 'error');
-      });
+      .then(d => { if (d.status !== 'healthy') addLogMessage('Could not connect to backend'); })
+      .catch(() => addLogMessage('Cannot connect to server. Make sure backend is running.', 'error'));
   </script>
 </body>
 </html>
