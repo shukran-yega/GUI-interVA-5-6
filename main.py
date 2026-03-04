@@ -274,14 +274,12 @@ async def upload_chunk(payload: ChunkPayload):
             # Process based on algorithm - Create background task
             algorithm_lower = session["algorithm"].lower()
             if "interva-6" in algorithm_lower or "interva6" in algorithm_lower:
-                # Create async task for processing
                 task = asyncio.create_task(
                     process_vman3_interva6(csv_data, session_id, session["who_version"], session.get("id_column", "instanceID"))
                 )
                 session["task"] = task
                 return {"status": "processing", "session_id": session_id}
             elif "interva-5" in algorithm_lower or "interva5" in algorithm_lower:
-                # Create async task for processing
                 task = asyncio.create_task(
                     process_vman3_interva5(csv_data, session_id, session["who_version"], session.get("id_column", "instanceID"))
                 )
@@ -468,7 +466,7 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
         # Transform using pycrossva
         await queue.put({
             "type": "progress",
-            "message": f"Transforming data ({input_format} >> {output_format})..."
+            "message": f"Transforming data ({input_format} -> {output_format})..."
         })
         
         ccva_df = vman3.pycrossva(
@@ -524,10 +522,9 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
         with concurrent.futures.ThreadPoolExecutor() as executor:
             interva6_obj, results = await loop.run_in_executor(executor, run_interva6_with_object)
         
-        # Store the InterVA6 object for CSMF calculation
         session["interva6_obj"] = interva6_obj
         session["algorithm"] = "InterVA-6"
-        session["input_df"] = input_df  # Store input data for demographic filtering in CSMF
+        session["input_df"] = input_df
         session["id_column"] = id_column
         
         # Stop progress monitoring
@@ -600,7 +597,7 @@ async def get_csmf(session_id: str, top: int = 10):
       - adult / child / neonatal: by age group (from isAdult, isChild, isNeonatal columns in input data)
     
     The demographic columns live in the original input DataFrame (stored as session["input_df"]),
-    NOT in the InterVA output. We join them via instanceID (input) >> ID (results).
+    NOT in the InterVA output. We join them via instanceID (input) -> ID (results).
     """
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found or expired")
@@ -990,7 +987,7 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
         # Transform using pycrossva
         await queue.put({
             "type": "progress",
-            "message": f"Transforming data ({input_format} >> {output_format})..."
+            "message": f"Transforming data ({input_format} -> {output_format})..."
         })
         
         ccva_df = vman3.pycrossva(
@@ -1048,10 +1045,9 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
             
             interva5_obj, results = await loop.run_in_executor(executor, run_interva5_with_object)
         
-        # Store the InterVA5 object for CSMF calculation
         session["interva5_obj"] = interva5_obj
         session["algorithm"] = "InterVA-5"
-        session["input_df"] = input_df  # Store input data for demographic filtering in CSMF
+        session["input_df"] = input_df
         session["id_column"] = id_column
         
         # Stop progress monitoring

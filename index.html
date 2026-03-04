@@ -148,10 +148,13 @@
 
     input[type="file"] {
       position: absolute;
+      top: 0;
+      left: 0;
       opacity: 0;
       width: 100%;
       height: 100%;
       cursor: pointer;
+      z-index: 2;
     }
 
     .file-button {
@@ -633,7 +636,7 @@
       font-size: 14px;
     }
 
-    /* ── ID column mapping ── */
+    /* -- ID column mapping -- */
     .id-mapping-row {
       display: none;
       align-items: center;
@@ -646,37 +649,19 @@
       font-size: 13px;
       color: #555;
     }
-
-    .id-mapping-row.active {
-      display: flex;
-    }
-
-    .id-mapping-row select {
-      min-width: 180px;
-    }
-
-    .id-mapping-row .id-status {
-      font-size: 12px;
-      font-weight: 500;
-    }
-
+    .id-mapping-row.active { display: flex; }
+    .id-mapping-row select { min-width: 180px; }
+    .id-mapping-row .id-status { font-size: 12px; font-weight: 500; }
     .id-mapping-row .id-status.ok { color: #28a745; }
     .id-mapping-row .id-status.err { color: #dc3545; }
 
-    /* ── Tab system ── */
-    .results-tabs {
-      margin-top: 20px;
-      display: none;
-    }
-
-    .results-tabs.active {
-      display: block;
-    }
+    /* -- Tab system -- */
+    .results-tabs { margin-top: 20px; display: none; }
+    .results-tabs.active { display: block; }
 
     .tab-header {
       display: flex;
       border-bottom: 2px solid #e0e0e0;
-      gap: 0;
     }
 
     .tab-btn {
@@ -694,22 +679,9 @@
       min-width: auto;
       position: relative;
     }
-
-    .tab-btn:hover:not(:disabled) {
-      color: #333;
-      background: #f8f9fa;
-    }
-
-    .tab-btn.active {
-      color: #007bff;
-      border-bottom-color: #007bff;
-    }
-
-    .tab-btn:disabled {
-      color: #bbb;
-      cursor: not-allowed;
-      opacity: 1;
-    }
+    .tab-btn:hover:not(:disabled) { color: #333; background: #f8f9fa; }
+    .tab-btn.active { color: #007bff; border-bottom-color: #007bff; }
+    .tab-btn:disabled { color: #bbb; cursor: not-allowed; opacity: 1; }
 
     .tab-btn .tab-badge {
       display: none;
@@ -722,26 +694,64 @@
       color: white;
       animation: badgePulse 1.5s ease-in-out 3;
     }
-
-    .tab-btn .tab-badge.visible {
-      display: inline-block;
-    }
+    .tab-btn .tab-badge.visible { display: inline-block; }
 
     @keyframes badgePulse {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.15); }
     }
 
-    .tab-panel {
-      display: none;
-      padding: 20px 0;
+    .tab-panel { display: none; padding: 20px 0; }
+    .tab-panel.active { display: block; }
+
+    /* -- Explore panel -- */
+    .explore-summary {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      align-items: center;
     }
 
-    .tab-panel.active {
-      display: block;
+    .explore-summary-item {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      text-align: center;
+    }
+    .explore-summary-item.wide { flex: 1 1 280px; }
+    .explore-summary-item.narrow { flex: 0 1 auto; min-width: 100px; }
+
+    .explore-summary-item .summary-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+    }
+    .explore-summary-item .summary-pct {
+      color: #007bff;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .explore-summary-item .summary-label {
+      font-size: 11px;
+      color: #888;
+      margin-top: 2px;
     }
 
-    /* ── Explore panel ── */
+    .explore-demographics {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .explore-demo-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
     .explore-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -768,6 +778,18 @@
       margin-bottom: 10px;
     }
 
+    .explore-card-error {
+      color: #dc3545;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .explore-card-remap select {
+      margin-top: 4px;
+      min-width: 160px;
+      font-size: 12px;
+    }
+
     .explore-stat-row {
       display: flex;
       justify-content: space-between;
@@ -777,10 +799,7 @@
       color: #555;
       border-bottom: 1px solid #f0f0f0;
     }
-
-    .explore-stat-row:last-child {
-      border-bottom: none;
-    }
+    .explore-stat-row:last-child { border-bottom: none; }
 
     .explore-stat-row .stat-label {
       flex: 1;
@@ -795,6 +814,12 @@
       color: #333;
       white-space: nowrap;
     }
+    .explore-stat-row .stat-pct {
+      color: #007bff;
+      font-weight: 500;
+      font-size: 11px;
+      margin-left: 4px;
+    }
 
     .explore-stat-bar {
       height: 6px;
@@ -803,40 +828,60 @@
       margin-top: 3px;
       overflow: hidden;
     }
-
     .explore-stat-bar-fill {
       height: 100%;
       border-radius: 3px;
       transition: width 0.5s ease-out;
     }
 
-    .explore-summary {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-      margin-bottom: 16px;
+    .rerun-btn {
+      margin-top: 10px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      min-width: auto;
     }
+    .rerun-btn:hover { background: #0056b3; }
 
-    .explore-summary-item {
+    .explore-reload-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid #ddd;
       background: #f8f9fa;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 12px 16px;
-      flex: 1;
-      min-width: 140px;
-      text-align: center;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      padding: 0;
+      min-width: auto;
     }
-
-    .explore-summary-item .summary-value {
-      font-size: 20px;
-      font-weight: 700;
-      color: #333;
+    .explore-reload-btn:hover {
+      background: #e0e0e0;
+      border-color: #bbb;
     }
-
-    .explore-summary-item .summary-label {
-      font-size: 11px;
-      color: #888;
-      margin-top: 2px;
+    .explore-reload-btn:active svg {
+      transform: rotate(360deg);
+    }
+    .explore-reload-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: #555;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 0.4s ease;
+    }
+    .explore-reload-btn:hover svg {
+      stroke: #333;
     }
   </style>
 </head>
@@ -899,17 +944,15 @@
         </div>
       </div>
 
-      <!-- Tab system: Explore Data + CSMF Results -->
+      <!-- Tab system -->
       <div class="results-tabs" id="resultsTabs">
         <div class="tab-header">
           <button class="tab-btn active" id="tabExplore" data-tab="explore">Explore Data</button>
           <button class="tab-btn" id="tabCsmf" data-tab="csmf" disabled>CSMF Results<span class="tab-badge" id="csmfBadge">Ready</span></button>
         </div>
-
         <div class="tab-panel active" id="panelExplore">
           <div id="exploreContent"></div>
         </div>
-
         <div class="tab-panel" id="panelCsmf">
           <div class="csmf-section active" id="csmfSection" style="display:block;box-shadow:none;margin-top:0;padding:0;">
             <h3 id="csmfTitle">CSMF Results</h3>
@@ -966,7 +1009,10 @@
     let startTime = null;
     let timerInterval = null;
     let currentAlgorithm = null;
-    let detectedIdColumn = null;  // Auto-detected or user-selected ID column
+    let detectedIdColumn = null;
+
+    // Column mapping overrides (user can remap explore columns)
+    let columnMap = {};
 
     // Progress ticker state
     let progressTicker = null;
@@ -1220,23 +1266,13 @@
         downloadLink.classList.remove('active');
         resultBlob = null;
 
-        // Show tabs with explore active, CSMF locked
-        resultsTabs.classList.add('active');
-        lockCsmfTab();
-        switchTab('explore');
-
-        // Run exploration immediately (client-side, instant)
-        runExploration(uploadedData);
-
         progressSection.classList.add('active');
         setProgress(0);
         startTimer();
 
         outputBox.innerHTML = '';
-        addLogMessage('-> Preparing data for upload...');
-
-        // Determine which ID column to use
         const idCol = detectedIdColumn || 'instanceID';
+        addLogMessage('-> Preparing data for upload...');
         addLogMessage(`-> Using ID column: ${idCol}`);
 
         // Convert to CSV text
@@ -1253,24 +1289,18 @@
         const fileSizeKB = (csvText.length / 1024).toFixed(2);
         addLogMessage(`-> CSV size: ${fileSizeKB} KB`);
 
-        // Session
         currentSessionId = generateSessionId();
-
-        // Connect SSE
         await connectSSE(currentSessionId);
         await sleep(300);
 
-        // Split into chunks
         const chunks = [];
         for (let i = 0; i < csvText.length; i += CHUNK_SIZE) {
           chunks.push(csvText.slice(i, i + CHUNK_SIZE));
         }
         const totalChunks = chunks.length;
         addLogMessage(`-> Uploading ${totalChunks} chunk(s)...`);
-
         setProgress(5);
 
-        // Upload chunks -- drives progress from 5% to 30%
         for (let i = 0; i < chunks.length; i++) {
           const response = await fetch(`${API_BASE_URL}/upload-chunk`, {
             method: 'POST',
@@ -1296,12 +1326,9 @@
           addLogMessage(`[OK] Uploaded chunk ${i + 1}/${totalChunks}`);
         }
 
-        // All chunks uploaded -- hand off to client ticker
         addLogMessage('[OK] All chunks uploaded');
         setProgress(30);
         addLogMessage(`-> Analyzing with ${algorithm}... this may take several minutes`);
-
-        // START THE TICKER: +1% every 4 seconds from 30% -> 90%
         startProgressTicker();
 
       } catch (error) {
@@ -1343,7 +1370,6 @@
 
         if (currentAlgorithm === 'InterVA-5' || currentAlgorithm === 'InterVA-6') {
           await fetchAndDisplayCSMF(sessionId);
-          // Unlock CSMF tab and notify user
           unlockCsmfTab();
         }
 
@@ -1399,10 +1425,10 @@
       const v = whoVersionSelect.value;
       if (v === '2016WHOv151') {
         algorithmSelect.value = 'InterVA-5';
-        addLogMessage('[INFO] WHO 2016 --> InterVA-5 (recommended)');
+        addLogMessage('[INFO] WHO 2016 -> InterVA-5 (recommended)');
       } else if (v === '2022WHOv0101') {
         algorithmSelect.value = 'InterVA-6';
-        addLogMessage('[INFO] WHO 2022 --> InterVA-6 (recommended)');
+        addLogMessage('[INFO] WHO 2022 -> InterVA-6 (recommended)');
       }
     });
 
@@ -1565,10 +1591,13 @@
           addLogMessage('[WARN] Could not auto-detect WHO version -- please select manually');
         }
 
-        // Only enable Run if we have an ID column
+        // Enable Run only if we have an ID column
         if (detectedIdColumn) {
           runBtn.disabled = false;
         }
+
+        // Run exploration immediately after file load
+        runExploration(csvData);
 
       } catch (error) {
         addLogMessage(`[ERROR] Failed to load CSV: ${error.message}`, 'error');
@@ -1602,39 +1631,31 @@
     // ID COLUMN DETECTION
     // =========================================================================
 
-    // Priority-ordered list of candidate ID column names (case-insensitive match)
-    const ID_CANDIDATES = ['instanceid', 'instanceID', 'key', 'KEY', 'uuid', 'UUID', 'ID', 'Id', 'id'];
+    const ID_CANDIDATES = ['instanceid','instanceID','key','KEY','uuid','UUID','ID','Id','id'];
 
     function detectIdColumn(headers, dataRows) {
-      // headers: original-case array from csvData[0]
-      // dataRows: array of arrays (rows without header)
       const headerLower = headers.map(h => h.trim().toLowerCase());
-
       for (const candidate of ID_CANDIDATES) {
         const idx = headerLower.indexOf(candidate.toLowerCase());
         if (idx === -1) continue;
-
-        // Check uniqueness
         const values = dataRows.map(r => (r[idx] || '').trim()).filter(v => v !== '');
-        const uniqueSet = new Set(values);
-        if (values.length > 0 && uniqueSet.size === values.length) {
+        const uniq = new Set(values);
+        if (values.length > 0 && uniq.size === values.length) {
           return { column: headers[idx], index: idx, unique: true, total: values.length };
         }
       }
-      return null; // No auto-detected column
+      return null;
     }
 
     function showIdColumnPicker(headers, dataRows) {
       idMappingRow.classList.add('active');
       idColumnSelect.innerHTML = '<option value="">-- Select ID column --</option>';
-
       headers.forEach((h, i) => {
         const opt = document.createElement('option');
         opt.value = i;
         opt.textContent = h;
         idColumnSelect.appendChild(opt);
       });
-
       idStatus.textContent = '';
       idStatus.className = 'id-status';
       runBtn.disabled = true;
@@ -1642,8 +1663,7 @@
 
     function validateIdColumn(colIndex, headers, dataRows) {
       const values = dataRows.map(r => (r[colIndex] || '').trim()).filter(v => v !== '');
-      const uniqueSet = new Set(values);
-
+      const uniq = new Set(values);
       if (values.length === 0) {
         idStatus.textContent = 'Column is empty';
         idStatus.className = 'id-status err';
@@ -1651,18 +1671,15 @@
         detectedIdColumn = null;
         return;
       }
-
-      if (uniqueSet.size !== values.length) {
-        const dupes = values.length - uniqueSet.size;
-        idStatus.textContent = `Not unique: ${dupes} duplicate(s) found`;
+      if (uniq.size !== values.length) {
+        idStatus.textContent = `Not unique: ${values.length - uniq.size} duplicate(s)`;
         idStatus.className = 'id-status err';
         runBtn.disabled = true;
         detectedIdColumn = null;
         return;
       }
-
       detectedIdColumn = headers[colIndex];
-      idStatus.textContent = `Valid: ${uniqueSet.size} unique records`;
+      idStatus.textContent = `Valid: ${uniq.size} unique records`;
       idStatus.className = 'id-status ok';
       runBtn.disabled = false;
     }
@@ -1678,19 +1695,14 @@
     // =========================================================================
 
     function switchTab(tabName) {
-      // Update buttons
       tabExplore.classList.toggle('active', tabName === 'explore');
       tabCsmf.classList.toggle('active', tabName === 'csmf');
-
-      // Update panels
       panelExplore.classList.toggle('active', tabName === 'explore');
       panelCsmf.classList.toggle('active', tabName === 'csmf');
     }
 
     tabExplore.addEventListener('click', () => switchTab('explore'));
-    tabCsmf.addEventListener('click', () => {
-      if (!tabCsmf.disabled) switchTab('csmf');
-    });
+    tabCsmf.addEventListener('click', () => { if (!tabCsmf.disabled) switchTab('csmf'); });
 
     function lockCsmfTab() {
       tabCsmf.disabled = true;
@@ -1705,18 +1717,24 @@
     }
 
     // =========================================================================
-    // EXPLORATORY ANALYSIS (client-side)
+    // EXPLORATORY ANALYSIS (client-side, runs on file upload)
     // =========================================================================
 
     function runExploration(csvData) {
-      // csvData[0] = headers, csvData[1..] = rows
       const headers = csvData[0];
       const rows = csvData.slice(1);
       const headerLower = headers.map(h => h.trim().toLowerCase());
+      const totalRecords = rows.length;
       exploreContent.innerHTML = '';
 
-      // Helper: get column index by name (case-insensitive)
+      // Track whether any cards need remapping
+      let hasMissingColumns = false;
+      // Track remap dropdowns so the shared Re-Run can read them
+      const remapSelectors = {};
+
+      // Helper: find column index, respecting user overrides
       function colIdx(name) {
+        if (columnMap[name] !== undefined) return columnMap[name];
         return headerLower.indexOf(name.toLowerCase());
       }
 
@@ -1744,19 +1762,53 @@
         }).filter(d => d !== null);
       }
 
-      // ── Summary row ──
-      const summaryDiv = document.createElement('div');
-      summaryDiv.className = 'explore-summary';
+      // -- Row 1: Total Records + Data Submission Period --
+      const summaryRow1 = document.createElement('div');
+      summaryRow1.className = 'explore-summary';
 
-      const totalRecords = rows.length;
+      function makeSummaryItem(valueHtml, label, wide) {
+        const item = document.createElement('div');
+        item.className = 'explore-summary-item' + (wide ? ' wide' : ' narrow');
+        item.innerHTML = `<div class="summary-value">${valueHtml}</div><div class="summary-label">${label}</div>`;
+        return item;
+      }
 
-      // Gender breakdown
+      summaryRow1.appendChild(makeSummaryItem(totalRecords.toLocaleString(), 'Total Records', true));
+
+      // Data submission period
+      const subIdx = colIdx('SubmissionDate');
+      const startIdx = colIdx('start-time');
+      const endIdx = colIdx('end');
+      let periodStart = null, periodEnd = null;
+      for (const idx of [subIdx, startIdx, endIdx]) {
+        const dates = parseDates(idx);
+        if (dates.length === 0) continue;
+        const earliest = new Date(Math.min(...dates.map(d => d.getTime())));
+        const latest = new Date(Math.max(...dates.map(d => d.getTime())));
+        if (!periodStart || earliest < periodStart) periodStart = earliest;
+        if (!periodEnd || latest > periodEnd) periodEnd = latest;
+      }
+      if (periodStart && periodEnd) {
+        const fmt = d => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        summaryRow1.appendChild(makeSummaryItem(`${fmt(periodStart)} - ${fmt(periodEnd)}`, 'Data Submission Period', true));
+      }
+
+      // Reload button (always present, next to summary row)
+      const reloadBtn = document.createElement('button');
+      reloadBtn.className = 'explore-reload-btn';
+      reloadBtn.title = 'Re-run exploration';
+      reloadBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>';
+      reloadBtn.addEventListener('click', () => runExploration(csvData));
+      summaryRow1.appendChild(reloadBtn);
+
+      exploreContent.appendChild(summaryRow1);
+
+      // -- Row 2: Demographics (gender + age groups) --
       const genderIdx = colIdx('Id10019');
       const genderCounts = countColumn(genderIdx);
-      const maleCount = genderCounts.find(g => g.label.toLowerCase() === 'male');
-      const femaleCount = genderCounts.find(g => g.label.toLowerCase() === 'female');
+      const maleObj = genderCounts.find(g => g.label.toLowerCase() === 'male');
+      const femaleObj = genderCounts.find(g => g.label.toLowerCase() === 'female');
 
-      // Age group breakdown
       const adultIdx = colIdx('isAdult');
       const childIdx = colIdx('isChild');
       const neonatalIdx = colIdx('isNeonatal');
@@ -1767,66 +1819,139 @@
         else if (adultIdx !== -1 && (r[adultIdx] || '').trim() === '1') adultCount++;
       });
 
-      // Data collection period
-      const subIdx = colIdx('SubmissionDate');
-      const startIdx = colIdx('start-time');
-      const endIdx = colIdx('end');
-      let periodStart = null, periodEnd = null;
+      const demoRow = document.createElement('div');
+      demoRow.className = 'explore-summary';
 
-      // Try submission date first, then start-time/end
-      for (const idx of [subIdx, startIdx, endIdx]) {
-        const dates = parseDates(idx);
-        if (dates.length === 0) continue;
-        const earliest = new Date(Math.min(...dates.map(d => d.getTime())));
-        const latest = new Date(Math.max(...dates.map(d => d.getTime())));
-        if (!periodStart || earliest < periodStart) periodStart = earliest;
-        if (!periodEnd || latest > periodEnd) periodEnd = latest;
+      function pctHtml(count) {
+        const pct = totalRecords > 0 ? ((count / totalRecords) * 100).toFixed(1) : '0';
+        return `${count.toLocaleString()} <span class="summary-pct">(${pct}%)</span>`;
       }
 
-      function addSummaryItem(value, label) {
-        const item = document.createElement('div');
-        item.className = 'explore-summary-item';
-        item.innerHTML = `<div class="summary-value">${value}</div><div class="summary-label">${label}</div>`;
-        summaryDiv.appendChild(item);
+      if (maleObj) demoRow.appendChild(makeSummaryItem(pctHtml(maleObj.count), 'Males', false));
+      if (femaleObj) demoRow.appendChild(makeSummaryItem(pctHtml(femaleObj.count), 'Females', false));
+      if (adultCount) demoRow.appendChild(makeSummaryItem(pctHtml(adultCount), 'Adults', false));
+      if (childCount) demoRow.appendChild(makeSummaryItem(pctHtml(childCount), 'Children', false));
+      if (neonatalCount) demoRow.appendChild(makeSummaryItem(pctHtml(neonatalCount), 'Neonates', false));
+
+      if (demoRow.children.length > 0) {
+        exploreContent.appendChild(demoRow);
       }
 
-      addSummaryItem(totalRecords.toLocaleString(), 'Total Records');
-      if (maleCount) addSummaryItem(maleCount.count.toLocaleString(), 'Male');
-      if (femaleCount) addSummaryItem(femaleCount.count.toLocaleString(), 'Female');
-      if (adultCount) addSummaryItem(adultCount.toLocaleString(), 'Adult');
-      if (childCount) addSummaryItem(childCount.toLocaleString(), 'Child');
-      if (neonatalCount) addSummaryItem(neonatalCount.toLocaleString(), 'Neonatal');
-
-      if (periodStart && periodEnd) {
-        const fmt = d => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        addSummaryItem(`${fmt(periodStart)} - ${fmt(periodEnd)}`, 'Data Collection Period');
-      }
-
-      exploreContent.appendChild(summaryDiv);
-
-      // ── Cards grid ──
+      // -- Distribution cards grid --
       const grid = document.createElement('div');
       grid.className = 'explore-grid';
 
-      // Helper to create a distribution card
-      function addDistributionCard(title, subtitle, data, maxItems, color) {
-        if (!data || data.length === 0) return;
+      // Maximum unique values to consider a column categorical
+      const MAX_CATEGORICAL = 200;
+
+      function addDistributionCard(title, expectedCol, maxItems, color) {
+        const idx = colIdx(expectedCol);
         const card = document.createElement('div');
         card.className = 'explore-card';
 
+        // If column was remapped, show the actual column name as the title
+        const isRemapped = columnMap[expectedCol] !== undefined;
+        const displayTitle = isRemapped ? headers[columnMap[expectedCol]] : title;
+
         const h4 = document.createElement('h4');
-        h4.textContent = title;
+        h4.textContent = displayTitle;
         card.appendChild(h4);
 
-        if (subtitle) {
-          const sub = document.createElement('div');
-          sub.className = 'explore-subtitle';
-          sub.textContent = subtitle;
-          card.appendChild(sub);
+        if (idx === -1) {
+          // Column not found -- show error and remap dropdown
+          hasMissingColumns = true;
+
+          const errDiv = document.createElement('div');
+          errDiv.className = 'explore-card-error';
+          errDiv.textContent = `Could not produce the graph. Column "${expectedCol}" not found.`;
+          card.appendChild(errDiv);
+
+          const remapDiv = document.createElement('div');
+          remapDiv.className = 'explore-card-remap';
+
+          const sel = document.createElement('select');
+          sel.innerHTML = '<option value="">-- Choose column --</option>';
+          headers.forEach((h, i) => {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = h;
+            sel.appendChild(opt);
+          });
+
+          // Restore previous selection if user already picked one
+          if (columnMap[expectedCol] !== undefined) {
+            sel.value = columnMap[expectedCol];
+          }
+
+          // Live-update columnMap on change (no re-run needed yet)
+          sel.addEventListener('change', () => {
+            const chosen = parseInt(sel.value);
+            if (isNaN(chosen)) {
+              delete columnMap[expectedCol];
+            } else {
+              columnMap[expectedCol] = chosen;
+            }
+          });
+
+          remapSelectors[expectedCol] = sel;
+          remapDiv.appendChild(sel);
+          card.appendChild(remapDiv);
+          grid.appendChild(card);
+          return;
+        }
+
+        // Column found -- check if categorical
+        const data = countColumn(idx);
+
+        if (data.length > MAX_CATEGORICAL) {
+          const warnDiv = document.createElement('div');
+          warnDiv.className = 'explore-card-error';
+          warnDiv.textContent = `Column has ${data.length} unique values (not categorical). Choose a different column.`;
+          card.appendChild(warnDiv);
+
+          hasMissingColumns = true;
+
+          const remapDiv = document.createElement('div');
+          remapDiv.className = 'explore-card-remap';
+          const sel = document.createElement('select');
+          sel.innerHTML = '<option value="">-- Choose column --</option>';
+          headers.forEach((h, i) => {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = h;
+            sel.appendChild(opt);
+          });
+          if (columnMap[expectedCol] !== undefined) sel.value = columnMap[expectedCol];
+          sel.addEventListener('change', () => {
+            const chosen = parseInt(sel.value);
+            if (isNaN(chosen)) delete columnMap[expectedCol];
+            else columnMap[expectedCol] = chosen;
+          });
+          remapSelectors[expectedCol] = sel;
+          remapDiv.appendChild(sel);
+          card.appendChild(remapDiv);
+          grid.appendChild(card);
+          return;
+        }
+
+        // Render distribution
+        const sub = document.createElement('div');
+        sub.className = 'explore-subtitle';
+        sub.textContent = `${data.length} unique value(s)`;
+        card.appendChild(sub);
+
+        if (data.length === 0) {
+          const empty = document.createElement('div');
+          empty.style.cssText = 'color:#aaa;font-size:12px;padding:10px 0;';
+          empty.textContent = 'No data available';
+          card.appendChild(empty);
+          grid.appendChild(card);
+          return;
         }
 
         const items = data.slice(0, maxItems);
         const maxCount = items[0].count;
+        const total = rows.length;
 
         items.forEach(item => {
           const row = document.createElement('div');
@@ -1837,15 +1962,15 @@
           lbl.textContent = item.label;
           lbl.title = item.label;
 
-          const val = document.createElement('span');
-          val.className = 'stat-value';
-          val.textContent = item.count;
+          const valSpan = document.createElement('span');
+          valSpan.className = 'stat-value';
+          const pct = total > 0 ? ((item.count / total) * 100).toFixed(1) : '0';
+          valSpan.innerHTML = `${item.count} <span class="stat-pct">(${pct}%)</span>`;
 
           row.appendChild(lbl);
-          row.appendChild(val);
+          row.appendChild(valSpan);
           card.appendChild(row);
 
-          // Mini bar
           const bar = document.createElement('div');
           bar.className = 'explore-stat-bar';
           const fill = document.createElement('div');
@@ -1854,7 +1979,6 @@
           fill.style.backgroundColor = color;
           bar.appendChild(fill);
           card.appendChild(bar);
-
           setTimeout(() => { fill.style.width = `${(item.count / maxCount) * 100}%`; }, 100);
         });
 
@@ -1868,57 +1992,16 @@
         grid.appendChild(card);
       }
 
-      // Interviewer workload (Id10010)
-      const interviewerIdx = colIdx('Id10010');
-      const interviewerData = countColumn(interviewerIdx);
-      addDistributionCard(
-        'Interviewer Workload',
-        `${interviewerData.length} interviewer(s)`,
-        interviewerData, 8, '#007bff'
-      );
-
-      // Region of interview (Id10005R)
-      const regionIdx = colIdx('Id10005R');
-      const regionData = countColumn(regionIdx);
-      addDistributionCard(
-        'Interview Region',
-        `${regionData.length} region(s)`,
-        regionData, 8, '#28a745'
-      );
-
-      // Place of death (Id10058)
-      const deathLocIdx = colIdx('Id10058');
-      const deathLocData = countColumn(deathLocIdx);
-      addDistributionCard(
-        'Place of Death',
-        `${deathLocData.length} location(s)`,
-        deathLocData, 8, '#fd7e14'
-      );
-
-      // Gender distribution
-      if (genderCounts.length > 0) {
-        addDistributionCard(
-          'Gender Distribution',
-          null,
-          genderCounts, 5, '#6f42c1'
-        );
-      }
-
-      // Age group distribution
-      const ageGroupData = [];
-      if (adultCount > 0) ageGroupData.push({ label: 'Adult', count: adultCount });
-      if (childCount > 0) ageGroupData.push({ label: 'Child', count: childCount });
-      if (neonatalCount > 0) ageGroupData.push({ label: 'Neonatal', count: neonatalCount });
-      ageGroupData.sort((a, b) => b.count - a.count);
-      if (ageGroupData.length > 0) {
-        addDistributionCard(
-          'Age Group Distribution',
-          null,
-          ageGroupData, 5, '#e83e8c'
-        );
-      }
+      addDistributionCard('Interviewer Summary', 'Id10010', 8, '#007bff');
+      addDistributionCard('Interview Region', 'Id10005R', 8, '#28a745');
+      addDistributionCard('Place of Death', 'Id10058', 8, '#fd7e14');
 
       exploreContent.appendChild(grid);
+
+      // Show tabs
+      resultsTabs.classList.add('active');
+      lockCsmfTab();
+      switchTab('explore');
     }
 
     // =========================================================================
@@ -2228,7 +2311,6 @@
     function resetOutput() {
       outputBox.className = 'output-box';
       progressSection.classList.remove('active');
-      csmfSection.classList.remove('active');
       csmfFullData = null;
       checkbox1.disabled = true;
       checkbox1.checked = false;
@@ -2240,6 +2322,7 @@
       exploreContent.innerHTML = '';
       idMappingRow.classList.remove('active');
       detectedIdColumn = null;
+      columnMap = {};
     }
 
     function sleep(ms) {
