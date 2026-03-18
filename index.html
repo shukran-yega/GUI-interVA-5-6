@@ -1717,6 +1717,170 @@
     }
 
     // =========================================================================
+    // FREE-TEXT DEDUPLICATION / CONSOLIDATION
+    //
+    // Handles dirty free-text columns (e.g. interviewer names typed manually)
+    // where the same entity appears under many spellings:
+    //   "SHARAFI MNANDAJE", "Sharafi mnandaje", "sharafi  mnandaje"
+    //   "Deus williamu njugu", "Deus nwilliaju njugu"
+    //
+    // Pipeline:
+    //   Layer 1 - Normalize: lowercase, collapse whitespace, strip accents
+    //   Layer 2 - Fuzzy match: token-sort + Levenshtein on unique normalized forms
+    //   Layer 3 - Cluster: union-find to group similar names, pick most frequent
+    //
+    // Returns { mapping: {rawValue -> canonicalName}, clusterCount, rawCount }
+    // =========================================================================
+
+    function consolidateValues(rawValues) {
+      if (!rawValues || rawValues.length === 0) return { mapping: {}, clusterCount: 0, rawCount: 0 };
+
+      var LEV_THRESHOLD = 0.82;
+      var TOKEN_CHAR_THRESHOLD = 0.75;
+
+      // -- Layer 1: Normalize --
+      function normalize(s) {
+        return s
+          .toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9\s]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      function tokenSort(s) {
+        return s.split(' ').filter(function(t) { return t; }).sort().join(' ');
+      }
+
+      // -- Layer 2: Levenshtein --
+      function levenshtein(a, b) {
+        if (a === b) return 0;
+        var la = a.length, lb = b.length;
+        if (la === 0) return lb;
+        if (lb === 0) return la;
+        if (Math.abs(la - lb) / Math.max(la, lb) > 0.25) return Math.max(la, lb);
+
+        var row = [];
+        for (var x = 0; x <= lb; x++) row[x] = x;
+        for (var i = 1; i <= la; i++) {
+          var prev = i;
+          for (var j = 1; j <= lb; j++) {
+            var cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            var val = Math.min(row[j] + 1, prev + 1, row[j - 1] + cost);
+            row[j - 1] = prev;
+            prev = val;
+          }
+          row[lb] = prev;
+        }
+        return row[lb];
+      }
+
+      function charSim(a, b) {
+        var m = Math.max(a.length, b.length);
+        return m === 0 ? 1 : 1 - levenshtein(a, b) / m;
+      }
+
+      // Combined: Levenshtein OR token-subset matching
+      function shouldMerge(a, b) {
+        // Method 1: full-string Levenshtein
+        if (charSim(a, b) >= LEV_THRESHOLD) return true;
+
+        // Method 2: token-subset -- if ALL tokens of the shorter name
+        // fuzzy-match a token in the longer name, merge.
+        // Catches missing middle names: "batuli nahoda" vs "batuli bakari nahoda"
+        var ta = a.split(' ').filter(function(t) { return t; });
+        var tb = b.split(' ').filter(function(t) { return t; });
+        var shorter = ta.length <= tb.length ? ta : tb;
+        var longer  = ta.length <= tb.length ? tb : ta;
+
+        // Require at least 2 tokens to avoid single-word false merges
+        if (shorter.length < 2) return false;
+
+        var used = {};
+        var matched = 0;
+        for (var si = 0; si < shorter.length; si++) {
+          var bestSim = 0, bestIdx = -1;
+          for (var li = 0; li < longer.length; li++) {
+            if (used[li]) continue;
+            var s = charSim(shorter[si], longer[li]);
+            if (s > bestSim) { bestSim = s; bestIdx = li; }
+          }
+          if (bestSim >= TOKEN_CHAR_THRESHOLD && bestIdx >= 0) {
+            matched++;
+            used[bestIdx] = true;
+          }
+        }
+        return matched === shorter.length;
+      }
+
+      // -- Build normalized lookup --
+      var normMap = {};
+      rawValues.forEach(function(v) {
+        var n = tokenSort(normalize(v));
+        if (!normMap[n]) normMap[n] = [];
+        normMap[n].push(v);
+      });
+
+      var uniqueNorms = Object.keys(normMap);
+
+      if (uniqueNorms.length <= 1) {
+        var canonical0 = rawValues[0];
+        var mapping0 = {};
+        rawValues.forEach(function(v) { mapping0[v] = canonical0; });
+        return { mapping: mapping0, clusterCount: 1, rawCount: new Set(rawValues).size };
+      }
+
+      // -- Layer 3: Union-Find --
+      var parent = {};
+      uniqueNorms.forEach(function(n) { parent[n] = n; });
+
+      function find(x) {
+        while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+        return x;
+      }
+      function union(a, b) {
+        var ra = find(a), rb = find(b);
+        if (ra !== rb) parent[ra] = rb;
+      }
+
+      for (var i = 0; i < uniqueNorms.length; i++) {
+        for (var j = i + 1; j < uniqueNorms.length; j++) {
+          if (find(uniqueNorms[i]) === find(uniqueNorms[j])) continue;
+          if (shouldMerge(uniqueNorms[i], uniqueNorms[j])) {
+            union(uniqueNorms[i], uniqueNorms[j]);
+          }
+        }
+      }
+
+      var clusters = {};
+      uniqueNorms.forEach(function(n) {
+        var root = find(n);
+        if (!clusters[root]) clusters[root] = [];
+        clusters[root].push(n);
+      });
+
+      var mapping = {};
+      Object.values(clusters).forEach(function(norms) {
+        var allRaw = [];
+        norms.forEach(function(n) { allRaw.push.apply(allRaw, normMap[n]); });
+
+        var freq = {};
+        allRaw.forEach(function(v) { freq[v] = (freq[v] || 0) + 1; });
+
+        var canonical = Object.entries(freq)
+          .sort(function(a, b) { return b[1] - a[1]; })[0][0];
+
+        allRaw.forEach(function(v) { mapping[v] = canonical; });
+      });
+
+      return {
+        mapping: mapping,
+        clusterCount: Object.keys(clusters).length,
+        rawCount: new Set(rawValues).size
+      };
+    }
+
+    // =========================================================================
     // EXPLORATORY ANALYSIS (client-side, runs on file upload)
     // =========================================================================
 
@@ -1739,16 +1903,35 @@
       }
 
       // Helper: count values in a column, return sorted [{label, count}]
-      function countColumn(idx) {
-        if (idx === -1) return [];
+      // If consolidate=true, runs fuzzy dedup on the values first.
+      // Returns { data: [{label, count}], consolidated: bool, clusterCount, rawCount }
+      function countColumn(idx, consolidate) {
+        if (idx === -1) return { data: [], consolidated: false, clusterCount: 0, rawCount: 0 };
+        const rawValues = rows.map(r => (r[idx] || '').trim()).filter(v => v);
+
+        if (consolidate && rawValues.length > 0) {
+          const result = consolidateValues(rawValues);
+          const counts = {};
+          rawValues.forEach(v => {
+            const canonical = result.mapping[v] || v;
+            counts[canonical] = (counts[canonical] || 0) + 1;
+          });
+          return {
+            data: Object.entries(counts)
+              .map(([label, count]) => ({ label, count }))
+              .sort((a, b) => b.count - a.count),
+            consolidated: result.clusterCount < result.rawCount,
+            clusterCount: result.clusterCount,
+            rawCount: result.rawCount
+          };
+        }
+
         const counts = {};
-        rows.forEach(r => {
-          const v = (r[idx] || '').trim();
-          if (v) counts[v] = (counts[v] || 0) + 1;
-        });
-        return Object.entries(counts)
+        rawValues.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+        const data = Object.entries(counts)
           .map(([label, count]) => ({ label, count }))
           .sort((a, b) => b.count - a.count);
+        return { data, consolidated: false, clusterCount: data.length, rawCount: data.length };
       }
 
       // Helper: parse dates from a column
@@ -1805,7 +1988,8 @@
 
       // -- Row 2: Demographics (gender + age groups) --
       const genderIdx = colIdx('Id10019');
-      const genderCounts = countColumn(genderIdx);
+      const genderResult = countColumn(genderIdx, false);
+      const genderCounts = genderResult.data;
       const maleObj = genderCounts.find(g => g.label.toLowerCase() === 'male');
       const femaleObj = genderCounts.find(g => g.label.toLowerCase() === 'female');
 
@@ -1842,9 +2026,9 @@
       grid.className = 'explore-grid';
 
       // Maximum unique values to consider a column categorical
-      const MAX_CATEGORICAL = 200;
+      const MAX_CATEGORICAL = 500;
 
-      function addDistributionCard(title, expectedCol, maxItems, color) {
+      function addDistributionCard(title, expectedCol, maxItems, color, consolidate) {
         const idx = colIdx(expectedCol);
         const card = document.createElement('div');
         card.className = 'explore-card';
@@ -1900,8 +2084,9 @@
           return;
         }
 
-        // Column found -- check if categorical
-        const data = countColumn(idx);
+        // Column found -- count with optional consolidation
+        const result = countColumn(idx, consolidate !== false);
+        const data = result.data;
 
         if (data.length > MAX_CATEGORICAL) {
           const warnDiv = document.createElement('div');
@@ -1934,10 +2119,14 @@
           return;
         }
 
-        // Render distribution
+        // Subtitle with consolidation info
         const sub = document.createElement('div');
         sub.className = 'explore-subtitle';
-        sub.textContent = `${data.length} unique value(s)`;
+        if (result.consolidated) {
+          sub.textContent = `${data.length} consolidated from ${result.rawCount} raw entries`;
+        } else {
+          sub.textContent = `${data.length} unique value(s)`;
+        }
         card.appendChild(sub);
 
         if (data.length === 0) {
@@ -1949,11 +2138,12 @@
           return;
         }
 
-        const items = data.slice(0, maxItems);
-        const maxCount = items[0].count;
+        const maxCount = data[0].count;
         const total = rows.length;
+        const hasMore = data.length > maxItems;
 
-        items.forEach(item => {
+        // Render a single stat row + bar
+        function renderItem(item, container) {
           const row = document.createElement('div');
           row.className = 'explore-stat-row';
 
@@ -1969,7 +2159,7 @@
 
           row.appendChild(lbl);
           row.appendChild(valSpan);
-          card.appendChild(row);
+          container.appendChild(row);
 
           const bar = document.createElement('div');
           bar.className = 'explore-stat-bar';
@@ -1978,15 +2168,39 @@
           fill.style.width = '0%';
           fill.style.backgroundColor = color;
           bar.appendChild(fill);
-          card.appendChild(bar);
+          container.appendChild(bar);
           setTimeout(() => { fill.style.width = `${(item.count / maxCount) * 100}%`; }, 100);
-        });
+        }
 
-        if (data.length > maxItems) {
-          const more = document.createElement('div');
-          more.style.cssText = 'text-align:center;font-size:11px;color:#aaa;margin-top:6px;';
-          more.textContent = `+ ${data.length - maxItems} more`;
-          card.appendChild(more);
+        // Initial visible items
+        data.slice(0, maxItems).forEach(item => renderItem(item, card));
+
+        if (hasMore) {
+          // Hidden overflow container
+          const overflow = document.createElement('div');
+          overflow.style.cssText = 'display:none;';
+          data.slice(maxItems).forEach(item => renderItem(item, overflow));
+          card.appendChild(overflow);
+
+          // Toggle link
+          const remaining = data.length - maxItems;
+          const toggle = document.createElement('div');
+          toggle.style.cssText = 'text-align:center;font-size:11px;color:#007bff;margin-top:6px;cursor:pointer;user-select:none;';
+          toggle.textContent = `+ ${remaining} more`;
+
+          let expanded = false;
+          function toggleExpand() {
+            expanded = !expanded;
+            overflow.style.display = expanded ? 'block' : 'none';
+            toggle.textContent = expanded ? '- show less' : `+ ${remaining} more`;
+          }
+
+          toggle.addEventListener('click', (e) => { e.stopPropagation(); toggleExpand(); });
+          card.appendChild(toggle);
+
+          // Whole card is also clickable
+          card.style.cursor = 'pointer';
+          card.addEventListener('click', () => toggleExpand());
         }
 
         grid.appendChild(card);
