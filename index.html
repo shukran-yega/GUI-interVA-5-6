@@ -883,6 +883,124 @@
     .explore-reload-btn:hover svg {
       stroke: #333;
     }
+
+    /* -- Feedback modal -- */
+    .feedback-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 1100;
+      justify-content: center;
+      align-items: center;
+      padding: 30px;
+    }
+    .feedback-overlay.active { display: flex; }
+
+    .feedback-modal {
+      background: white;
+      border-radius: 14px;
+      padding: 30px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+      animation: modalSlideIn 0.25s ease-out;
+    }
+
+    .feedback-modal h3 {
+      margin: 0 0 4px 0;
+      font-size: 18px;
+      color: #333;
+      text-align: center;
+    }
+
+    .feedback-modal .fb-subtitle {
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .feedback-modal .fb-field {
+      margin-bottom: 14px;
+    }
+
+    .feedback-modal .fb-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 4px;
+    }
+
+    .feedback-modal .fb-field label .optional-tag {
+      font-weight: 400;
+      color: #aaa;
+      font-style: italic;
+    }
+
+    .feedback-modal .fb-field input,
+    .feedback-modal .fb-field select,
+    .feedback-modal .fb-field textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+      background: #fafafa;
+    }
+
+    .feedback-modal .fb-field input:focus,
+    .feedback-modal .fb-field select:focus,
+    .feedback-modal .fb-field textarea:focus {
+      outline: none;
+      border-color: #007bff;
+      background: white;
+    }
+
+    .feedback-modal .fb-field textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    .feedback-modal .fb-field .fb-error {
+      font-size: 11px;
+      color: #dc3545;
+      margin-top: 3px;
+      display: none;
+    }
+
+    .feedback-modal .fb-field.has-error input,
+    .feedback-modal .fb-field.has-error select {
+      border-color: #dc3545;
+    }
+
+    .feedback-modal .fb-field.has-error .fb-error {
+      display: block;
+    }
+
+    .feedback-modal .fb-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .feedback-modal .fb-submit {
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      min-width: auto;
+      transition: background 0.2s;
+    }
+    .feedback-modal .fb-submit:hover { background: #0056b3; }
   </style>
 </head>
 <body>
@@ -972,6 +1090,47 @@
           </div>
         </div>
       </div>
+
+      <!-- Feedback modal (shown before first download) -->
+      <div class="feedback-overlay" id="feedbackOverlay">
+        <div class="feedback-modal">
+          <h3>Help Us Improve</h3>
+          <div class="fb-subtitle">Please share a few details before downloading your results.</div>
+
+          <div class="fb-field" id="fbEmailField">
+            <label for="fbEmail">Email address</label>
+            <input type="email" id="fbEmail" placeholder="you@example.com" autocomplete="email">
+            <div class="fb-error" id="fbEmailError">Please enter a valid email address</div>
+          </div>
+
+          <div class="fb-field" id="fbRegionField">
+            <label for="fbRegion">Region</label>
+            <select id="fbRegion">
+              <option value="">-- Select your region --</option>
+              <option value="Sub-Saharan Africa">Sub-Saharan Africa</option>
+              <option value="North Africa & Middle East">North Africa & Middle East</option>
+              <option value="South Asia">South Asia</option>
+              <option value="Southeast Asia">Southeast Asia</option>
+              <option value="East Asia">East Asia</option>
+              <option value="Europe">Europe</option>
+              <option value="Americas">Americas</option>
+              <option value="Oceania">Oceania</option>
+              <option value="Other">Other</option>
+            </select>
+            <div class="fb-error" id="fbRegionError">Please select your region</div>
+          </div>
+
+          <div class="fb-field">
+            <label for="fbFeedback">Feedback <span class="optional-tag">-- optional</span></label>
+            <textarea id="fbFeedback" placeholder="Any suggestions on how we can improve this service?"></textarea>
+          </div>
+
+          <div class="fb-actions">
+            <button class="fb-submit" id="fbSubmitBtn">Continue to Download</button>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <div class="disclaimer-box">
@@ -1010,6 +1169,7 @@
     let timerInterval = null;
     let currentAlgorithm = null;
     let detectedIdColumn = null;
+    let feedbackSubmitted = false;  // Only show feedback form once per session
 
     // Column mapping overrides (user can remap explore columns)
     let columnMap = {};
@@ -1455,10 +1615,93 @@
       }
     });
 
+    // =========================================================================
+    // FEEDBACK MODAL
+    // =========================================================================
+
+    const feedbackOverlay = document.getElementById('feedbackOverlay');
+    const fbEmail = document.getElementById('fbEmail');
+    const fbRegion = document.getElementById('fbRegion');
+    const fbFeedback = document.getElementById('fbFeedback');
+    const fbSubmitBtn = document.getElementById('fbSubmitBtn');
+    const fbEmailField = document.getElementById('fbEmailField');
+    const fbRegionField = document.getElementById('fbRegionField');
+
+    function validateEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+    }
+
+    function showFeedbackModal() {
+      return new Promise(function(resolve) {
+        // Reset validation state
+        fbEmailField.classList.remove('has-error');
+        fbRegionField.classList.remove('has-error');
+
+        feedbackOverlay.classList.add('active');
+
+        function onSubmit() {
+          var valid = true;
+
+          // Validate email
+          if (!validateEmail(fbEmail.value)) {
+            fbEmailField.classList.add('has-error');
+            valid = false;
+          } else {
+            fbEmailField.classList.remove('has-error');
+          }
+
+          // Validate region
+          if (!fbRegion.value) {
+            fbRegionField.classList.add('has-error');
+            valid = false;
+          } else {
+            fbRegionField.classList.remove('has-error');
+          }
+
+          if (!valid) return;
+
+          // Collect data
+          var feedbackData = {
+            email: fbEmail.value.trim(),
+            region: fbRegion.value,
+            feedback: fbFeedback.value.trim(),
+            timestamp: new Date().toISOString(),
+            algorithm: currentAlgorithm || 'unknown'
+          };
+
+          // Log to console (server endpoint can be added later)
+          console.log('User feedback:', feedbackData);
+
+          feedbackSubmitted = true;
+          feedbackOverlay.classList.remove('active');
+          fbSubmitBtn.removeEventListener('click', onSubmit);
+          resolve(feedbackData);
+        }
+
+        fbSubmitBtn.addEventListener('click', onSubmit);
+      });
+    }
+
+    // Clear validation on input
+    fbEmail.addEventListener('input', function() { fbEmailField.classList.remove('has-error'); });
+    fbRegion.addEventListener('change', function() { fbRegionField.classList.remove('has-error'); });
+
+    // Block overlay click from closing (mandatory form)
+    feedbackOverlay.addEventListener('click', function(e) { e.stopPropagation(); });
+
+    // =========================================================================
+    // DOWNLOAD (gated through feedback modal)
+    // =========================================================================
+
     downloadLink.addEventListener('click', async () => {
       if (!resultBlob && !currentSessionId) {
         addLogMessage('[ERROR] No results available', 'error');
         return;
+      }
+
+      // Show feedback modal on first download
+      if (!feedbackSubmitted) {
+        await showFeedbackModal();
       }
 
       try {
