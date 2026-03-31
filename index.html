@@ -135,14 +135,20 @@
 
     .controls-row {
       display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       width: 100%;
-      align-items: center;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .controls-row > * {
+      min-width: 0;
     }
 
     .file-input-wrapper {
       position: relative;
-      flex: 1;
+      flex: 1 1 180px;
       min-width: 180px;
     }
 
@@ -204,6 +210,22 @@
     button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+    }
+
+    @media (max-width: 720px) {
+      .controls-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .controls-row > * {
+        width: 100%;
+      }
+      .file-button,
+      button,
+      select {
+        width: 100%;
+        white-space: normal;
+      }
     }
 
     #runBtn {
@@ -721,7 +743,7 @@
       text-align: center;
     }
     .explore-summary-item.wide { flex: 1 1 280px; }
-    .explore-summary-item.narrow { flex: 0 1 auto; min-width: 100px; }
+    .explore-summary-item.narrow { flex: 1 1 160px; min-width: 120px; }
 
     .explore-summary-item .summary-value {
       font-size: 20px;
@@ -756,6 +778,22 @@
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 16px;
+    }
+
+    @media (max-width: 720px) {
+      .explore-summary {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .explore-summary-item {
+        width: 100%;
+      }
+      .explore-summary-item .summary-value {
+        font-size: 18px;
+      }
+      .explore-summary-item .summary-label {
+        font-size: 12px;
+      }
     }
 
     .explore-card {
