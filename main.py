@@ -477,6 +477,8 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
             lower=True,
             verbose=0  # Suppress console output
         )
+        if ccva_df is None:
+            raise ValueError("Transformation returned no data. Check input file and mapping configuration.")
         
         await queue.put({
             "type": "progress",

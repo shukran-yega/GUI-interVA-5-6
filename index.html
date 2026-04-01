@@ -1026,9 +1026,8 @@
       margin-top: 20px;
     }
 
+    .feedback-modal .fb-cancel,
     .feedback-modal .fb-submit {
-      background: #007bff;
-      color: white;
       border: none;
       border-radius: 8px;
       padding: 10px 24px;
@@ -1037,6 +1036,17 @@
       cursor: pointer;
       min-width: auto;
       transition: background 0.2s;
+    }
+
+    .feedback-modal .fb-cancel {
+      background: #6c757d;
+      color: white;
+    }
+    .feedback-modal .fb-cancel:hover { background: #5a6268; }
+
+    .feedback-modal .fb-submit {
+      background: #007bff;
+      color: white;
     }
     .feedback-modal .fb-submit:hover { background: #0056b3; }
   </style>
@@ -1164,7 +1174,8 @@
           </div>
 
           <div class="fb-actions">
-            <button class="fb-submit" id="fbSubmitBtn">Continue to Download</button>
+            <button class="fb-cancel" id="fbCancelBtn" type="button">Cancel</button>
+            <button class="fb-submit" id="fbSubmitBtn" type="button">Continue to Download</button>
           </div>
         </div>
       </div>
@@ -1662,6 +1673,7 @@
     const fbRegion = document.getElementById('fbRegion');
     const fbFeedback = document.getElementById('fbFeedback');
     const fbSubmitBtn = document.getElementById('fbSubmitBtn');
+    const fbCancelBtn = document.getElementById('fbCancelBtn');
     const fbEmailField = document.getElementById('fbEmailField');
     const fbRegionField = document.getElementById('fbRegionField');
 
@@ -1670,7 +1682,7 @@
     }
 
     function showFeedbackModal() {
-      return new Promise(function(resolve) {
+      return new Promise(function(resolve, reject) {
         // Reset validation state
         fbEmailField.classList.remove('has-error');
         fbRegionField.classList.remove('has-error');
@@ -1712,11 +1724,27 @@
 
           feedbackSubmitted = true;
           feedbackOverlay.classList.remove('active');
-          fbSubmitBtn.removeEventListener('click', onSubmit);
+          cleanup();
           resolve(feedbackData);
         }
 
+        function cleanup() {
+          fbSubmitBtn.removeEventListener('click', onSubmit);
+          fbCancelBtn.removeEventListener('click', onCancel);
+        }
+
+        function closeModal() {
+          feedbackOverlay.classList.remove('active');
+          cleanup();
+        }
+
+        function onCancel() {
+          closeModal();
+          reject(new Error('Feedback cancelled'));
+        }
+
         fbSubmitBtn.addEventListener('click', onSubmit);
+        fbCancelBtn.addEventListener('click', onCancel);
       });
     }
 
@@ -1739,7 +1767,12 @@
 
       // Show feedback modal on first download
       if (!feedbackSubmitted) {
-        await showFeedbackModal();
+        try {
+          await showFeedbackModal();
+        } catch (error) {
+          addLogMessage('[INFO] Feedback form closed. Download cancelled.', 'error');
+          return;
+        }
       }
 
       try {

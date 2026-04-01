@@ -257,9 +257,10 @@ def transform(mapping, raw_data, raw_data_id=None, lower=False,
         input_data.columns = input_data.columns.str.lower()
     cross_va = CrossVA(input_data, config)
     if not cross_va.validate(verbose=verbose):
-        return
-#        raise ValueError(("Cannot transform if provided raw data is not valid "
-#                          "for configuration file."))
+        raise ValueError(
+            "CrossVA validation failed: the raw data is not valid for the "
+            "selected configuration file. Please fix the input data or mapping "
+            "configuration and retry.")
     final_data = cross_va.process()
     # if result values have been changed, then map as directed, otherwise
     # leave alone - the default values are what we actually have, so we don't

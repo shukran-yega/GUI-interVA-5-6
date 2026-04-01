@@ -95,7 +95,10 @@ class Configuration:
         def plain_info(aseries, new_name):
             """ returns Pandas Series without NAs or duplicates renamed to
             `new_name` """
-            return aseries.drop_duplicates().dropna().rename(new_name)
+            return (aseries.drop_duplicates()
+                    .dropna()
+                    .astype(str)
+                    .rename(new_name))
 
         self.given_relationships = plain_info(config_data["Relationship"],
                                               "Relationship column")
@@ -508,6 +511,9 @@ class CrossVA:
             # strip for alphanumeric characters
             self.data = self.validation.fix_alnum(self.data)
             self.data = self.data.replace("NA", np.nan)
+
+        # Normalize column labels to strings for safe reindex operations
+        self.data.columns = self.data.columns.map(str)
 
         # check all expected columns from config Source Column ID are present
         col_msg = "All expected columns from mapping file are present in data"

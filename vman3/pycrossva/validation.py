@@ -250,7 +250,15 @@ class Validation:
             Returns:
                 None
         """
-        comparison = my_series.duplicated()
+        if not isinstance(my_series, pd.Series):
+            my_series = pd.Series(list(my_series),
+                                  name=getattr(my_series, 'name', None))
+        try:
+            comparison = my_series.duplicated()
+        except TypeError:
+            my_series = my_series.astype(str)
+            comparison = my_series.duplicated()
+
         passing_msg = ("Source column IDs do not match more than one column in"
                        " input data.")
         fail_msg = (f"{comparison.sum()} source column IDs"
@@ -262,8 +270,7 @@ class Validation:
                     " are case sensitive. Please revise your mapping "
                     " configuration or your input data so that this condition"
                     "is satisfied.")
-        self._add_condition(my_series.duplicated(), Passing(passing_msg),
-                            Err(fail_msg))
+        self._add_condition(comparison, Passing(passing_msg), Err(fail_msg))
 
     def affected_by_absence(self, missing_grped):
         """ adds a validation check as `Warn` describing the items in
