@@ -46,13 +46,18 @@ The app will be available at **http://127.0.0.1:8000**
 ### Build the image
 
 ```bash
-docker build -t interva-api .
+docker build -t vman3_ccva .
+```
+
+### Multi-platform build and push to repo
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 -t ilyatuu/vman3_ccva:latest --push .
 ```
 
 ### Run the container
 
 ```bash
-docker run -p 8000:8000 interva-api
+docker run -p 8000:8000 vman3_ccva
 ```
 
 The app will be available at **http://localhost:8000**
