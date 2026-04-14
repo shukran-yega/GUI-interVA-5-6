@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VMan3 public portal</title>
+  <title>CCVA</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -16,18 +16,17 @@
     body {
       background-color: #f5f5f5;
       display: flex;
-      justify-content: center;
-      align-items: flex-start;
+      flex-direction: column;
+      align-items: center;
       min-height: 100vh;
-      padding: 40px 20px;
+      padding: 40px 20px 0 20px;
+      margin: 0;
     }
 
     .main-wrapper {
-      display: flex;
-      gap: 20px;
       max-width: 1200px;
       width: 100%;
-      align-items: flex-start;
+      flex: 1;
     }
 
     .container {
@@ -40,77 +39,102 @@
       min-width: 600px;
     }
 
-    .disclaimer-box {
+    .site-footer {
       background: white;
-      padding: 25px;
-      border-radius: 16px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      width: 320px;
-      text-align: left;
+      border-top: 1px solid #e0e0e0;
+      padding: 30px 40px;
+      margin-top: 40px;
+      width: 100vw;
+      margin-left: calc(-50vw + 50%);
+      box-sizing: border-box;
     }
 
-    .disclaimer-box h2 {
-      margin: 0 0 15px 0;
-      font-size: 20px;
-      font-weight: 600;
+    .footer-columns {
       display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #333;
+      gap: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
-    .disclaimer-box .beta-badge {
-      background: #007bff;
-      color: white;
-      padding: 3px 10px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+    .footer-col {
+      flex: 1;
     }
 
-    .disclaimer-box p {
-      margin: 0 0 12px 0;
+    .footer-col:first-child p {
+      text-align: justify;
+    }
+
+    .footer-heading {
       font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      margin: 0 0 8px 0;
+    }
+
+    .footer-col p {
+      font-size: 12px;
       line-height: 1.6;
       color: #555;
+      margin: 0 0 8px 0;
     }
 
-    .disclaimer-box .version-info {
-      background: #f8f9fa;
-      border: 1px solid #e0e0e0;
-      padding: 12px;
-      border-radius: 8px;
-      margin-top: 15px;
-      font-size: 12px;
-    }
-
-    .disclaimer-box .version-info strong {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 13px;
-      color: #333;
-    }
-
-    .disclaimer-box ul {
-      margin: 8px 0 0 0;
+    .footer-col ul {
+      margin: 0;
       padding-left: 18px;
       color: #555;
     }
 
-    .disclaimer-box li {
+    .footer-col li {
       margin-bottom: 4px;
       font-size: 12px;
     }
 
+    .footer-col a {
+      color: #007bff;
+      text-decoration: underline;
+    }
+
+    .footer-warning {
+      color: #ff0000 !important;
+    }
+
+    .snackbar {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      white-space: nowrap;
+    }
+    .snackbar.show { opacity: 1; }
+    .snackbar-close {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+    .snackbar-close:hover { opacity: 1; }
+
     @media (max-width: 1100px) {
-      .main-wrapper {
+      .footer-columns {
         flex-direction: column;
-      }
-      .disclaimer-box {
-        width: 100%;
-        max-width: 600px;
+        gap: 20px;
       }
       .container {
         min-width: auto;
@@ -126,7 +150,7 @@
 
     .file-info {
       margin-top: 8px;
-      margin-bottom: 15px;
+      margin-bottom: 28px;
       font-size: 12px;
       color: #666;
       min-height: 18px;
@@ -139,7 +163,7 @@
       gap: 10px;
       width: 100%;
       align-items: stretch;
-      justify-content: center;
+      justify-content: flex-start;
     }
 
     .controls-row > * {
@@ -148,8 +172,8 @@
 
     .file-input-wrapper {
       position: relative;
-      flex: 1 1 180px;
-      min-width: 180px;
+      flex: 0 0 auto;
+      width: 160px;
     }
 
     input[type="file"] {
@@ -167,7 +191,7 @@
       background-color: #e8e8e8;
       border: 2px solid #bbb;
       border-radius: 8px;
-      padding: 10px 16px;
+      padding: 14px 16px;
       cursor: pointer;
       font-size: 13px;
       transition: all 0.2s ease;
@@ -175,6 +199,28 @@
       display: block;
       text-align: center;
       color: #555;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    .csv-info-box {
+      flex: 1;
+      min-width: 180px;
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      color: #777;
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: 4px;
+      box-sizing: border-box;
+    }
+    .csv-info-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #666;
+      font-size: 12px;
     }
 
     .file-input-wrapper:hover .file-button {
@@ -257,11 +303,10 @@
     }
 
     .progress-section {
-      margin-top: 15px;
-      padding: 12px;
+      margin-top: 10px;
+      padding: 10px 12px;
       background-color: #f8f9fa;
       border-radius: 10px;
-      min-height: 60px;
     }
 
     .progress-bar {
@@ -295,19 +340,28 @@
       opacity: 1;
     }
 
+    .output-box-wrapper {
+      position: relative;
+      margin-top: 15px;
+    }
+
     .time-elapsed {
-      margin-top: 6px;
+      position: absolute;
+      bottom: 6px;
+      right: 10px;
       font-size: 11px;
-      color: #777;
-      text-align: left;
+      color: #aaa;
+      background: rgba(250,250,250,0.9);
+      padding: 2px 6px;
+      border-radius: 4px;
+      pointer-events: none;
       font-family: 'Consolas', 'Monaco', monospace;
     }
 
     .output-box {
-      margin-top: 15px;
       border: 1px solid #ddd;
       border-radius: 10px;
-      height: 250px;
+      height: 150px;
       padding: 12px;
       color: #777;
       font-size: 12px;
@@ -603,6 +657,80 @@
       margin-bottom: 20px;
     }
 
+    /* -- Distribution card expanded modal -- */
+    .dist-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 1100;
+      justify-content: center;
+      align-items: center;
+      padding: 30px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .dist-modal-overlay.active {
+      display: flex;
+      opacity: 0;
+    }
+    .dist-modal-overlay.visible {
+      opacity: 1;
+    }
+    .dist-modal {
+      background: white;
+      border-radius: 14px;
+      padding: 0;
+      max-width: 560px;
+      width: 100%;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.22);
+      transform: translateY(18px) scale(0.97);
+      transition: transform 0.22s ease, opacity 0.22s ease;
+      opacity: 0;
+    }
+    .dist-modal-overlay.visible .dist-modal {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    .dist-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px 14px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .dist-modal-header h3 {
+      margin: 0;
+      font-size: 17px;
+      color: #333;
+    }
+    .dist-modal-close {
+      background: none;
+      border: none;
+      font-size: 22px;
+      color: #aaa;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 6px;
+      min-width: auto;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .dist-modal-close:hover { color: #333; background: #f5f5f5; }
+    .dist-modal-subtitle {
+      font-size: 12px;
+      color: #999;
+      padding: 6px 24px 0;
+    }
+    .dist-modal-body {
+      overflow-y: auto;
+      padding: 14px 24px 24px;
+      flex: 1;
+    }
+
     .chart-container {
       position: relative;
       width: 100%;
@@ -685,54 +813,35 @@
     .id-mapping-row .id-status.ok { color: #28a745; }
     .id-mapping-row .id-status.err { color: #dc3545; }
 
-    /* -- Tab system -- */
-    .results-tabs { margin-top: 20px; display: none; }
-    .results-tabs.active { display: block; }
+    /* -- Named sections (Summary & Analysis) -- */
+    .summary-section,
+    .analysis-section {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+    }
 
-    .tab-header {
+    .section-header {
       display: flex;
-      border-bottom: 2px solid #e0e0e0;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
     }
 
-    .tab-btn {
-      padding: 10px 24px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #888;
-      background: none;
-      border: none;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -2px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-radius: 0;
-      min-width: auto;
-      position: relative;
-    }
-    .tab-btn:hover:not(:disabled) { color: #333; background: #f8f9fa; }
-    .tab-btn.active { color: #007bff; border-bottom-color: #007bff; }
-    .tab-btn:disabled { color: #bbb; cursor: not-allowed; opacity: 1; }
-
-    .tab-btn .tab-badge {
-      display: none;
-      margin-left: 6px;
-      padding: 1px 7px;
-      border-radius: 8px;
-      font-size: 10px;
+    .section-title {
+      font-size: 16px;
       font-weight: 700;
-      background: #28a745;
-      color: white;
-      animation: badgePulse 1.5s ease-in-out 3;
-    }
-    .tab-btn .tab-badge.visible { display: inline-block; }
-
-    @keyframes badgePulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.15); }
+      color: #333;
+      margin: 0;
     }
 
-    .tab-panel { display: none; padding: 20px 0; }
-    .tab-panel.active { display: block; }
+    .analysis-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+    }
 
     /* -- Explore panel -- */
     .explore-summary {
@@ -769,6 +878,19 @@
       margin-top: 2px;
     }
 
+    .explore-summary-item.unclassified {
+      background: #fff8e1;
+      border-color: #ffe082;
+      cursor: help;
+      position: relative;
+    }
+    .explore-summary-item.unclassified .summary-pct {
+      color: #e65100;
+    }
+    .explore-summary-item.unclassified .summary-label {
+      color: #b57a15;
+    }
+
     .explore-demographics {
       display: flex;
       gap: 12px;
@@ -784,8 +906,70 @@
 
     .explore-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 10px;
+    }
+
+    /* ---- Skeleton loading state ---- */
+    @keyframes skeleton-shimmer {
+      0%   { background-position: -600px 0; }
+      100% { background-position: 600px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e4e4e4 50%, #f0f0f0 75%);
+      background-size: 1200px 100%;
+      animation: skeleton-shimmer 1.6s infinite linear;
+      border-radius: 5px;
+      display: block;
+    }
+    .skeleton-val-ph  { height: 26px; width: 55%; margin: 0 auto 8px; }
+    .skeleton-lbl-ph  { height: 11px; width: 38%; margin: 0 auto; }
+    .skeleton-card-title-ph { height: 13px; margin-bottom: 8px; }
+    .skeleton-card-sub-ph   { height: 10px; width: 45%; margin-bottom: 12px; }
+    .skeleton-card-bar-ph   { height: 9px; margin-bottom: 7px; }
+
+    .empty-state-hint {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #aaa;
+      font-size: 12px;
+      padding: 14px 24px;
+      margin: 4px 0 12px;
+      border: 2px dashed #e4e4e4;
+      border-radius: 10px;
+      background: #fafafa;
+    }
+    .empty-state-hint svg {
+      width: 22px; height: 22px;
+      stroke: #ccc; fill: none; stroke-width: 1.5;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+    .empty-state-hint span {
+      font-size: 12px;
+      color: #bbb;
+      letter-spacing: 0.01em;
+    }
+
+    .analysis-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      color: #c8c8c8;
+      font-size: 12px;
+      padding: 36px 24px;
+      border: 2px dashed #e8e8e8;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+    .analysis-placeholder svg {
+      width: 18px; height: 18px;
+      stroke: #d0d0d0; fill: none; stroke-width: 1.5;
+      stroke-linecap: round; stroke-linejoin: round;
+      flex-shrink: 0;
     }
 
     @media (max-width: 720px) {
@@ -807,21 +991,46 @@
     .explore-card {
       border: 1px solid #e0e0e0;
       border-radius: 10px;
-      padding: 16px;
+      padding: 12px;
       background: #fafafa;
     }
 
+    .explore-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
     .explore-card h4 {
-      margin: 0 0 4px 0;
+      margin: 0;
       font-size: 13px;
       font-weight: 600;
       color: #333;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .explore-card-header-select {
+      font-size: 11px;
+      padding: 3px 6px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background: #fff;
+      color: #555;
+      cursor: pointer;
+      flex-shrink: 0;
+      max-width: 160px;
     }
 
     .explore-card .explore-subtitle {
       font-size: 11px;
       color: #999;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
+      text-align: left;
     }
 
     .explore-card-error {
@@ -1062,28 +1271,17 @@
 <body>
   <div class="main-wrapper">
     <div class="container">
-      <h1>VMan3 Public Portal for Processing Verbal Autopsy Data</h1>
+      <h1>COMPUTER CODED VERBAL AUTOPSY (CCVA)</h1>
       <div class="file-info" id="fileInfo">Select a CSV file to begin</div>
 
       <div class="controls-row">
         <div class="file-input-wrapper">
           <input type="file" id="fileInput" accept=".csv" />
-          <div class="file-button" id="fileButton"> Choose CSV File</div>
+          <div class="file-button" id="fileButton">Input CSV file</div>
         </div>
-        
-        <select id="whoVersionSelect">
-          <option value="auto">Auto-detect WHO</option>
-          <option value="2016WHOv151">WHO 2016</option>
-          <option value="2022WHOv0101">WHO 2022</option>
-        </select>
-        
-        <select id="algorithmSelect">
-          <option value="InterVA-5">InterVA-5</option>
-          <option value="InterVA-6">InterVA-6</option>
-        </select>
-
-        <button id="runBtn" disabled>Run Analysis</button>
-        <button id="cancelBtn" disabled>Cancel</button>
+        <div class="csv-info-box" id="csvInfoBox">
+          <span class="csv-info-text" id="csvInfoText">No file loaded</span>
+        </div>
       </div>
 
       <!-- ID column mapping (shown when auto-detect fails) -->
@@ -1093,44 +1291,53 @@
         <span class="id-status" id="idStatus"></span>
       </div>
 
-      <div class="progress-section" id="progressSection">
-        <div class="progress-bar">
-          <div class="progress-fill" id="progressFill" style="width: 0%">
-            <span id="progressPercent">0%</span>
+      <!-- Section C: Summary — skeleton state on load, populated after CSV -->
+      <div class="summary-section" id="summarySection">
+        <div class="section-header">
+          <h2 class="section-title">Summary of data</h2>
+        </div>
+        <div id="exploreContent"></div>
+      </div>
+
+      <!-- Section D: Analysis — always visible -->
+      <div class="analysis-section" id="analysisSection">
+        <div class="section-header">
+          <h2 class="section-title">Analysis of data</h2>
+        </div>
+        <div class="analysis-controls">
+          <select id="whoVersionSelect">
+            <option value="auto">Auto-detect WHO</option>
+            <option value="2016WHOv151">WHO 2016</option>
+            <option value="2022WHOv0101">WHO 2022</option>
+          </select>
+          <select id="algorithmSelect">
+            <option value="InterVA-5">InterVA-5</option>
+            <option value="InterVA-6">InterVA-6</option>
+          </select>
+          <button id="runBtn" disabled>Run Analysis</button>
+          <button id="cancelBtn" disabled>Cancel</button>
+        </div>
+        <div class="output-box-wrapper">
+          <div class="output-box" id="outputBox"></div>
+          <div class="time-elapsed" id="timeElapsed">Time Elapsed: 0:00</div>
+        </div>
+        <div class="analysis-placeholder" id="analysisPlaceholder">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>Load a CSV file and run analysis to see cause-specific mortality fractions here</span>
+        </div>
+        <div class="csmf-section" id="csmfSection" style="display:none;">
+          <h3 id="csmfTitle">CSMF Results</h3>
+          <div class="csmf-grid" id="csmfGrid"></div>
+        </div>
+        <div class="action-row" id="actionRow" style="display:none; padding-top: 15px;">
+          <a class="download-link" id="downloadLink"> Download Results</a>
+          <div class="checkbox-wrapper">
+            <input type="checkbox" id="checkbox1" disabled>
+            <label for="checkbox1">Include ind. records</label>
           </div>
-        </div>
-        <div class="time-elapsed" id="timeElapsed">Time Elapsed: 0:00</div>
-      </div>
-
-      <div class="output-box" id="outputBox"></div>
-
-      <div class="action-row" style="padding-top: 15px;">
-        <a class="download-link" id="downloadLink"> Download Results</a>
-        
-        <div class="checkbox-wrapper">
-          <input type="checkbox" id="checkbox1" disabled>
-          <label for="checkbox1">Include ind. records</label>
-        </div>
-        
-        <div class="checkbox-wrapper">
-          <input type="checkbox" id="checkbox2" disabled>
-          <label for="checkbox2">include error log</label>
-        </div>
-      </div>
-
-      <!-- Tab system -->
-      <div class="results-tabs" id="resultsTabs">
-        <div class="tab-header">
-          <button class="tab-btn active" id="tabExplore" data-tab="explore">Explore Data</button>
-          <button class="tab-btn" id="tabCsmf" data-tab="csmf" disabled>CSMF Results<span class="tab-badge" id="csmfBadge">Ready</span></button>
-        </div>
-        <div class="tab-panel active" id="panelExplore">
-          <div id="exploreContent"></div>
-        </div>
-        <div class="tab-panel" id="panelCsmf">
-          <div class="csmf-section active" id="csmfSection" style="display:block;box-shadow:none;margin-top:0;padding:0;">
-            <h3 id="csmfTitle">CSMF Results</h3>
-            <div class="csmf-grid" id="csmfGrid"></div>
+          <div class="checkbox-wrapper">
+            <input type="checkbox" id="checkbox2" disabled>
+            <label for="checkbox2">include error log</label>
           </div>
         </div>
       </div>
@@ -1144,6 +1351,18 @@
           <div class="chart-container">
             <div class="bar-chart" id="csmfModalChart"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- Distribution card expanded modal -->
+      <div class="dist-modal-overlay" id="distModalOverlay">
+        <div class="dist-modal">
+          <div class="dist-modal-header">
+            <h3 id="distModalTitle"></h3>
+            <button class="dist-modal-close" id="distModalClose">&times;</button>
+          </div>
+          <div class="dist-modal-subtitle" id="distModalSubtitle"></div>
+          <div class="dist-modal-body" id="distModalBody"></div>
         </div>
       </div>
 
@@ -1163,14 +1382,10 @@
             <label for="fbRegion">Region</label>
             <select id="fbRegion">
               <option value="">-- Select your region --</option>
-              <option value="Sub-Saharan Africa">Sub-Saharan Africa</option>
-              <option value="North Africa & Middle East">North Africa & Middle East</option>
-              <option value="South Asia">South Asia</option>
-              <option value="Southeast Asia">Southeast Asia</option>
-              <option value="East Asia">East Asia</option>
+              <option value="Africa">Africa</option>
+              <option value="America">America</option>
+              <option value="Asia">Asia</option>
               <option value="Europe">Europe</option>
-              <option value="Americas">Americas</option>
-              <option value="Oceania">Oceania</option>
               <option value="Other">Other</option>
             </select>
             <div class="fb-error" id="fbRegionError">Please select your region</div>
@@ -1190,21 +1405,28 @@
 
     </div>
 
-    <div class="disclaimer-box">
-      <p style="color: #007bff; font-size: 20px;"><strong>Important Notice</strong></p>
-      <p>This is a beta version of the VMan3 Public Portal for processing Verbal Autopsy data.</p>
-      <p>• The tool loads verbal autopsy data collected using WHO VA standard instrument, auto-detect which instrument, and allow processing of the cause of death data based on selected algorithm.</p>
-      <p style="font-size: 15px; font-weight: 500;">Current supported Instruments and algorithms are:</p>
-      <div class="version-info">
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-columns">
+      <div class="footer-col">
+        <p class="footer-heading">About</p>
+        <p>This is a beta version of the VMan3 Public Portal for processing Verbal Autopsy data. The tool loads verbal autopsy data collected using WHO VA standard instrument, auto-detects which instrument, and allows processing of the cause of death data based on selected algorithm.</p>
+      </div>
+      <div class="footer-col">
+        <p class="footer-heading">Supported Instruments &amp; Algorithms</p>
         <ul>
-          <li><b>WHO VA V1.5.2</b> and <b>InterVA5.</b> The InterVA5 source code has been copied from <a href="https://github.com/verbal-autopsy-software/InterVA5" target="_blank" style="color: #007bff; text-decoration: underline;">here</a></li>
-          <li><b> WHO VA 2022</b> and <b>InterVA6</b> is a python version of the <a href="https://github.com/verbal-autopsy-software/InterVA2022" target="_blank" style="color: #007bff; text-decoration: underline;">InterVA2022</a> (R-version)</li>
+          <li><b>WHO VA V1.5.2</b> and <b>InterVA5.</b> Source code from <a href="https://github.com/verbal-autopsy-software/InterVA5" target="_blank">here</a></li>
+          <li><b>WHO VA 2022</b> and <b>InterVA6</b> — python version of <a href="https://github.com/verbal-autopsy-software/InterVA2022" target="_blank">InterVA2022</a> (R-version)</li>
         </ul>
       </div>
-      <p>• This service is provided "as-is", for research and evaluation purposes only.</p>
-      <p style="color: #ff0000;"><b>• This service does not store any data.</b></p>
+      <div class="footer-col">
+        <p class="footer-heading">Disclaimer</p>
+        <p>This service is provided "as-is", for research and evaluation purposes only.</p>
+        <p class="footer-warning"><b>This service does not store any data.</b></p>
+      </div>
     </div>
-  </div>
+  </footer>
 
   <script>
     // =========================================================================
@@ -1216,6 +1438,8 @@
     // =========================================================================
     // STATE
     // =========================================================================
+    const isAdmin = new URLSearchParams(window.location.search).has('admin');
+
     let uploadedData = null;
     let resultBlob = null;
     let currentSessionId = null;
@@ -1230,6 +1454,80 @@
 
     // Column mapping overrides (user can remap explore columns)
     let columnMap = {};
+
+    // =========================================================================
+    // COLUMN LABEL DICTIONARY  (sourced from yellow-highlighted cells in
+    // WHOVA_2022_WITH_LABEL.xlsx — do not modify without updating the source)
+    // =========================================================================
+    const COLUMN_LABELS = {
+      'start-time':  'Start time',
+      'Id10010':     'Name of VA interviewer',
+      'Id10010a':    'Age of VA interviewer',
+      'Id10010b':    'Sex of VA interviewer',
+      'Id10007a':    'Sex of VA respondent',
+      'Id10007b':    'Age of VA respondent',
+      'Id10008':     "Respondent's relationship to deceased",
+      'Id10012':     'Date of interview',
+      'Id10005R':    'Admin Level 1 (Region)',
+      'Id10005D':    'Admin Level 2 (district)',
+      'Id10013':     'Did respondent give consent?',
+      'Id10011':     'Interview start time',
+      'Id10019':     'Sex of deceased',
+      'Id10023':     'Date of death',
+      'Id10057R':    'Region where death occurred',
+      'Id10057D':    'District where death occurred',
+    }; // Ask doctor if these are good labels
+
+    /** Return a human-readable label for a column ID, falling back to the raw name. */
+    function colLabel(name) {
+      return COLUMN_LABELS[name] || name;
+    }
+
+    // =========================================================================
+    // EMPTY / SKELETON STATE
+    // =========================================================================
+    function showEmptyState() {
+      exploreContent.innerHTML = '';
+
+      function skeletonItem(wide) {
+        const item = document.createElement('div');
+        item.className = 'explore-summary-item ' + (wide ? 'wide' : 'narrow');
+        item.innerHTML = '<div class="skeleton skeleton-val-ph"></div><div class="skeleton skeleton-lbl-ph"></div>';
+        return item;
+      }
+
+      // Row 1 skeleton: 1 wide + 3 narrow
+      const row1 = document.createElement('div');
+      row1.className = 'explore-summary';
+      [true, false, false, false].forEach(w => row1.appendChild(skeletonItem(w)));
+      exploreContent.appendChild(row1);
+
+      // Row 2 skeleton: 4 narrow
+      const row2 = document.createElement('div');
+      row2.className = 'explore-summary';
+      [false, false, false, false].forEach(w => row2.appendChild(skeletonItem(w)));
+      exploreContent.appendChild(row2);
+
+      // Hint
+      const hint = document.createElement('div');
+      hint.className = 'empty-state-hint';
+      hint.innerHTML = '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span>Load a CSV file to populate this section</span>';
+      exploreContent.appendChild(hint);
+
+      // Skeleton card grid — 4 cards
+      const grid = document.createElement('div');
+      grid.className = 'explore-grid';
+      const barWidths = [95, 78, 63, 51, 40];
+      for (let i = 0; i < 4; i++) {
+        const card = document.createElement('div');
+        card.className = 'explore-card';
+        card.innerHTML = '<div class="skeleton skeleton-card-title-ph" style="width:' + (48 + i * 7) + '%"></div>'
+          + '<div class="skeleton skeleton-card-sub-ph"></div>'
+          + barWidths.map(w => '<div class="skeleton skeleton-card-bar-ph" style="width:' + w + '%"></div>').join('');
+        grid.appendChild(card);
+      }
+      exploreContent.appendChild(grid);
+    }
 
     // Progress ticker state
     let progressTicker = null;
@@ -1265,9 +1563,10 @@
     const whoVersionSelect = document.getElementById('whoVersionSelect');
     const outputBox = document.getElementById('outputBox');
     const downloadLink = document.getElementById('downloadLink');
-    const progressSection = document.getElementById('progressSection');
-    const progressFill = document.getElementById('progressFill');
-    const progressPercent = document.getElementById('progressPercent');
+    // Progress bar removed — stub references so existing call sites don't throw
+    const progressSection = { classList: { add: () => {}, remove: () => {} } };
+    const progressFill = { style: {} };
+    const progressPercent = { textContent: '' };
     const timeElapsed = document.getElementById('timeElapsed');
     const csmfSection = document.getElementById('csmfSection');
     const checkbox1 = document.getElementById('checkbox1');
@@ -1275,13 +1574,14 @@
     const idMappingRow = document.getElementById('idMappingRow');
     const idColumnSelect = document.getElementById('idColumnSelect');
     const idStatus = document.getElementById('idStatus');
-    const resultsTabs = document.getElementById('resultsTabs');
-    const tabExplore = document.getElementById('tabExplore');
-    const tabCsmf = document.getElementById('tabCsmf');
-    const panelExplore = document.getElementById('panelExplore');
-    const panelCsmf = document.getElementById('panelCsmf');
-    const csmfBadge = document.getElementById('csmfBadge');
     const exploreContent = document.getElementById('exploreContent');
+    const summarySection = document.getElementById('summarySection');
+    const analysisSection = document.getElementById('analysisSection');
+    const actionRow = document.getElementById('actionRow');
+    const analysisPlaceholder = document.getElementById('analysisPlaceholder');
+
+    // Populate skeleton now that all DOM refs are ready
+    showEmptyState();
 
     // =========================================================================
     // PROGRESS BAR
@@ -1587,7 +1887,9 @@
 
         if (currentAlgorithm === 'InterVA-5' || currentAlgorithm === 'InterVA-6') {
           await fetchAndDisplayCSMF(sessionId);
-          unlockCsmfTab();
+          analysisPlaceholder.style.display = 'none';
+          csmfSection.style.display = 'block';
+          actionRow.style.display = 'flex';
         }
 
         closeSSE();
@@ -1862,20 +2164,21 @@
         idMappingRow.classList.remove('active');
 
         const text = await file.text();
-        const lines = text.split('\n').filter(line => line.trim());
+        const csvData = parseCSV(text);
 
-        if (lines.length < 2) {
+        if (csvData.length < 2) {
           throw new Error('CSV must have at least a header and one data row');
         }
 
-        const csvData = lines.map(line => parseCSVLine(line));
-        const rowCount = lines.length - 1;
-        const MAX_ROWS = 1000000;
+        const rowCount = csvData.length - 1;
+        const MAX_ROWS = isAdmin ? 1000000 : 5000;
 
         addLogMessage(`[OK] Loaded ${rowCount} rows, ${csvData[0].length} columns`);
+        document.getElementById('csvInfoText').textContent = `Loaded: ${file.name}, ${rowCount.toLocaleString()} rows · ${csvData[0].length} columns`;
 
         if (rowCount > MAX_ROWS) {
           addLogMessage(`CSV exceeds maximum of ${MAX_ROWS} rows (found ${rowCount}). Please reduce your dataset.`, 'error');
+          showSnackbar(`⚠ Your CSV has ${rowCount.toLocaleString()} rows which exceeds the maximum of ${MAX_ROWS.toLocaleString()} rows allowed. Please reduce your dataset.`, 0);
           uploadedData = null;
           runBtn.disabled = true;
           return;
@@ -2016,27 +2319,6 @@
     // TAB SWITCHING
     // =========================================================================
 
-    function switchTab(tabName) {
-      tabExplore.classList.toggle('active', tabName === 'explore');
-      tabCsmf.classList.toggle('active', tabName === 'csmf');
-      panelExplore.classList.toggle('active', tabName === 'explore');
-      panelCsmf.classList.toggle('active', tabName === 'csmf');
-    }
-
-    tabExplore.addEventListener('click', () => switchTab('explore'));
-    tabCsmf.addEventListener('click', () => { if (!tabCsmf.disabled) switchTab('csmf'); });
-
-    function lockCsmfTab() {
-      tabCsmf.disabled = true;
-      tabCsmf.title = 'Results not yet available';
-      csmfBadge.classList.remove('visible');
-    }
-
-    function unlockCsmfTab() {
-      tabCsmf.disabled = false;
-      tabCsmf.title = '';
-      csmfBadge.classList.add('visible');
-    }
 
     // =========================================================================
     // FREE-TEXT DEDUPLICATION / CONSOLIDATION
@@ -2227,9 +2509,24 @@
       // Helper: count values in a column, return sorted [{label, count}]
       // If consolidate=true, runs fuzzy dedup on the values first.
       // Returns { data: [{label, count}], consolidated: bool, clusterCount, rawCount }
+      // Normalise ISO timestamps to YYYY-MM-DD (strips time + timezone).
+      // Only touches values that already start with a YYYY-MM-DD prefix.
+      function normDateStr(v) {
+        const t = v.indexOf('T');
+        return t > 0 ? v.slice(0, t) : v;
+      }
+
       function countColumn(idx, consolidate) {
         if (idx === -1) return { data: [], consolidated: false, clusterCount: 0, rawCount: 0 };
-        const rawValues = rows.map(r => (r[idx] || '').trim()).filter(v => v);
+        let rawValues = rows.map(r => (r[idx] || '').trim()).filter(v => v);
+
+        // Auto-detect date column: if >50% of sampled values match YYYY-MM-DD…
+        // normalise all values so timestamps and bare dates group together.
+        const DATE_RE = /^\d{4}-\d{2}-\d{2}/;
+        const sample = rawValues.slice(0, Math.min(30, rawValues.length));
+        if (sample.length > 0 && sample.filter(v => DATE_RE.test(v)).length / sample.length > 0.5) {
+          rawValues = rawValues.map(normDateStr);
+        }
 
         if (consolidate && rawValues.length > 0) {
           const result = consolidateValues(rawValues);
@@ -2267,10 +2564,7 @@
         }).filter(d => d !== null);
       }
 
-      // -- Row 1: Total Records + Data Submission Period --
-      const summaryRow1 = document.createElement('div');
-      summaryRow1.className = 'explore-summary';
-
+      // Helper constructors
       function makeSummaryItem(valueHtml, label, wide) {
         const item = document.createElement('div');
         item.className = 'explore-summary-item' + (wide ? ' wide' : ' narrow');
@@ -2278,37 +2572,20 @@
         return item;
       }
 
-      summaryRow1.appendChild(makeSummaryItem(totalRecords.toLocaleString(), 'Total Records', true));
-
-      // Data submission period
-      const subIdx = colIdx('SubmissionDate');
-      const startIdx = colIdx('start-time');
-      const endIdx = colIdx('end');
-      let periodStart = null, periodEnd = null;
-      for (const idx of [subIdx, startIdx, endIdx]) {
-        const dates = parseDates(idx);
-        if (dates.length === 0) continue;
-        const earliest = new Date(Math.min(...dates.map(d => d.getTime())));
-        const latest = new Date(Math.max(...dates.map(d => d.getTime())));
-        if (!periodStart || earliest < periodStart) periodStart = earliest;
-        if (!periodEnd || latest > periodEnd) periodEnd = latest;
-      }
-      if (periodStart && periodEnd) {
-        const fmt = d => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        summaryRow1.appendChild(makeSummaryItem(`${fmt(periodStart)} - ${fmt(periodEnd)}`, 'Data Submission Period', true));
+      function pctHtml(count) {
+        const pct = totalRecords > 0 ? ((count / totalRecords) * 100).toFixed(1) : '0';
+        return `${count.toLocaleString()} <span class="summary-pct">(${pct}%)</span>`;
       }
 
-      // Reload button (always present, next to summary row)
-      const reloadBtn = document.createElement('button');
-      reloadBtn.className = 'explore-reload-btn';
-      reloadBtn.title = 'Re-run exploration';
-      reloadBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>';
-      reloadBtn.addEventListener('click', () => runExploration(csvData));
-      summaryRow1.appendChild(reloadBtn);
+      function makeUnclassifiedItem(count, label, tooltip) {
+        const item = document.createElement('div');
+        item.className = 'explore-summary-item narrow unclassified';
+        item.title = tooltip;
+        item.innerHTML = `<div class="summary-value">${pctHtml(count)}</div><div class="summary-label">${label}</div>`;
+        return item;
+      }
 
-      exploreContent.appendChild(summaryRow1);
-
-      // -- Row 2: Demographics (gender + age groups) --
+      // Compute demographics up-front
       const genderIdx = colIdx('Id10019');
       const genderResult = countColumn(genderIdx, false);
       const genderCounts = genderResult.data;
@@ -2325,23 +2602,36 @@
         else if (adultIdx !== -1 && (r[adultIdx] || '').trim() === '1') adultCount++;
       });
 
-      const demoRow = document.createElement('div');
-      demoRow.className = 'explore-summary';
+      // Compute unclassified counts (used across rows)
+      const classifiedGender = (maleObj ? maleObj.count : 0) + (femaleObj ? femaleObj.count : 0);
+      const unclassifiedGender = totalRecords - classifiedGender;
+      const classifiedAge = adultCount + childCount + neonatalCount;
+      const unclassifiedAge = totalRecords - classifiedAge;
 
-      function pctHtml(count) {
-        const pct = totalRecords > 0 ? ((count / totalRecords) * 100).toFixed(1) : '0';
-        return `${count.toLocaleString()} <span class="summary-pct">(${pct}%)</span>`;
+      // -- Row 1: Total Records | Males | Females | Unclassified Sex (if >0) --
+      const summaryRow1 = document.createElement('div');
+      summaryRow1.className = 'explore-summary';
+      summaryRow1.appendChild(makeSummaryItem(totalRecords.toLocaleString(), 'Total Records', true));
+      if (maleObj) summaryRow1.appendChild(makeSummaryItem(pctHtml(maleObj.count), 'Males', false));
+      if (femaleObj) summaryRow1.appendChild(makeSummaryItem(pctHtml(femaleObj.count), 'Females', false));
+      if (unclassifiedGender > 0) {
+        summaryRow1.appendChild(makeUnclassifiedItem(unclassifiedGender, 'Unclassified Sex',
+          'These records have no sex/gender value. This may indicate a data quality issue in the source questionnaires.'));
       }
+      exploreContent.appendChild(summaryRow1);
 
-      if (maleObj) demoRow.appendChild(makeSummaryItem(pctHtml(maleObj.count), 'Males', false));
-      if (femaleObj) demoRow.appendChild(makeSummaryItem(pctHtml(femaleObj.count), 'Females', false));
-      if (adultCount) demoRow.appendChild(makeSummaryItem(pctHtml(adultCount), 'Adults', false));
-      if (childCount) demoRow.appendChild(makeSummaryItem(pctHtml(childCount), 'Children', false));
-      if (neonatalCount) demoRow.appendChild(makeSummaryItem(pctHtml(neonatalCount), 'Neonates', false));
-
-      if (demoRow.children.length > 0) {
-        exploreContent.appendChild(demoRow);
+      // -- Row 2: Adults | Children | Neonates | Unclassified Age (if >0) --
+      const ageRow = document.createElement('div');
+      ageRow.className = 'explore-summary';
+      if (adultCount) ageRow.appendChild(makeSummaryItem(pctHtml(adultCount), 'Adults', false));
+      if (childCount) ageRow.appendChild(makeSummaryItem(pctHtml(childCount), 'Children', false));
+      if (neonatalCount) ageRow.appendChild(makeSummaryItem(pctHtml(neonatalCount), 'Neonates', false));
+      if (unclassifiedAge > 0) {
+        ageRow.appendChild(makeUnclassifiedItem(unclassifiedAge, 'Unclassified Age',
+          'These records have no age group indicator (isAdult, isChild, isNeonatal). This may indicate a data quality issue in the source questionnaires.'));
       }
+      if (ageRow.children.length > 0) exploreContent.appendChild(ageRow);
+
 
       // -- Distribution cards grid --
       const grid = document.createElement('div');
@@ -2350,93 +2640,89 @@
       // Maximum unique values to consider a column categorical
       const MAX_CATEGORICAL = 500;
 
+      // Build a labelled <select> for column remapping.
+      // Options show dictionary labels where available; title attr gives full "Label (colID)".
+      function buildColSelect(expectedCol, defaultText) {
+        const sel = document.createElement('select');
+        sel.className = 'explore-card-header-select';
+
+        const defOpt = document.createElement('option');
+        defOpt.value = '';
+        defOpt.textContent = defaultText;
+        sel.appendChild(defOpt);
+
+        headers.forEach((h, i) => {
+          const opt = document.createElement('option');
+          opt.value = i;
+          const lbl = COLUMN_LABELS[h];
+          if (lbl) {
+            const SHORT = 28;
+            opt.textContent = lbl.length > SHORT ? lbl.slice(0, SHORT - 1) + '…' : lbl;
+            opt.title = `${lbl} (${h})`;
+          } else {
+            opt.textContent = h;
+            opt.title = h;
+          }
+          if (columnMap[expectedCol] === i) opt.selected = true;
+          sel.appendChild(opt);
+        });
+
+        return sel;
+      }
+
       function addDistributionCard(title, expectedCol, maxItems, color, consolidate) {
         const idx = colIdx(expectedCol);
         const card = document.createElement('div');
         card.className = 'explore-card';
 
-        // If column was remapped, show the actual column name as the title
-        const isRemapped = columnMap[expectedCol] !== undefined;
-        const displayTitle = isRemapped ? headers[columnMap[expectedCol]] : title;
+        // Determine display title: use dictionary label for default col, or
+        // dictionary label / raw name for a remapped col
+        const remappedColName = columnMap[expectedCol] !== undefined
+          ? headers[columnMap[expectedCol]] : null;
+        const displayTitle = remappedColName
+          ? (COLUMN_LABELS[remappedColName] || remappedColName)
+          : title;
+
+        // Card header — title left, column picker right (always present)
+        const cardHeader = document.createElement('div');
+        cardHeader.className = 'explore-card-header';
 
         const h4 = document.createElement('h4');
         h4.textContent = displayTitle;
-        card.appendChild(h4);
+        h4.title = displayTitle;
+        cardHeader.appendChild(h4);
+
+        const sel = buildColSelect(expectedCol, '— default —');
+        sel.addEventListener('change', () => {
+          const chosen = parseInt(sel.value);
+          if (isNaN(chosen)) delete columnMap[expectedCol];
+          else columnMap[expectedCol] = chosen;
+          if (uploadedData) runExploration(uploadedData);
+        });
+        remapSelectors[expectedCol] = sel;
+        cardHeader.appendChild(sel);
+        card.appendChild(cardHeader);
 
         if (idx === -1) {
-          // Column not found -- show error and remap dropdown
           hasMissingColumns = true;
-
           const errDiv = document.createElement('div');
           errDiv.className = 'explore-card-error';
-          errDiv.textContent = `Could not produce the graph. Column "${expectedCol}" not found.`;
+          errDiv.textContent = `Column "${expectedCol}" not found. Select a column above ↑`;
           card.appendChild(errDiv);
-
-          const remapDiv = document.createElement('div');
-          remapDiv.className = 'explore-card-remap';
-
-          const sel = document.createElement('select');
-          sel.innerHTML = '<option value="">-- Choose column --</option>';
-          headers.forEach((h, i) => {
-            const opt = document.createElement('option');
-            opt.value = i;
-            opt.textContent = h;
-            sel.appendChild(opt);
-          });
-
-          // Restore previous selection if user already picked one
-          if (columnMap[expectedCol] !== undefined) {
-            sel.value = columnMap[expectedCol];
-          }
-
-          // Live-update columnMap on change (no re-run needed yet)
-          sel.addEventListener('change', () => {
-            const chosen = parseInt(sel.value);
-            if (isNaN(chosen)) {
-              delete columnMap[expectedCol];
-            } else {
-              columnMap[expectedCol] = chosen;
-            }
-          });
-
-          remapSelectors[expectedCol] = sel;
-          remapDiv.appendChild(sel);
-          card.appendChild(remapDiv);
           grid.appendChild(card);
           return;
         }
 
-        // Column found -- count with optional consolidation
+        // Column found — count with optional consolidation
         const result = countColumn(idx, consolidate !== false);
         const data = result.data;
 
         if (data.length > MAX_CATEGORICAL) {
+          hasMissingColumns = true;
           const warnDiv = document.createElement('div');
           warnDiv.className = 'explore-card-error';
-          warnDiv.textContent = `Column has ${data.length} unique values (not categorical). Choose a different column.`;
+          warnDiv.textContent = `Column has ${data.length} unique values (not categorical). Select a different column above ↑`;
           card.appendChild(warnDiv);
-
-          hasMissingColumns = true;
-
-          const remapDiv = document.createElement('div');
-          remapDiv.className = 'explore-card-remap';
-          const sel = document.createElement('select');
-          sel.innerHTML = '<option value="">-- Choose column --</option>';
-          headers.forEach((h, i) => {
-            const opt = document.createElement('option');
-            opt.value = i;
-            opt.textContent = h;
-            sel.appendChild(opt);
-          });
-          if (columnMap[expectedCol] !== undefined) sel.value = columnMap[expectedCol];
-          sel.addEventListener('change', () => {
-            const chosen = parseInt(sel.value);
-            if (isNaN(chosen)) delete columnMap[expectedCol];
-            else columnMap[expectedCol] = chosen;
-          });
-          remapSelectors[expectedCol] = sel;
-          remapDiv.appendChild(sel);
-          card.appendChild(remapDiv);
           grid.appendChild(card);
           return;
         }
@@ -2498,46 +2784,157 @@
         data.slice(0, maxItems).forEach(item => renderItem(item, card));
 
         if (hasMore) {
-          // Hidden overflow container
-          const overflow = document.createElement('div');
-          overflow.style.cssText = 'display:none;';
-          data.slice(maxItems).forEach(item => renderItem(item, overflow));
-          card.appendChild(overflow);
-
-          // Toggle link
           const remaining = data.length - maxItems;
           const toggle = document.createElement('div');
-          toggle.style.cssText = 'text-align:center;font-size:11px;color:#007bff;margin-top:6px;cursor:pointer;user-select:none;';
-          toggle.textContent = `+ ${remaining} more`;
-
-          let expanded = false;
-          function toggleExpand() {
-            expanded = !expanded;
-            overflow.style.display = expanded ? 'block' : 'none';
-            toggle.textContent = expanded ? '- show less' : `+ ${remaining} more`;
-          }
-
-          toggle.addEventListener('click', (e) => { e.stopPropagation(); toggleExpand(); });
+          toggle.style.cssText = 'text-align:center;font-size:11px;color:#007bff;margin-top:8px;cursor:pointer;user-select:none;font-weight:500;';
+          toggle.textContent = `+ ${remaining} more — view all`;
+          toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openDistModal(title, data, color, maxItems);
+          });
           card.appendChild(toggle);
-
-          // Whole card is also clickable
-          card.style.cursor = 'pointer';
-          card.addEventListener('click', () => toggleExpand());
         }
 
         grid.appendChild(card);
       }
 
       addDistributionCard('Interviewer Summary', 'Id10010', 8, '#007bff');
-      addDistributionCard('Interview Region', 'Id10005R', 8, '#28a745');
-      addDistributionCard('Place of Death', 'Id10058', 8, '#fd7e14');
+      addDistributionCard('Admin Level 1',       'Id10005R', 8, '#28a745');
+      addDistributionCard('Place of Death',       'Id10058', 8, '#fd7e14', true);
+
+      // -- Date Distribution card (year-by-year, full column picker) --
+      (function addDateDistributionCard() {
+        const DATE_KEY   = '__dateCol__';
+        const DATE_COLOR = '#6f42c1';
+        // Auto-detect order when no column is manually selected
+        const AUTO_COLS  = ['SubmissionDate', 'start-time', 'end', 'Id10023'];
+
+        const card = document.createElement('div');
+        card.className = 'explore-card';
+
+        const cardHeader = document.createElement('div');
+        cardHeader.className = 'explore-card-header';
+
+        const h4 = document.createElement('h4');
+        h4.title = '';
+        cardHeader.appendChild(h4);
+
+        // Full column picker — same pattern as the other three cards
+        const sel = buildColSelect(DATE_KEY, '— auto-detect —');
+        sel.addEventListener('change', () => {
+          const chosen = parseInt(sel.value);
+          if (isNaN(chosen)) delete columnMap[DATE_KEY];
+          else columnMap[DATE_KEY] = chosen;
+          renderDateCard();
+        });
+        remapSelectors[DATE_KEY] = sel;
+        cardHeader.appendChild(sel);
+        card.appendChild(cardHeader);
+
+        const subtitle = document.createElement('div');
+        subtitle.className = 'explore-subtitle';
+        card.appendChild(subtitle);
+
+        const body = document.createElement('div');
+        card.appendChild(body);
+
+        function renderDateCard() {
+          body.innerHTML = '';
+
+          // Resolve which column index to use
+          let ci = -1;
+          let cardTitle = 'Date Distribution';
+
+          if (columnMap[DATE_KEY] !== undefined) {
+            ci = columnMap[DATE_KEY];
+            const colName = headers[ci];
+            cardTitle = COLUMN_LABELS[colName] || colName;
+          } else {
+            for (const name of AUTO_COLS) {
+              const found = colIdx(name);
+              if (found !== -1) {
+                ci = found;
+                cardTitle = COLUMN_LABELS[name] || name;
+                break;
+              }
+            }
+          }
+
+          h4.textContent = cardTitle;
+          h4.title = cardTitle;
+
+          if (ci === -1) {
+            subtitle.textContent = 'No date column found';
+            const msg = document.createElement('div');
+            msg.style.cssText = 'color:#aaa;font-size:12px;padding:10px 0;';
+            msg.textContent = 'No date column found. Select one above ↑';
+            body.appendChild(msg);
+            return;
+          }
+
+          const allDates = parseDates(ci);
+          if (allDates.length === 0) {
+            subtitle.textContent = 'No parseable dates found';
+            const msg = document.createElement('div');
+            msg.style.cssText = 'color:#aaa;font-size:12px;padding:10px 0;';
+            msg.textContent = 'No recognised dates in this column.';
+            body.appendChild(msg);
+            return;
+          }
+
+          // Count by year, descending
+          const yearCounts = {};
+          allDates.forEach(d => { const y = d.getFullYear(); yearCounts[y] = (yearCounts[y] || 0) + 1; });
+          const yearData = Object.entries(yearCounts)
+            .map(([y, c]) => ({ label: String(y), count: c }))
+            .sort((a, b) => b.label - a.label);
+
+          const MAX_DATE_ITEMS = 8;
+          subtitle.textContent = `${yearData.length} year(s) · ${allDates.length} dated records`;
+
+          const maxCount = Math.max(...yearData.map(d => d.count));
+          const total    = rows.length;
+
+          yearData.slice(0, MAX_DATE_ITEMS).forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'explore-stat-row';
+            const lbl = document.createElement('span');
+            lbl.className = 'stat-label';
+            lbl.textContent = item.label;
+            const valSpan = document.createElement('span');
+            valSpan.className = 'stat-value';
+            const pct = total > 0 ? ((item.count / total) * 100).toFixed(1) : '0';
+            valSpan.innerHTML = `${item.count} <span class="stat-pct">(${pct}%)</span>`;
+            row.appendChild(lbl);
+            row.appendChild(valSpan);
+            body.appendChild(row);
+            const barWrap = document.createElement('div');
+            barWrap.className = 'explore-stat-bar';
+            const fill = document.createElement('div');
+            fill.className = 'explore-stat-bar-fill';
+            fill.style.width = '0%';
+            fill.style.backgroundColor = DATE_COLOR;
+            barWrap.appendChild(fill);
+            body.appendChild(barWrap);
+            setTimeout(() => { fill.style.width = `${(item.count / maxCount) * 100}%`; }, 100);
+          });
+
+          if (yearData.length > MAX_DATE_ITEMS) {
+            const remaining = yearData.length - MAX_DATE_ITEMS;
+            const toggle = document.createElement('div');
+            toggle.style.cssText = 'text-align:center;font-size:11px;color:#007bff;margin-top:8px;cursor:pointer;user-select:none;font-weight:500;';
+            toggle.textContent = `+ ${remaining} more — view all`;
+            toggle.addEventListener('click', e => { e.stopPropagation(); openDistModal(cardTitle, yearData, DATE_COLOR, MAX_DATE_ITEMS); });
+            body.appendChild(toggle);
+          }
+        }
+
+        renderDateCard();
+        grid.appendChild(card);
+      })();
 
       exploreContent.appendChild(grid);
 
-      // Show tabs
-      resultsTabs.classList.add('active');
-      lockCsmfTab();
-      switchTab('explore');
     }
 
     // =========================================================================
@@ -2731,7 +3128,7 @@
       overlay.classList.add('active');
     }
 
-    // Close modal
+    // Close CSMF modal
     document.getElementById('csmfModalClose').addEventListener('click', () => {
       document.getElementById('csmfModalOverlay').classList.remove('active');
     });
@@ -2743,7 +3140,69 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         document.getElementById('csmfModalOverlay').classList.remove('active');
+        closeDistModal();
       }
+    });
+
+    // =========================================================================
+    // DISTRIBUTION CARD MODAL
+    // =========================================================================
+
+    const distModalOverlay = document.getElementById('distModalOverlay');
+    const distModalClose   = document.getElementById('distModalClose');
+    const distModalTitle   = document.getElementById('distModalTitle');
+    const distModalSubtitle = document.getElementById('distModalSubtitle');
+    const distModalBody    = document.getElementById('distModalBody');
+
+    function openDistModal(title, data, color, previewCount) {
+      distModalTitle.textContent = title;
+      distModalSubtitle.textContent = `${data.length} unique value${data.length !== 1 ? 's' : ''}`;
+      distModalBody.innerHTML = '';
+
+      const maxCount = data[0]?.count || 1;
+      data.forEach((item, i) => {
+        const row = document.createElement('div');
+        row.className = 'explore-stat-row';
+
+        const lbl = document.createElement('span');
+        lbl.className = 'stat-label';
+        lbl.textContent = item.label;
+        lbl.title = item.label;
+
+        const valSpan = document.createElement('span');
+        valSpan.className = 'stat-value';
+        const pct = ((item.count / data.reduce((s, d) => s + d.count, 0)) * 100).toFixed(1);
+        valSpan.innerHTML = `${item.count.toLocaleString()} <span class="stat-pct">(${pct}%)</span>`;
+
+        row.appendChild(lbl);
+        row.appendChild(valSpan);
+        distModalBody.appendChild(row);
+
+        const bar = document.createElement('div');
+        bar.className = 'explore-stat-bar';
+        const fill = document.createElement('div');
+        fill.className = 'explore-stat-bar-fill';
+        fill.style.width = '0%';
+        fill.style.backgroundColor = color;
+        bar.appendChild(fill);
+        distModalBody.appendChild(bar);
+        setTimeout(() => { fill.style.width = `${(item.count / maxCount) * 100}%`; }, 60 + i * 20);
+      });
+
+      distModalOverlay.classList.add('active');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => distModalOverlay.classList.add('visible'));
+      });
+    }
+
+    function closeDistModal() {
+      distModalOverlay.classList.remove('visible');
+      setTimeout(() => distModalOverlay.classList.remove('active'), 220);
+    }
+
+    distModalClose.addEventListener('click', closeDistModal);
+    distModalOverlay.addEventListener('click', (e) => {
+      if (e.target === distModalOverlay) closeDistModal();
     });
 
     // =========================================================================
@@ -2853,12 +3312,14 @@
       checkbox2.disabled = true;
       checkbox2.checked = false;
       downloadLink.classList.remove('active');
-      resultsTabs.classList.remove('active');
-      lockCsmfTab();
-      exploreContent.innerHTML = '';
+      showEmptyState();
+      analysisPlaceholder.style.display = 'flex';
+      csmfSection.style.display = 'none';
+      actionRow.style.display = 'none';
       idMappingRow.classList.remove('active');
       detectedIdColumn = null;
       columnMap = {};
+      document.getElementById('csvInfoText').textContent = 'No file loaded';
     }
 
     function sleep(ms) {
@@ -2898,6 +3359,79 @@
       return result;
     }
 
+    /**
+     * Parse full CSV text handling multiline quoted fields (RFC 4180).
+     * Returns string[][] (same format as the old split+parseCSVLine approach).
+     */
+    function parseCSV(text) {
+      const rows = [];
+      let current = [];
+      let field = '';
+      let inQuotes = false;
+      let i = 0;
+
+      while (i < text.length) {
+        const c = text[i];
+
+        if (inQuotes) {
+          if (c === '"') {
+            if (i + 1 < text.length && text[i + 1] === '"') {
+              field += '"';
+              i += 2;
+            } else {
+              inQuotes = false;
+              i++;
+            }
+          } else {
+            field += c;
+            i++;
+          }
+        } else {
+          if (c === '"') {
+            inQuotes = true;
+            i++;
+          } else if (c === ',') {
+            current.push(field.trim());
+            field = '';
+            i++;
+          } else if (c === '\r') {
+            current.push(field.trim());
+            field = '';
+            if (current.some(f => f !== '')) {
+              rows.push(current);
+            }
+            current = [];
+            if (i + 1 < text.length && text[i + 1] === '\n') {
+              i += 2;
+            } else {
+              i++;
+            }
+          } else if (c === '\n') {
+            current.push(field.trim());
+            field = '';
+            if (current.some(f => f !== '')) {
+              rows.push(current);
+            }
+            current = [];
+            i++;
+          } else {
+            field += c;
+            i++;
+          }
+        }
+      }
+
+      // Handle last field/row if no trailing newline
+      if (field !== '' || current.length > 0) {
+        current.push(field.trim());
+        if (current.some(f => f !== '')) {
+          rows.push(current);
+        }
+      }
+
+      return rows;
+    }
+
     // =========================================================================
     // INIT
     // =========================================================================
@@ -2911,6 +3445,35 @@
       .then(r => r.json())
       .then(d => { if (d.status !== 'healthy') addLogMessage('Could not connect to backend'); })
       .catch(() => addLogMessage('Cannot connect to server. Make sure backend is running.', 'error'));
+
+    // Show a snackbar. timeout=0 means persistent (close button only).
+    function showSnackbar(message, timeout = 5000) {
+      const sb = document.createElement('div');
+      sb.className = 'snackbar';
+      const txt = document.createElement('span');
+      txt.textContent = message;
+      sb.appendChild(txt);
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'snackbar-close';
+      closeBtn.innerHTML = '&times;';
+      closeBtn.addEventListener('click', () => {
+        sb.classList.remove('show');
+        setTimeout(() => sb.remove(), 300);
+      });
+      sb.appendChild(closeBtn);
+      document.body.appendChild(sb);
+      requestAnimationFrame(() => requestAnimationFrame(() => sb.classList.add('show')));
+      if (timeout > 0) {
+        setTimeout(() => {
+          sb.classList.remove('show');
+          setTimeout(() => sb.remove(), 300);
+        }, timeout);
+      }
+    }
+
+    if (isAdmin) {
+      showSnackbar('⚙ Admin mode — CSV row limit raised to 1,000,000', 5000);
+    }
   </script>
 </body>
 </html>

@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import List, Any, Dict, Optional
 import pandas as pd
 import io
+import csv
 import sys
 import os
 import asyncio
@@ -241,19 +242,16 @@ async def upload_chunk(payload: ChunkPayload):
                 "message": "Data combined successfully, starting analysis..."
             })
             
-            # Parse CSV data
-            lines = combined_data.split('\n')
-            lines = [line.strip() for line in lines if line.strip()]
-            
-            if len(lines) < 2:
+            # Parse CSV data (using csv module for multiline quoted field support)
+            reader = csv.reader(io.StringIO(combined_data))
+            csv_data = [row for row in reader if any(cell.strip() for cell in row)]
+
+            if len(csv_data) < 2:
                 await session["sse_queue"].put({
                     "type": "error",
                     "message": "CSV must have at least header and one data row"
                 })
                 raise HTTPException(status_code=400, detail="Invalid CSV data")
-            
-            # Parse CSV
-            csv_data = [parse_csv_line(line) for line in lines]
             
             row_count = len(csv_data) - 1  # Exclude header
             MAX_ROWS = 100000000
