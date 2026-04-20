@@ -101,6 +101,9 @@ class InterVA5:
         self.results: dict = {}
         self.gui_ctrl = gui_ctrl
         self.dem_group: DataFrame = DataFrame({})
+        self.excluded_records: list = []
+        self.first_pass_log: list = []
+        self.second_pass_log: list = []
 
     def __repr__(self):
         sci_msg = "None\n"
@@ -385,6 +388,7 @@ class InterVA5:
         second_pass = []
         list_checked_data = []
         list_dem_group = []
+        self.excluded_records = []
 
         for i in range(N):
             if self.gui_ctrl["break"]:
@@ -411,25 +415,28 @@ class InterVA5:
 
             input_current[0] = 0
             if nansum(input_current[5:12]) < 1:
+                _err = index_current + " Error in age indicator: Not Specified"
+                self.excluded_records.append(_err)
                 if self.write:
-                    logger.info(index_current +
-                                " Error in age indicator: Not Specified")
+                    logger.info(_err)
                 if self.openva_app:
                     progress = int(100 * k / N)
                     self.openva_app.emit(progress)
                 continue
             if nansum(input_current[3:5]) < 1:
+                _err = index_current + " Error in sex indicator: Not Specified"
+                self.excluded_records.append(_err)
                 if self.write:
-                    logger.info(index_current +
-                                " Error in sex indicator: Not Specified")
+                    logger.info(_err)
                 if self.openva_app:
                     progress = int(100 * k / N)
                     self.openva_app.emit(progress)
                 continue
             if nansum(input_current[20:328]) < 1:
+                _err = index_current + " Error in indicators: No symptoms specified"
+                self.excluded_records.append(_err)
                 if self.write:
-                    logger.info(index_current +
-                                " Error in indicators: No symptoms specified")
+                    logger.info(_err)
                 if self.openva_app:
                     progress = int(100 * k / N)
                     self.openva_app.emit(progress)
@@ -589,6 +596,8 @@ class InterVA5:
                 if item:
                     for k in item:
                         logger.info(k)
+        self.first_pass_log = [msg for sublist in first_pass for msg in sublist]
+        self.second_pass_log = [msg for sublist in second_pass for msg in sublist]
         chdir(global_dir)
         if not self.return_checked_data:
             self.checked_data = "return_checked_data = False"

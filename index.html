@@ -1892,6 +1892,25 @@
           actionRow.style.display = 'flex';
         }
 
+        // Show error count summary in the log dialog
+        try {
+          const errResp = await fetch(`${API_BASE_URL}/get-error-log/${sessionId}`);
+          if (errResp.ok) {
+            const errData = await errResp.json();
+            const excl = errData.error_count ?? 0;
+            const disc = errData.discrepancy_count ?? 0;
+            if (excl > 0) {
+              addLogMessage(`[INFO] ${excl} record(s) excluded from processing`, 'info');
+            }
+            if (disc > 0) {
+              addLogMessage(`[INFO] ${disc} data discrepancy warning(s) logged`, 'info');
+            }
+            if (excl === 0 && disc === 0) {
+              addLogMessage('[OK] No data errors detected', 'success');
+            }
+          }
+        } catch (_) {}
+
         closeSSE();
         stopTimer();
 
@@ -2525,7 +2544,7 @@
         const DATE_RE = /^\d{4}-\d{2}-\d{2}/;
         const sample = rawValues.slice(0, Math.min(30, rawValues.length));
         if (sample.length > 0 && sample.filter(v => DATE_RE.test(v)).length / sample.length > 0.5) {
-          rawValues = rawValues.map(normDateStr);
+          rawValues = rawValues.map(normDateStr).map(v => v.slice(0, 4));
         }
 
         if (consolidate && rawValues.length > 0) {
@@ -2671,130 +2690,134 @@
       }
 
       function addDistributionCard(title, expectedCol, maxItems, color, consolidate) {
-        const idx = colIdx(expectedCol);
         const card = document.createElement('div');
         card.className = 'explore-card';
 
-        // Determine display title: use dictionary label for default col, or
-        // dictionary label / raw name for a remapped col
-        const remappedColName = columnMap[expectedCol] !== undefined
-          ? headers[columnMap[expectedCol]] : null;
-        const displayTitle = remappedColName
-          ? (COLUMN_LABELS[remappedColName] || remappedColName)
-          : title;
-
-        // Card header — title left, column picker right (always present)
+        // Card header — static shell (title + picker); content refreshes independently
         const cardHeader = document.createElement('div');
         cardHeader.className = 'explore-card-header';
 
         const h4 = document.createElement('h4');
-        h4.textContent = displayTitle;
-        h4.title = displayTitle;
         cardHeader.appendChild(h4);
 
         const sel = buildColSelect(expectedCol, '— default —');
-        sel.addEventListener('change', () => {
-          const chosen = parseInt(sel.value);
-          if (isNaN(chosen)) delete columnMap[expectedCol];
-          else columnMap[expectedCol] = chosen;
-          if (uploadedData) runExploration(uploadedData);
-        });
         remapSelectors[expectedCol] = sel;
         cardHeader.appendChild(sel);
         card.appendChild(cardHeader);
 
-        if (idx === -1) {
-          hasMissingColumns = true;
-          const errDiv = document.createElement('div');
-          errDiv.className = 'explore-card-error';
-          errDiv.textContent = `Column "${expectedCol}" not found. Select a column above ↑`;
-          card.appendChild(errDiv);
-          grid.appendChild(card);
-          return;
-        }
-
-        // Column found — count with optional consolidation
-        const result = countColumn(idx, consolidate !== false);
-        const data = result.data;
-
-        if (data.length > MAX_CATEGORICAL) {
-          hasMissingColumns = true;
-          const warnDiv = document.createElement('div');
-          warnDiv.className = 'explore-card-error';
-          warnDiv.textContent = `Column has ${data.length} unique values (not categorical). Select a different column above ↑`;
-          card.appendChild(warnDiv);
-          grid.appendChild(card);
-          return;
-        }
-
-        // Subtitle with consolidation info
+        // Mutable content areas — cleared and rebuilt on each renderCard() call
         const sub = document.createElement('div');
         sub.className = 'explore-subtitle';
-        if (result.consolidated) {
-          sub.textContent = `${data.length} consolidated from ${result.rawCount} raw entries`;
-        } else {
-          sub.textContent = `${data.length} unique value(s)`;
-        }
         card.appendChild(sub);
 
-        if (data.length === 0) {
-          const empty = document.createElement('div');
-          empty.style.cssText = 'color:#aaa;font-size:12px;padding:10px 0;';
-          empty.textContent = 'No data available';
-          card.appendChild(empty);
-          grid.appendChild(card);
-          return;
+        const body = document.createElement('div');
+        card.appendChild(body);
+
+        function renderCard() {
+          body.innerHTML = '';
+          sub.textContent = '';
+
+          // Update title based on current columnMap state
+          const remappedColName = columnMap[expectedCol] !== undefined
+            ? headers[columnMap[expectedCol]] : null;
+          const displayTitle = remappedColName
+            ? (COLUMN_LABELS[remappedColName] || remappedColName)
+            : title;
+          h4.textContent = displayTitle;
+          h4.title = displayTitle;
+
+          const idx = colIdx(expectedCol);
+
+          if (idx === -1) {
+            hasMissingColumns = true;
+            const errDiv = document.createElement('div');
+            errDiv.className = 'explore-card-error';
+            errDiv.textContent = `Column "${expectedCol}" not found. Select a column above ↑`;
+            body.appendChild(errDiv);
+            return;
+          }
+
+          const result = countColumn(idx, consolidate !== false);
+          const data = result.data;
+
+          if (data.length > MAX_CATEGORICAL) {
+            hasMissingColumns = true;
+            const warnDiv = document.createElement('div');
+            warnDiv.className = 'explore-card-error';
+            warnDiv.textContent = `Column has ${data.length} unique values (not categorical). Select a different column above ↑`;
+            body.appendChild(warnDiv);
+            return;
+          }
+
+          if (result.consolidated) {
+            sub.textContent = `${data.length} consolidated from ${result.rawCount} raw entries`;
+          } else {
+            sub.textContent = `${data.length} unique value(s)`;
+          }
+
+          if (data.length === 0) {
+            const empty = document.createElement('div');
+            empty.style.cssText = 'color:#aaa;font-size:12px;padding:10px 0;';
+            empty.textContent = 'No data available';
+            body.appendChild(empty);
+            return;
+          }
+
+          const maxCount = data[0].count;
+          const total = rows.length;
+
+          function renderItem(item) {
+            const row = document.createElement('div');
+            row.className = 'explore-stat-row';
+
+            const lbl = document.createElement('span');
+            lbl.className = 'stat-label';
+            lbl.textContent = item.label;
+            lbl.title = item.label;
+
+            const valSpan = document.createElement('span');
+            valSpan.className = 'stat-value';
+            const pct = total > 0 ? ((item.count / total) * 100).toFixed(1) : '0';
+            valSpan.innerHTML = `${item.count} <span class="stat-pct">(${pct}%)</span>`;
+
+            row.appendChild(lbl);
+            row.appendChild(valSpan);
+            body.appendChild(row);
+
+            const bar = document.createElement('div');
+            bar.className = 'explore-stat-bar';
+            const fill = document.createElement('div');
+            fill.className = 'explore-stat-bar-fill';
+            fill.style.width = '0%';
+            fill.style.backgroundColor = color;
+            bar.appendChild(fill);
+            body.appendChild(bar);
+            setTimeout(() => { fill.style.width = `${(item.count / maxCount) * 100}%`; }, 100);
+          }
+
+          data.slice(0, maxItems).forEach(item => renderItem(item));
+
+          if (data.length > maxItems) {
+            const remaining = data.length - maxItems;
+            const toggle = document.createElement('div');
+            toggle.style.cssText = 'text-align:center;font-size:11px;color:#007bff;margin-top:8px;cursor:pointer;user-select:none;font-weight:500;';
+            toggle.textContent = `+ ${remaining} more — view all`;
+            toggle.addEventListener('click', (e) => {
+              e.stopPropagation();
+              openDistModal(displayTitle, data, color, maxItems);
+            });
+            body.appendChild(toggle);
+          }
         }
 
-        const maxCount = data[0].count;
-        const total = rows.length;
-        const hasMore = data.length > maxItems;
+        sel.addEventListener('change', () => {
+          const chosen = parseInt(sel.value);
+          if (isNaN(chosen)) delete columnMap[expectedCol];
+          else columnMap[expectedCol] = chosen;
+          renderCard();
+        });
 
-        // Render a single stat row + bar
-        function renderItem(item, container) {
-          const row = document.createElement('div');
-          row.className = 'explore-stat-row';
-
-          const lbl = document.createElement('span');
-          lbl.className = 'stat-label';
-          lbl.textContent = item.label;
-          lbl.title = item.label;
-
-          const valSpan = document.createElement('span');
-          valSpan.className = 'stat-value';
-          const pct = total > 0 ? ((item.count / total) * 100).toFixed(1) : '0';
-          valSpan.innerHTML = `${item.count} <span class="stat-pct">(${pct}%)</span>`;
-
-          row.appendChild(lbl);
-          row.appendChild(valSpan);
-          container.appendChild(row);
-
-          const bar = document.createElement('div');
-          bar.className = 'explore-stat-bar';
-          const fill = document.createElement('div');
-          fill.className = 'explore-stat-bar-fill';
-          fill.style.width = '0%';
-          fill.style.backgroundColor = color;
-          bar.appendChild(fill);
-          container.appendChild(bar);
-          setTimeout(() => { fill.style.width = `${(item.count / maxCount) * 100}%`; }, 100);
-        }
-
-        // Initial visible items
-        data.slice(0, maxItems).forEach(item => renderItem(item, card));
-
-        if (hasMore) {
-          const remaining = data.length - maxItems;
-          const toggle = document.createElement('div');
-          toggle.style.cssText = 'text-align:center;font-size:11px;color:#007bff;margin-top:8px;cursor:pointer;user-select:none;font-weight:500;';
-          toggle.textContent = `+ ${remaining} more — view all`;
-          toggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openDistModal(title, data, color, maxItems);
-          });
-          card.appendChild(toggle);
-        }
-
+        renderCard();
         grid.appendChild(card);
       }
 
@@ -2802,136 +2825,7 @@
       addDistributionCard('Admin Level 1',       'Id10005R', 8, '#28a745');
       addDistributionCard('Place of Death',       'Id10058', 8, '#fd7e14', true);
 
-      // -- Date Distribution card (year-by-year, full column picker) --
-      (function addDateDistributionCard() {
-        const DATE_KEY   = '__dateCol__';
-        const DATE_COLOR = '#6f42c1';
-        // Auto-detect order when no column is manually selected
-        const AUTO_COLS  = ['SubmissionDate', 'start-time', 'end', 'Id10023'];
-
-        const card = document.createElement('div');
-        card.className = 'explore-card';
-
-        const cardHeader = document.createElement('div');
-        cardHeader.className = 'explore-card-header';
-
-        const h4 = document.createElement('h4');
-        h4.title = '';
-        cardHeader.appendChild(h4);
-
-        // Full column picker — same pattern as the other three cards
-        const sel = buildColSelect(DATE_KEY, '— auto-detect —');
-        sel.addEventListener('change', () => {
-          const chosen = parseInt(sel.value);
-          if (isNaN(chosen)) delete columnMap[DATE_KEY];
-          else columnMap[DATE_KEY] = chosen;
-          renderDateCard();
-        });
-        remapSelectors[DATE_KEY] = sel;
-        cardHeader.appendChild(sel);
-        card.appendChild(cardHeader);
-
-        const subtitle = document.createElement('div');
-        subtitle.className = 'explore-subtitle';
-        card.appendChild(subtitle);
-
-        const body = document.createElement('div');
-        card.appendChild(body);
-
-        function renderDateCard() {
-          body.innerHTML = '';
-
-          // Resolve which column index to use
-          let ci = -1;
-          let cardTitle = 'Date Distribution';
-
-          if (columnMap[DATE_KEY] !== undefined) {
-            ci = columnMap[DATE_KEY];
-            const colName = headers[ci];
-            cardTitle = COLUMN_LABELS[colName] || colName;
-          } else {
-            for (const name of AUTO_COLS) {
-              const found = colIdx(name);
-              if (found !== -1) {
-                ci = found;
-                cardTitle = COLUMN_LABELS[name] || name;
-                break;
-              }
-            }
-          }
-
-          h4.textContent = cardTitle;
-          h4.title = cardTitle;
-
-          if (ci === -1) {
-            subtitle.textContent = 'No date column found';
-            const msg = document.createElement('div');
-            msg.style.cssText = 'color:#aaa;font-size:12px;padding:10px 0;';
-            msg.textContent = 'No date column found. Select one above ↑';
-            body.appendChild(msg);
-            return;
-          }
-
-          const allDates = parseDates(ci);
-          if (allDates.length === 0) {
-            subtitle.textContent = 'No parseable dates found';
-            const msg = document.createElement('div');
-            msg.style.cssText = 'color:#aaa;font-size:12px;padding:10px 0;';
-            msg.textContent = 'No recognised dates in this column.';
-            body.appendChild(msg);
-            return;
-          }
-
-          // Count by year, descending
-          const yearCounts = {};
-          allDates.forEach(d => { const y = d.getFullYear(); yearCounts[y] = (yearCounts[y] || 0) + 1; });
-          const yearData = Object.entries(yearCounts)
-            .map(([y, c]) => ({ label: String(y), count: c }))
-            .sort((a, b) => b.label - a.label);
-
-          const MAX_DATE_ITEMS = 8;
-          subtitle.textContent = `${yearData.length} year(s) · ${allDates.length} dated records`;
-
-          const maxCount = Math.max(...yearData.map(d => d.count));
-          const total    = rows.length;
-
-          yearData.slice(0, MAX_DATE_ITEMS).forEach(item => {
-            const row = document.createElement('div');
-            row.className = 'explore-stat-row';
-            const lbl = document.createElement('span');
-            lbl.className = 'stat-label';
-            lbl.textContent = item.label;
-            const valSpan = document.createElement('span');
-            valSpan.className = 'stat-value';
-            const pct = total > 0 ? ((item.count / total) * 100).toFixed(1) : '0';
-            valSpan.innerHTML = `${item.count} <span class="stat-pct">(${pct}%)</span>`;
-            row.appendChild(lbl);
-            row.appendChild(valSpan);
-            body.appendChild(row);
-            const barWrap = document.createElement('div');
-            barWrap.className = 'explore-stat-bar';
-            const fill = document.createElement('div');
-            fill.className = 'explore-stat-bar-fill';
-            fill.style.width = '0%';
-            fill.style.backgroundColor = DATE_COLOR;
-            barWrap.appendChild(fill);
-            body.appendChild(barWrap);
-            setTimeout(() => { fill.style.width = `${(item.count / maxCount) * 100}%`; }, 100);
-          });
-
-          if (yearData.length > MAX_DATE_ITEMS) {
-            const remaining = yearData.length - MAX_DATE_ITEMS;
-            const toggle = document.createElement('div');
-            toggle.style.cssText = 'text-align:center;font-size:11px;color:#007bff;margin-top:8px;cursor:pointer;user-select:none;font-weight:500;';
-            toggle.textContent = `+ ${remaining} more — view all`;
-            toggle.addEventListener('click', e => { e.stopPropagation(); openDistModal(cardTitle, yearData, DATE_COLOR, MAX_DATE_ITEMS); });
-            body.appendChild(toggle);
-          }
-        }
-
-        renderDateCard();
-        grid.appendChild(card);
-      })();
+      addDistributionCard('Date of Death', 'Id10023', 8, '#6f42c1');
 
       exploreContent.appendChild(grid);
 
@@ -3438,7 +3332,7 @@
 
     resetOutput();
 
-    fileInfo.innerHTML = 'Beta Version <span style="background: #007bff; color: white; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;">v1.1</span>';
+    fileInfo.innerHTML = 'Beta Version <span style="background: #007bff; color: white; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;">v1.2</span>';
     fileInfo.style.color = '#007bff';
 
     fetch(`${API_BASE_URL}/health`)

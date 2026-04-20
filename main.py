@@ -810,86 +810,82 @@ async def get_error_log(session_id: str):
     algorithm = session.get("algorithm", "Unknown")
     
     try:
-        error_log_content = ""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
+        error_count = 0
+        discrepancy_count = 0
+
         # Handle InterVA-5
         if "interva5_obj" in session:
             interva5_obj = session["interva5_obj"]
-            
-            # Build error log from processing info
-            error_log_content = f"Error & Warning Log for InterVA-5\n"
-            error_log_content += f"Generated: {timestamp}\n"
-            error_log_content += "=" * 60 + "\n\n"
-            
-            # Get results info
-            if hasattr(interva5_obj, 'results') and interva5_obj.results:
-                results = interva5_obj.results
-                if isinstance(results, dict):
-                    if 'COD' in results:
-                        cod_df = results['COD']
-                        if isinstance(cod_df, pd.DataFrame):
-                            total_records = len(cod_df)
-                            # Count undetermined (CAUSE1 is empty or space)
-                            undetermined = len(cod_df[cod_df['CAUSE1'].isin([' ', '', 'Undetermined'])])
-                            error_log_content += f"Processing Summary:\n"
-                            error_log_content += f"  - Total records processed: {total_records}\n"
-                            error_log_content += f"  - Records with determined cause: {total_records - undetermined}\n"
-                            error_log_content += f"  - Undetermined causes: {undetermined}\n\n"
-            
-            error_log_content += "Note: Detailed error logs are generated when write=True.\n"
-            error_log_content += "This summary provides an overview of the processing results.\n"
-        
+
+            excluded   = getattr(interva5_obj, 'excluded_records', [])
+            first_pass = getattr(interva5_obj, 'first_pass_log', [])
+            second_pass = getattr(interva5_obj, 'second_pass_log', [])
+            error_count = len(excluded)
+            discrepancy_count = len(first_pass) + len(second_pass)
+
+            lines = [f"Error & warning log built for InterVA5 {timestamp}", "", ""]
+            lines.append("The following records are incomplete and excluded from further processing:")
+            lines.append("")
+            if excluded:
+                lines.extend(excluded)
+            else:
+                lines.append("(none)")
+            lines.append("")
+            lines.append("The following data discrepancies were identified and handled:")
+            lines.append("")
+            if first_pass:
+                lines.extend(first_pass)
+            if second_pass:
+                lines.append("")
+                lines.append("Second pass")
+                lines.append("")
+                lines.extend(second_pass)
+            if not first_pass and not second_pass:
+                lines.append("(none)")
+
+            error_log_content = "\n".join(lines)
+
         # Handle InterVA-6
         elif "interva6_obj" in session:
             interva6_obj = session["interva6_obj"]
-            
-            error_log_content = f"Error & Warning Log for InterVA-6 (InterVA2022)\n"
-            error_log_content += f"Generated: {timestamp}\n"
-            error_log_content += "=" * 60 + "\n\n"
-            
-            # Get results info
-            if hasattr(interva6_obj, 'results') and interva6_obj.results:
-                results = interva6_obj.results
-                if isinstance(results, dict):
-                    if 'COD' in results:
-                        cod_data = results['COD']
-                        if isinstance(cod_data, list):
-                            cod_df = pd.DataFrame(cod_data)
-                        else:
-                            cod_df = cod_data
-                        
-                        total_records = len(cod_df)
-                        # Count undetermined
-                        undetermined = len(cod_df[cod_df['CAUSE1'].isin([' ', '', 'Undetermined'])])
-                        
-                        error_log_content += f"Processing Summary:\n"
-                        error_log_content += f"  - Total records processed: {total_records}\n"
-                        error_log_content += f"  - Records with determined cause: {total_records - undetermined}\n"
-                        error_log_content += f"  - Undetermined causes: {undetermined}\n\n"
-                    
-                    # Include settings if available
-                    if 'HIV' in results:
-                        error_log_content += f"Settings:\n"
-                        error_log_content += f"  - HIV prevalence: {results.get('HIV', 'N/A')}\n"
-                        error_log_content += f"  - Malaria prevalence: {results.get('Malaria', 'N/A')}\n"
-                        error_log_content += f"  - COVID prevalence: {results.get('Covid', 'N/A')}\n\n"
-            
-            # Check for errors list
-            if hasattr(interva6_obj, 'errors') and interva6_obj.errors:
-                error_log_content += "Processing Errors:\n"
-                for error in interva6_obj.errors:
-                    error_log_content += f"  - {error}\n"
-                error_log_content += "\n"
-            
-            error_log_content += "Note: Detailed error logs are generated when write=True.\n"
-        
+
+            excluded    = getattr(interva6_obj, 'excluded_records', [])
+            first_pass  = getattr(interva6_obj, 'first_pass_log', [])
+            second_pass = getattr(interva6_obj, 'second_pass_log', [])
+            error_count = len(excluded)
+            discrepancy_count = len(first_pass) + len(second_pass)
+
+            lines = [f"Error & warning log built for InterVA6 {timestamp}", "", ""]
+            lines.append("The following records are incomplete and excluded from further processing:")
+            lines.append("")
+            if excluded:
+                lines.extend(excluded)
+            else:
+                lines.append("(none)")
+            lines.append("")
+            lines.append("The following data discrepancies were identified and handled:")
+            lines.append("")
+            if first_pass:
+                lines.extend(first_pass)
+            if second_pass:
+                lines.append("")
+                lines.append("Second pass")
+                lines.append("")
+                lines.extend(second_pass)
+            if not first_pass and not second_pass:
+                lines.append("(none)")
+
+            error_log_content = "\n".join(lines)
+
         else:
             error_log_content = f"Error Log\nGenerated: {timestamp}\n\nNo InterVA object found in session.\n"
-        
+
         return {
             "error_log": error_log_content,
-            "algorithm": algorithm
+            "algorithm": algorithm,
+            "error_count": error_count,
+            "discrepancy_count": discrepancy_count
         }
         
     except Exception as e:
