@@ -38,6 +38,9 @@ class interva6:
         self.probbase_matrix = None
         self.causetext = None
         self.probbase_raw = None
+        self.excluded_records: list = []
+        self.first_pass_log: list = []   # no datacheck equivalent; kept for parity with InterVA-5
+        self.second_pass_log: list = []
     
     def _find_data_file(self, filename: str) -> Optional[str]:
         """Search for data files in common locations."""
@@ -284,20 +287,26 @@ class interva6:
         
         # Validate age indicators (columns 5-11 in R = indices 4-10 in Python)
         if np.sum(input_current[4:11]) < 1:
+            _err = f"{record_id} Error in age indicator: Not Specified"
+            self.excluded_records.append(_err)
             if logger:
-                logger.info(f"{record_id} Error in age indicator: Not Specified")
+                logger.info(_err)
             return None
-        
+
         # Validate sex indicators (columns 3-4 in R = indices 2-3 in Python)
         if np.isnan(input_current[2]) and np.isnan(input_current[3]):
+            _err = f"{record_id} Error in sex indicator: Not Specified"
+            self.excluded_records.append(_err)
             if logger:
-                logger.info(f"{record_id} Error in sex indicator: Not Specified")
+                logger.info(_err)
             return None
-        
+
         # Validate symptoms (columns 19-343 in R = indices 18-342 in Python)
         if np.sum(input_current[18:343]) < 1:
+            _err = f"{record_id} Error in indicators: No symptoms specified"
+            self.excluded_records.append(_err)
             if logger:
-                logger.info(f"{record_id} Error in indicators: No symptoms specified")
+                logger.info(_err)
             return None
         
         # Create new input array with 0/1 values
@@ -504,7 +513,12 @@ class interva6:
         Parameters match the R function parameters.
         """
         print("Starting InterVA2022 analysis...")
-        
+
+        # Reset per-run error lists so repeated run() calls don't accumulate stale records
+        self.excluded_records = []
+        self.first_pass_log = []
+        self.second_pass_log = []
+
         # Handle directory
         if write and directory is None:
             raise ValueError("error: please provide a directory (required when write = TRUE)")

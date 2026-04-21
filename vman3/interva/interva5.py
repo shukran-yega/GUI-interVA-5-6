@@ -104,6 +104,7 @@ class InterVA5:
         self.excluded_records: list = []
         self.first_pass_log: list = []
         self.second_pass_log: list = []
+        self.warnings: list = []
 
     def __repr__(self):
         sci_msg = "None\n"
@@ -310,18 +311,21 @@ class InterVA5:
         randomVA5 = read_csv(BytesIO(va_data_csv))
         valabels = randomVA5.columns
         count_changelabel = 0
+        self.warnings = []
         for i in range(S):
             input_col = va_input_names[i]
             std_col = valabels[i]
             if input_col.lower() != std_col.lower():
-                logger.warning(f"Input column '{input_col}' does not match "
-                               f"InterVA5 standard: '{std_col}'")
+                _w = (f"Input column '{input_col}' does not match "
+                      f"InterVA5 standard: '{std_col}'")
+                self.warnings.append(_w)
+                logger.warning(_w)
                 count_changelabel = count_changelabel + 1
         if count_changelabel > 0:
-            logger.warning(
-                f"{count_changelabel} column names changed in input.\n"
-                "If the change is undesirable, please change in the input "
-                "to match standard InterVA5 input format.")
+            _w = (f"{count_changelabel} column name(s) changed in input. "
+                  "If undesirable, update the input to match the standard InterVA5 format.")
+            self.warnings.append(_w)
+            logger.warning(_w)
             va_input_names = valabels
         pb_ncol = probbaseV5.shape[1]
         probbaseV5[:, 17:pb_ncol][probbaseV5[:, 17:pb_ncol] == "I"] = 1

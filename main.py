@@ -818,13 +818,22 @@ async def get_error_log(session_id: str):
         if "interva5_obj" in session:
             interva5_obj = session["interva5_obj"]
 
-            excluded   = getattr(interva5_obj, 'excluded_records', [])
-            first_pass = getattr(interva5_obj, 'first_pass_log', [])
-            second_pass = getattr(interva5_obj, 'second_pass_log', [])
+            warnings_list = getattr(interva5_obj, 'warnings', [])
+            excluded      = getattr(interva5_obj, 'excluded_records', [])
+            first_pass    = getattr(interva5_obj, 'first_pass_log', [])
+            second_pass   = getattr(interva5_obj, 'second_pass_log', [])
             error_count = len(excluded)
             discrepancy_count = len(first_pass) + len(second_pass)
 
             lines = [f"Error & warning log built for InterVA5 {timestamp}", "", ""]
+
+            # Column-name mismatch warnings (pre-processing)
+            if warnings_list:
+                lines.append("Column name warnings:")
+                lines.append("")
+                lines.extend(warnings_list)
+                lines.append("")
+
             lines.append("The following records are incomplete and excluded from further processing:")
             lines.append("")
             if excluded:

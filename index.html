@@ -1443,6 +1443,7 @@
     let uploadedData = null;
     let resultBlob = null;
     let currentSessionId = null;
+    let errorLogContent = null;   // cached client-side after processing
     let eventSource = null;
     let detectedWhoVersion = null;
     let isLoading = false;
@@ -1782,6 +1783,7 @@
         cancelBtn.disabled = false;
         downloadLink.classList.remove('active');
         resultBlob = null;
+        errorLogContent = null;
 
         progressSection.classList.add('active');
         setProgress(0);
@@ -1892,7 +1894,8 @@
           actionRow.style.display = 'flex';
         }
 
-        // Show error count summary in the log dialog
+        // Fetch error log once while session is guaranteed alive — cache client-side
+        // so the Download button never has to re-request it from the server.
         try {
           const errResp = await fetch(`${API_BASE_URL}/get-error-log/${sessionId}`);
           if (errResp.ok) {
@@ -1907,6 +1910,9 @@
             }
             if (excl === 0 && disc === 0) {
               addLogMessage('[OK] No data errors detected', 'success');
+            }
+            if (errData.error_log) {
+              errorLogContent = errData.error_log;   // cache for download
             }
           }
         } catch (_) {}
@@ -2128,19 +2134,25 @@
           addLogMessage('[OK] Individual records CSV added');
         }
 
-        // Error log
-        if (checkbox2.checked && currentSessionId) {
-          try {
-            const resp = await fetch(`${API_BASE_URL}/get-error-log/${currentSessionId}`);
-            if (resp.ok) {
-              const d = await resp.json();
-              if (d.error_log) {
-                zip.file(`${folderName}/error_log.txt`, new Blob([d.error_log], { type: 'text/plain' }));
-                addLogMessage('[OK] Error log added');
+        // Error log — use client-side cache first; fall back to server if needed
+        if (checkbox2.checked) {
+          if (errorLogContent) {
+            zip.file(`${folderName}/error_log.txt`, new Blob([errorLogContent], { type: 'text/plain' }));
+            addLogMessage('[OK] Error log added');
+          } else if (currentSessionId) {
+            try {
+              const resp = await fetch(`${API_BASE_URL}/get-error-log/${currentSessionId}`);
+              if (resp.ok) {
+                const d = await resp.json();
+                if (d.error_log) {
+                  errorLogContent = d.error_log;
+                  zip.file(`${folderName}/error_log.txt`, new Blob([d.error_log], { type: 'text/plain' }));
+                  addLogMessage('[OK] Error log added');
+                }
               }
+            } catch (e) {
+              addLogMessage('[INFO] Error log not available');
             }
-          } catch (e) {
-            addLogMessage('[INFO] Error log not available');
           }
         }
 
