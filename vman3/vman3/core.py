@@ -377,9 +377,12 @@ def detectwhoqn(vadata):
     # Count matches for each version
     count_2016 = len(columns.intersection(who2016_signatures))
     count_2022 = len(columns.intersection(who2022_signatures))
-    
-    
-    
+
+    # Id10476_audio is a strong WHO 2022 discriminator that survives
+    # Kobo regex stripping — promote to threshold if it's the only match
+    if count_2022 < 3 and 'Id10476_audio' in columns:
+        count_2022 = 3
+
     # Make decision based on signature matches
     if count_2016 > count_2022 and count_2016 >= 3:
         return 'who2016'

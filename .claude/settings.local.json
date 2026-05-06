@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk -F, 'NR==1{for\\(i=1;i<=NF;i++\\){if\\($i==\"Id10019\"\\) col=i} next} NR<=6 && NR>1{print NR\": \"$col}' /c/Users/Shukurani/Documents/interva6/Data/va_data_drIsaac.csv)",
+      "Bash(awk -F, 'NR==1{for\\(i=1;i<=NF;i++\\){if\\($i==\"Id10019\"\\) col=i} next} NR<=6 && NR>1{print NR\": \"$col}' /c/Users/Shukurani/Documents/interva6/Data/cleaned_drIsaac.csv)",
+      "Bash(awk -F, ' *)",
+      "Bash(awk -F',' '{print NF}')",
+      "Bash(awk -F, '{for\\(i=505; i<=508; i++\\) print i\": \"$i}')",
+      "Bash(awk -F',' '{print \"uuid: \"$506; print \"id: \"$505}')",
+      "Bash(python -c ' *)",
+      "Bash(pip install *)"
+    ]
+  }
+}

@@ -387,6 +387,193 @@ async def monitor_progress(queue: asyncio.Queue, session: Dict, total_records: i
     except asyncio.CancelledError:
         pass
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CSV column sanitization — Kobo Toolbox format support
+# ─────────────────────────────────────────────────────────────────────────────
+import re as _re
+
+# Kobo plain-English question labels → pyCrossVA source column IDs.
+# Case-sensitive map checked FIRST (handles "Age in Days" vs "Age in days").
+# Case-insensitive fallback map checked SECOND (handles casing variation
+# across different Kobo forms).
+# Extend as new Kobo label variants are discovered.
+
+_KOBO_LABEL_MAP_CS: dict = {
+    # Age group indicators  (frontend display + pyCrossVA)
+    "The deceased person is a Neonate":  "isNeonatal",
+    "The deceased person is a Child":    "isChild",
+    "The deceased person is an Adult":   "isAdult",
+    # Age computation columns  (pyCrossVA source column IDs)
+    "Age in Years":                      "ageInYears",
+    "Age in Days":                       "ageInDays",
+    "Age in days":                       "ageInDaysNeonate",   # note lowercase 'd'
+    "Age in Months":                     "ageInMonths",
+    "[Enter adult's age in years:]":     "age_adult",
+    "[Enter child's age in days:]":      "age_child_days",
+    "[Enter child's age in months:]":    "age_child_months",
+    "[Enter child's age in years:]":     "age_child_years",
+    # WHO detection support — Kobo plain-label columns
+    "Interview language":                "language",
+}
+
+# Case-insensitive fallback — excludes "age in days" (ambiguous across cases)
+_KOBO_LABEL_MAP_CI: dict = {
+    "the deceased person is a neonate":  "isNeonatal",
+    "the deceased person is a child":    "isChild",
+    "the deceased person is an adult":   "isAdult",
+    "age in years":                      "ageInYears",
+    "age in months":                     "ageInMonths",
+    "[enter adult's age in years:]":     "age_adult",
+    "[enter child's age in days:]":      "age_child_days",
+    "[enter child's age in months:]":    "age_child_months",
+    "[enter child's age in years:]":     "age_child_years",
+    "interview language":                "language",
+}
+
+# Prefix map for Kobo note/instruction columns (WHO detection support).
+# These are section-separator fields with long instruction text as headers
+# and NO data.  First ~40 chars are stable across Kobo form versions.
+_KOBO_PREFIX_MAP: dict = {
+    "Some of the following questions may be repet":  "notenarr",
+    "Explain to the respondent that the following":  "note_s_s",
+    "Unless specified, the following questions on":   "nmh",
+    "Civil registration":                             "botecrn",
+    "Death certificate with cause of death":         "noteccd",
+    "Inform the respondent that the VA interview":   "noteend",
+    "[ Inform the respondent that the VA interview": "noteend",
+}
+
+
+def sanitize_column(headers: list, data_rows: list = None) -> dict:
+    """
+    Detect and normalize Kobo Toolbox CSV export column names.
+
+    Handles three Kobo patterns:
+      A) "(IdXXXXX) Question text"  →  "IdXXXXX"
+      B) Known plain-English labels →  standard system name (e.g. isNeonatal)
+      C) Duplicate column names     →  keep the most-populated column;
+                                       suffix remaining occurrences _dup_N
+
+    When data_rows is supplied, "most populated" = column with highest count
+    of non-empty, non-"0" values.  When data_rows is None, first occurrence
+    is kept (no popularity scoring).
+
+    Returns dict with keys:
+        normalized_headers  – list of cleaned names (same length as input)
+        detected_format     – "kobo" | "standard"
+        suggested_id_column – preferred ID column if Kobo detected, else None
+        column_map          – {original_header: new_name} for logging/debug
+        dropped_indices     – set of column indices that are duplicates
+    """
+    kobo_re = _re.compile(r'^\(+(Id\d+[a-zA-Z0-9_]*)\)+', _re.IGNORECASE)
+
+    # ── Step 1: first-pass rename ─────────────────────────────────────────
+    first_pass: list = []
+    column_map: dict = {}
+
+    for h in headers:
+        # Pattern A: (IdXXXXX) Question text
+        m = kobo_re.match(h)
+        if m:
+            new_name = m.group(1)
+            column_map[h] = new_name
+            first_pass.append(new_name)
+            continue
+
+        # Pattern B: known plain-English label
+        # Try case-sensitive first (distinguishes "Age in Days" vs "Age in days")
+        label_exact = h.strip()
+        if label_exact in _KOBO_LABEL_MAP_CS:
+            new_name = _KOBO_LABEL_MAP_CS[label_exact]
+            column_map[h] = new_name
+            first_pass.append(new_name)
+            continue
+        # Case-insensitive fallback (handles casing variation across forms)
+        label_lower = label_exact.lower()
+        if label_lower in _KOBO_LABEL_MAP_CI:
+            new_name = _KOBO_LABEL_MAP_CI[label_lower]
+            column_map[h] = new_name
+            first_pass.append(new_name)
+            continue
+
+        # Pattern C: prefix matching for Kobo note/instruction columns
+        matched_prefix = False
+        for prefix, target_name in _KOBO_PREFIX_MAP.items():
+            if label_exact.startswith(prefix):
+                column_map[h] = target_name
+                first_pass.append(target_name)
+                matched_prefix = True
+                break
+        if matched_prefix:
+            continue
+
+        # No match: keep as-is (metadata: _uuid, start, end, _id, …)
+        first_pass.append(h)
+
+    # ── Detect format ─────────────────────────────────────────────────────
+    kobo_hits = sum(1 for orig, renamed in column_map.items() if renamed != orig)
+    kobo_ratio = kobo_hits / len(headers) if headers else 0
+    detected_format = "kobo" if kobo_ratio >= 0.20 else "standard"
+
+    if detected_format == "standard":
+        return dict(
+            normalized_headers=headers,
+            detected_format="standard",
+            suggested_id_column=None,
+            column_map={},
+            dropped_indices=set()
+        )
+
+    # ── Step 2: resolve duplicates (Pattern C) ────────────────────────────
+    name_to_indices: dict = {}
+    for i, name in enumerate(first_pass):
+        name_to_indices.setdefault(name, []).append(i)
+
+    normalized: list = list(first_pass)
+    dropped_indices: set = set()
+
+    for name, indices in name_to_indices.items():
+        if len(indices) == 1:
+            continue  # no conflict
+
+        if data_rows is not None:
+            def _score(col_idx: int, _rows=data_rows) -> int:
+                count = 0
+                for row in _rows:
+                    if col_idx < len(row):
+                        v = (row[col_idx] or "").strip()
+                        if v and v != "0":
+                            count += 1
+                return count
+
+            scores = [_score(i) for i in indices]
+            best_idx = indices[scores.index(max(scores))]
+        else:
+            best_idx = indices[0]
+
+        for rank, i in enumerate(indices):
+            if i != best_idx:
+                normalized[i] = f"{name}_dup_{rank}"
+                dropped_indices.add(i)
+
+    # ── Step 3: detect suggested ID column ───────────────────────────────
+    norm_set = set(normalized)
+    suggested = next(
+        (c for c in ("instanceID", "_uuid", "_id") if c in norm_set),
+        None
+    )
+
+    return dict(
+        normalized_headers=normalized,
+        detected_format=detected_format,
+        suggested_id_column=suggested,
+        column_map=column_map,
+        dropped_indices=dropped_indices
+    )
+# ─────────────────────────────────────────────────────────────────────────────
+
+
 async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who_version: str, id_column: str = "instanceID"):
     """
     Process WHO VA data -> pycrossva -> InterVA6 with SSE progress updates.
@@ -410,16 +597,34 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
         # Convert to DataFrame
         if not csv_data or len(csv_data) < 2:
             raise ValueError("CSV data must have at least 2 rows (header + data)")
-        
+
         headers = csv_data[0]
         data_rows = csv_data[1:]
+
+        # ── Kobo Toolbox column sanitization ─────────────────────────────
+        norm = sanitize_column(headers, data_rows)
+        headers = norm["normalized_headers"]
+        if norm["detected_format"] == "kobo":
+            n_renamed = len(norm["column_map"])
+            n_dropped = len(norm["dropped_indices"])
+            await queue.put({
+                "type": "progress",
+                "message": (
+                    f"[INFO] Sanitizing format - "
+                    f"renamed {n_renamed} column(s), "
+                    f"resolved {n_dropped} duplicate(s). "
+                    f"Suggested ID column: {norm['suggested_id_column']}"
+                )
+            })
+        # ─────────────────────────────────────────────────────────────────
+
         input_df = pd.DataFrame(data_rows, columns=headers)
-        
+
         await queue.put({
             "type": "progress",
             "message": f"Loaded {len(data_rows)} records with {len(headers)} columns"
         })
-        
+
         # Detect or use WHO version
         if who_version == "auto":
             await queue.put({
@@ -940,16 +1145,34 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
         # Convert to DataFrame
         if not csv_data or len(csv_data) < 2:
             raise ValueError("CSV data must have at least 2 rows (header + data)")
-        
+
         headers = csv_data[0]
         data_rows = csv_data[1:]
+
+        # ── Kobo Toolbox column sanitization ─────────────────────────────
+        norm = sanitize_column(headers, data_rows)
+        headers = norm["normalized_headers"]
+        if norm["detected_format"] == "kobo":
+            n_renamed = len(norm["column_map"])
+            n_dropped = len(norm["dropped_indices"])
+            await queue.put({
+                "type": "progress",
+                "message": (
+                    f"[INFO] Sanitizing format - "
+                    f"renamed {n_renamed} column(s), "
+                    f"resolved {n_dropped} duplicate(s). "
+                    f"Suggested ID column: {norm['suggested_id_column']}"
+                )
+            })
+        # ─────────────────────────────────────────────────────────────────
+
         input_df = pd.DataFrame(data_rows, columns=headers)
-        
+
         await queue.put({
             "type": "progress",
             "message": f"Loaded {len(data_rows)} records with {len(headers)} columns"
         })
-        
+
         # Detect or use WHO version (InterVA5 typically uses WHO 2016)
         if who_version == "auto":
             await queue.put({

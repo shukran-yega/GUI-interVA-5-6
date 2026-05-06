@@ -1306,11 +1306,13 @@
         </div>
         <div class="analysis-controls">
           <select id="whoVersionSelect">
+            <option value="" disabled selected>-- Select WHO version --</option>
             <option value="auto">Auto-detect WHO</option>
             <option value="2016WHOv151">WHO 2016</option>
             <option value="2022WHOv0101">WHO 2022</option>
           </select>
           <select id="algorithmSelect">
+            <option value="" disabled selected>-- Select algorithm --</option>
             <option value="InterVA-5">InterVA-5</option>
             <option value="InterVA-6">InterVA-6</option>
           </select>
@@ -1755,7 +1757,7 @@
           progressSection.classList.remove('active');
           stopTimer();
           closeSSE();
-          runBtn.disabled = false;
+          updateRunButtonState();
           cancelBtn.disabled = true;
           break;
 
@@ -1860,7 +1862,7 @@
         stopTimer();
         closeSSE();
         resultBlob = null;
-        runBtn.disabled = false;
+        updateRunButtonState();
         cancelBtn.disabled = true;
       }
     }
@@ -1930,7 +1932,7 @@
         progressSection.classList.remove('active');
         stopTimer();
       } finally {
-        runBtn.disabled = false;
+        updateRunButtonState();
         cancelBtn.disabled = true;
       }
     }
@@ -1993,7 +1995,7 @@
         progressSection.classList.remove('active');
         stopTimer();
         cancelBtn.disabled = true;
-        runBtn.disabled = false;
+        updateRunButtonState();
       } catch (error) {
         addLogMessage(`[ERROR] Cancel failed: ${error.message}`, 'error');
       }
@@ -2201,6 +2203,22 @@
           throw new Error('CSV must have at least a header and one data row');
         }
 
+        // ── Sanitize Kobo Toolbox column names (client-side mirror of backend) ──
+        const _origHeaders = csvData[0];
+        const _dataRows = csvData.slice(1);
+        const _sanitized = sanitizeColumns(_origHeaders, _dataRows);
+        if (_sanitized.detectedFormat === 'kobo') {
+          csvData[0] = _sanitized.normalizedHeaders;
+          const renamedCount = Object.keys(_sanitized.columnMap).length;
+          const droppedCount = _sanitized.droppedIndices.size;
+          addLogMessage(
+            `[INFO] Sanitizing format - renamed ${renamedCount} column(s), ` +
+            `resolved ${droppedCount} duplicate(s)`,
+            'info'
+          );
+        }
+        // ──────────────────────────────────────────────────────────────────────
+
         const rowCount = csvData.length - 1;
         const MAX_ROWS = isAdmin ? 1000000 : 5000;
 
@@ -2247,10 +2265,8 @@
           addLogMessage('[WARN] Could not auto-detect WHO version -- please select manually');
         }
 
-        // Enable Run only if we have an ID column
-        if (detectedIdColumn) {
-          runBtn.disabled = false;
-        }
+        // Re-evaluate Run button (requires ID column + WHO version + algorithm)
+        updateRunButtonState();
 
         // Run exploration immediately after file load
         runExploration(csvData);
@@ -2261,6 +2277,171 @@
       } finally {
         isLoading = false;
       }
+    }
+
+    // =========================================================================
+    // COLUMN SANITIZATION (Kobo Toolbox format support)
+    // Mirrors `sanitize_column()` in main.py so the client and server
+    // see the same normalized column names.
+    // =========================================================================
+
+    // Case-sensitive map (checked first — handles "Age in Days" vs "Age in days")
+    const KOBO_LABEL_MAP_CS = {
+      "The deceased person is a Neonate":  "isNeonatal",
+      "The deceased person is a Child":    "isChild",
+      "The deceased person is an Adult":   "isAdult",
+      "Age in Years":                      "ageInYears",
+      "Age in Days":                       "ageInDays",
+      "Age in days":                       "ageInDaysNeonate",
+      "Age in Months":                     "ageInMonths",
+      "[Enter adult's age in years:]":     "age_adult",
+      "[Enter child's age in days:]":      "age_child_days",
+      "[Enter child's age in months:]":    "age_child_months",
+      "[Enter child's age in years:]":     "age_child_years",
+      "Interview language":                "language"
+    };
+    // Case-insensitive fallback (excludes "age in days" — ambiguous)
+    const KOBO_LABEL_MAP_CI = {
+      "the deceased person is a neonate":  "isNeonatal",
+      "the deceased person is a child":    "isChild",
+      "the deceased person is an adult":   "isAdult",
+      "age in years":                      "ageInYears",
+      "age in months":                     "ageInMonths",
+      "[enter adult's age in years:]":     "age_adult",
+      "[enter child's age in days:]":      "age_child_days",
+      "[enter child's age in months:]":    "age_child_months",
+      "[enter child's age in years:]":     "age_child_years",
+      "interview language":                "language"
+    };
+
+    // Prefix map for Kobo note/instruction columns (WHO detection support)
+    const KOBO_PREFIX_MAP = {
+      "Some of the following questions may be repet":  "notenarr",
+      "Explain to the respondent that the following":  "note_s_s",
+      "Unless specified, the following questions on":   "nmh",
+      "Civil registration":                             "botecrn",
+      "Death certificate with cause of death":         "noteccd",
+      "Inform the respondent that the VA interview":   "noteend",
+      "[ Inform the respondent that the VA interview": "noteend"
+    };
+
+    function sanitizeColumns(headers, dataRows) {
+      const koboRe = /^\(+(Id\d+[a-zA-Z0-9_]*)\)+/i;
+
+      // ── Step 1: first-pass rename ───────────────────────────────────
+      const firstPass = [];
+      const columnMap = {};
+
+      for (const h of headers) {
+        const m = h.match(koboRe);
+        if (m) {
+          const newName = m[1];
+          columnMap[h] = newName;
+          firstPass.push(newName);
+          continue;
+        }
+
+        // Phase 1: case-sensitive label match
+        const labelExact = h.trim();
+        if (KOBO_LABEL_MAP_CS[labelExact] !== undefined) {
+          const newName = KOBO_LABEL_MAP_CS[labelExact];
+          columnMap[h] = newName;
+          firstPass.push(newName);
+          continue;
+        }
+        // Phase 2: case-insensitive fallback
+        const labelLower = labelExact.toLowerCase();
+        if (KOBO_LABEL_MAP_CI[labelLower] !== undefined) {
+          const newName = KOBO_LABEL_MAP_CI[labelLower];
+          columnMap[h] = newName;
+          firstPass.push(newName);
+          continue;
+        }
+
+        // Phase 3: prefix matching for Kobo note/instruction columns
+        let prefixMatched = false;
+        for (const prefix in KOBO_PREFIX_MAP) {
+          if (labelExact.startsWith(prefix)) {
+            const newName = KOBO_PREFIX_MAP[prefix];
+            columnMap[h] = newName;
+            firstPass.push(newName);
+            prefixMatched = true;
+            break;
+          }
+        }
+        if (prefixMatched) continue;
+
+        firstPass.push(h);
+      }
+
+      // Detect format
+      let koboHits = 0;
+      for (const orig in columnMap) {
+        if (columnMap[orig] !== orig) koboHits++;
+      }
+      const koboRatio = headers.length > 0 ? koboHits / headers.length : 0;
+      const detectedFormat = koboRatio >= 0.20 ? 'kobo' : 'standard';
+
+      if (detectedFormat === 'standard') {
+        return {
+          normalizedHeaders: headers,
+          detectedFormat: 'standard',
+          suggestedIdColumn: null,
+          columnMap: {},
+          droppedIndices: new Set()
+        };
+      }
+
+      // ── Step 2: resolve duplicates by popularity ────────────────────
+      const nameToIndices = {};
+      firstPass.forEach((name, i) => {
+        (nameToIndices[name] = nameToIndices[name] || []).push(i);
+      });
+
+      const normalized = firstPass.slice();
+      const droppedIndices = new Set();
+
+      for (const name in nameToIndices) {
+        const indices = nameToIndices[name];
+        if (indices.length === 1) continue;
+
+        const score = (colIdx) => {
+          let count = 0;
+          for (const row of dataRows) {
+            if (colIdx < row.length) {
+              const v = (row[colIdx] || '').toString().trim();
+              if (v && v !== '0') count++;
+            }
+          }
+          return count;
+        };
+
+        const scores = indices.map(score);
+        const maxScore = Math.max.apply(null, scores);
+        const bestIdx = indices[scores.indexOf(maxScore)];
+
+        indices.forEach((i, rank) => {
+          if (i !== bestIdx) {
+            normalized[i] = `${name}_dup_${rank}`;
+            droppedIndices.add(i);
+          }
+        });
+      }
+
+      // ── Step 3: detect suggested ID column ─────────────────────────
+      const normSet = new Set(normalized);
+      let suggested = null;
+      for (const c of ['instanceID', '_uuid', '_id']) {
+        if (normSet.has(c)) { suggested = c; break; }
+      }
+
+      return {
+        normalizedHeaders: normalized,
+        detectedFormat,
+        suggestedIdColumn: suggested,
+        columnMap,
+        droppedIndices
+      };
     }
 
     // =========================================================================
@@ -2275,6 +2456,10 @@
       let c16 = 0, c22 = 0;
       for (const x of sig2016) { if (s.has(x)) c16++; }
       for (const x of sig2022) { if (s.has(x)) c22++; }
+
+      // Id10476_audio is a strong WHO 2022 discriminator that survives
+      // Kobo regex stripping — promote to threshold if only match
+      if (c22 < 3 && s.has('id10476_audio')) c22 = 3;
 
       if (c16 > c22 && c16 >= 3) return '2016WHOv151';
       if (c22 > c16 && c22 >= 3) return '2022WHOv0101';
@@ -2315,6 +2500,19 @@
       idStatus.textContent = '';
       idStatus.className = 'id-status';
       runBtn.disabled = true;
+
+      // Auto-select well-known ID columns (priority: WHO standard → Kobo → generic)
+      const autoIdPriority = ['instanceID', '_uuid', '_id'];
+      for (const preferred of autoIdPriority) {
+        const idx = headers.findIndex(
+          h => h.toLowerCase() === preferred.toLowerCase()
+        );
+        if (idx !== -1) {
+          idColumnSelect.value = String(idx);
+          validateIdColumn(idx, headers, dataRows);
+          break;
+        }
+      }
     }
 
     function validateIdColumn(colIndex, headers, dataRows) {
@@ -2337,7 +2535,16 @@
       detectedIdColumn = headers[colIndex];
       idStatus.textContent = `Valid: ${uniq.size} unique records`;
       idStatus.className = 'id-status ok';
-      runBtn.disabled = false;
+      updateRunButtonState();
+    }
+
+    // Centralized Run-button gating: enabled only when ID + WHO version
+    // + algorithm are ALL selected.  Call this anywhere a precondition changes.
+    function updateRunButtonState() {
+      const ok = !!detectedIdColumn
+              && whoVersionSelect.value !== ''
+              && algorithmSelect.value !== '';
+      runBtn.disabled = !ok;
     }
 
     idColumnSelect.addEventListener('change', () => {
@@ -2345,6 +2552,10 @@
       if (idx === '' || !uploadedData) return;
       validateIdColumn(parseInt(idx), uploadedData[0], uploadedData.slice(1));
     });
+
+    // Re-evaluate Run button when user picks WHO version or algorithm
+    whoVersionSelect.addEventListener('change', updateRunButtonState);
+    algorithmSelect.addEventListener('change', updateRunButtonState);
 
     // =========================================================================
     // TAB SWITCHING
@@ -2531,10 +2742,18 @@
       // Track remap dropdowns so the shared Re-Run can read them
       const remapSelectors = {};
 
-      // Helper: find column index, respecting user overrides
+      // Helper: find column index, respecting user overrides.
+      // Falls back to fuzzy Kobo-format matching if exact lookup fails.
       function colIdx(name) {
         if (columnMap[name] !== undefined) return columnMap[name];
-        return headerLower.indexOf(name.toLowerCase());
+        const exact = headerLower.indexOf(name.toLowerCase());
+        if (exact !== -1) return exact;
+        // Kobo fuzzy fallback: match header "(IdXXXXX) ..." against bare `name`
+        const pattern = name.toLowerCase();
+        return headerLower.findIndex(h => {
+          const m = h.match(/^\(+(id\d+[a-z0-9_]*)\)+/i);
+          return m && m[1].toLowerCase() === pattern;
+        });
       }
 
       // Helper: count values in a column, return sorted [{label, count}]
@@ -3344,7 +3563,7 @@
 
     resetOutput();
 
-    fileInfo.innerHTML = 'Beta Version <span style="background: #007bff; color: white; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;">v1.2</span>';
+    fileInfo.innerHTML = 'Beta Version <span style="background: #007bff; color: white; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;">v1.25</span>';
     fileInfo.style.color = '#007bff';
 
     fetch(`${API_BASE_URL}/health`)
