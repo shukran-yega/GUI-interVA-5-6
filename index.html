@@ -2203,17 +2203,17 @@
           throw new Error('CSV must have at least a header and one data row');
         }
 
-        // ── Sanitize Kobo Toolbox column names (client-side mirror of backend) ──
+        // ── Column sanitization (auto-detects format, mirrors backend) ──────
         const _origHeaders = csvData[0];
         const _dataRows = csvData.slice(1);
         const _sanitized = sanitizeColumns(_origHeaders, _dataRows);
-        if (_sanitized.detectedFormat === 'kobo') {
+        if (_sanitized.detectedFormat !== 'standard') {
           csvData[0] = _sanitized.normalizedHeaders;
           const renamedCount = Object.keys(_sanitized.columnMap).length;
           const droppedCount = _sanitized.droppedIndices.size;
           addLogMessage(
-            `[INFO] Sanitizing format - renamed ${renamedCount} column(s), ` +
-            `resolved ${droppedCount} duplicate(s)`,
+            `[INFO] Sanitizing format (${_sanitized.detectedFormat}) - ` +
+            `renamed ${renamedCount} column(s), resolved ${droppedCount} duplicate(s)`,
             'info'
           );
         }
@@ -2325,64 +2325,88 @@
       "[ Inform the respondent that the VA interview": "noteend"
     };
 
+    function detectFormat(headers) {
+      // Examine header structural patterns to determine CSV export format.
+      // Each format has a unique fingerprint; first match wins.
+      const n = headers.length || 1;
+      const koboRe = /^\(+(Id\d+[a-zA-Z0-9_]*)\)+/i;
+      const odkIdRe = /^Id\d+/i;
+
+      // Kobo Toolbox: (IdXXXXX) Question text
+      let koboCount = 0;
+      for (const h of headers) { if (koboRe.test(h)) koboCount++; }
+      if (koboCount / n >= 0.20) return 'kobo_wrapped';
+
+      // ODK Central: group-subgroup-...-ColumnID
+      let odkCount = 0;
+      for (const h of headers) {
+        if (h.includes('-') && odkIdRe.test(h.split('-').pop())) odkCount++;
+      }
+      if (odkCount / n >= 0.20) return 'odk_central';
+
+      // Future formats: CommCare, SurveyCTO, etc.
+
+      return 'standard';
+    }
+
     function sanitizeColumns(headers, dataRows) {
       const koboRe = /^\(+(Id\d+[a-zA-Z0-9_]*)\)+/i;
 
-      // ── Step 1: first-pass rename ───────────────────────────────────
+      // ── Step 0: Detect format ───────────────────────────────────────
+      const detectedSource = detectFormat(headers);
+
+      // ── Step 1: Rename loop ─────────────────────────────────────────
       const firstPass = [];
       const columnMap = {};
 
       for (const h of headers) {
-        const m = h.match(koboRe);
-        if (m) {
-          const newName = m[1];
-          columnMap[h] = newName;
-          firstPass.push(newName);
-          continue;
-        }
+        let newName = null;
 
-        // Phase 1: case-sensitive label match
-        const labelExact = h.trim();
-        if (KOBO_LABEL_MAP_CS[labelExact] !== undefined) {
-          const newName = KOBO_LABEL_MAP_CS[labelExact];
-          columnMap[h] = newName;
-          firstPass.push(newName);
-          continue;
-        }
-        // Phase 2: case-insensitive fallback
-        const labelLower = labelExact.toLowerCase();
-        if (KOBO_LABEL_MAP_CI[labelLower] !== undefined) {
-          const newName = KOBO_LABEL_MAP_CI[labelLower];
-          columnMap[h] = newName;
-          firstPass.push(newName);
-          continue;
-        }
+        // ── Format-specific extraction (only detected format runs) ────
+        if (detectedSource === 'kobo_wrapped') {
+          const m = h.match(koboRe);
+          if (m) newName = m[1];
 
-        // Phase 3: prefix matching for Kobo note/instruction columns
-        let prefixMatched = false;
-        for (const prefix in KOBO_PREFIX_MAP) {
-          if (labelExact.startsWith(prefix)) {
-            const newName = KOBO_PREFIX_MAP[prefix];
-            columnMap[h] = newName;
-            firstPass.push(newName);
-            prefixMatched = true;
-            break;
+        } else if (detectedSource === 'odk_central') {
+          if (h.includes('-')) {
+            const seg = h.split('-').pop();
+            if (seg) newName = seg;
           }
         }
-        if (prefixMatched) continue;
 
-        firstPass.push(h);
+        // ── Universal fallbacks (all formats) ─────────────────────────
+        if (newName === null) {
+          const labelExact = h.trim();
+          if (KOBO_LABEL_MAP_CS[labelExact] !== undefined) {
+            newName = KOBO_LABEL_MAP_CS[labelExact];
+          } else {
+            const labelLower = labelExact.toLowerCase();
+            if (KOBO_LABEL_MAP_CI[labelLower] !== undefined) {
+              newName = KOBO_LABEL_MAP_CI[labelLower];
+            } else {
+              for (const prefix in KOBO_PREFIX_MAP) {
+                if (labelExact.startsWith(prefix)) {
+                  newName = KOBO_PREFIX_MAP[prefix];
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+        // Record result
+        if (newName !== null && newName !== h) {
+          columnMap[h] = newName;
+          firstPass.push(newName);
+        } else {
+          firstPass.push(h);
+        }
       }
 
-      // Detect format
-      let koboHits = 0;
-      for (const orig in columnMap) {
-        if (columnMap[orig] !== orig) koboHits++;
-      }
+      // ── Step 2: Validate — enough renames to confirm format? ────────
+      const koboHits = Object.keys(columnMap).length;
       const koboRatio = headers.length > 0 ? koboHits / headers.length : 0;
-      const detectedFormat = koboRatio >= 0.20 ? 'kobo' : 'standard';
-
-      if (detectedFormat === 'standard') {
+      if (koboRatio < 0.20) {
         return {
           normalizedHeaders: headers,
           detectedFormat: 'standard',
@@ -2392,7 +2416,9 @@
         };
       }
 
-      // ── Step 2: resolve duplicates by popularity ────────────────────
+      const detectedFormat = detectedSource; // confirmed by threshold
+
+      // ── Step 3: Resolve duplicates by popularity ────────────────────
       const nameToIndices = {};
       firstPass.forEach((name, i) => {
         (nameToIndices[name] = nameToIndices[name] || []).push(i);
@@ -2428,7 +2454,7 @@
         });
       }
 
-      // ── Step 3: detect suggested ID column ─────────────────────────
+      // ── Step 4: Suggest ID column ──────────────────────────────────
       const normSet = new Set(normalized);
       let suggested = null;
       for (const c of ['instanceID', '_uuid', '_id']) {

@@ -445,78 +445,110 @@ _KOBO_PREFIX_MAP: dict = {
 }
 
 
+def _detect_format(headers: list) -> str:
+    """
+    Examine header structural patterns to determine the CSV export format.
+
+    Each format has a unique fingerprint checked in priority order.
+    First match wins — formats are mutually exclusive.
+
+    Returns: "kobo_wrapped" | "odk_central" | "standard"
+    """
+    n = len(headers) or 1
+
+    kobo_re = _re.compile(r'^\(+(Id\d+[a-zA-Z0-9_]*)\)+', _re.IGNORECASE)
+    odk_id_re = _re.compile(r'^Id\d+', _re.IGNORECASE)
+
+    # Kobo Toolbox: (IdXXXXX) Question text
+    kobo_count = sum(1 for h in headers if kobo_re.match(h))
+    if kobo_count / n >= 0.20:
+        return "kobo_wrapped"
+
+    # ODK Central: group-subgroup-...-ColumnID
+    odk_count = sum(1 for h in headers if '-' in h
+                    and odk_id_re.match(h.rsplit('-', 1)[-1]))
+    if odk_count / n >= 0.20:
+        return "odk_central"
+
+    # Future formats go here:
+    # CommCare, SurveyCTO, etc. — each with its own signature.
+
+    return "standard"
+
+
 def sanitize_column(headers: list, data_rows: list = None) -> dict:
     """
-    Detect and normalize Kobo Toolbox CSV export column names.
+    Detect and normalize CSV column names from various VA export formats.
 
-    Handles three Kobo patterns:
-      A) "(IdXXXXX) Question text"  →  "IdXXXXX"
-      B) Known plain-English labels →  standard system name (e.g. isNeonatal)
-      C) Duplicate column names     →  keep the most-populated column;
-                                       suffix remaining occurrences _dup_N
+    Supported formats (detected automatically):
+      - kobo_wrapped:  "(IdXXXXX) Question text"   → "IdXXXXX"
+      - odk_central:   "group-subgroup-ColumnID"    → "ColumnID"
+      - standard:      no transformation needed
 
-    When data_rows is supplied, "most populated" = column with highest count
-    of non-empty, non-"0" values.  When data_rows is None, first occurrence
-    is kept (no popularity scoring).
+    Universal fallbacks (applied after format-specific extraction):
+      - Label maps:    "The deceased person is a Neonate" → "isNeonatal"
+      - Prefix maps:   "Civil registration: ..." → "botecrn"
+
+    Duplicate resolution: keep the most-populated column (by non-empty,
+    non-"0" cell count), suffix remaining occurrences with _dup_N.
 
     Returns dict with keys:
         normalized_headers  – list of cleaned names (same length as input)
-        detected_format     – "kobo" | "standard"
-        suggested_id_column – preferred ID column if Kobo detected, else None
+        detected_format     – "kobo_wrapped" | "odk_central" | "standard"
+        suggested_id_column – preferred ID column if detected, else None
         column_map          – {original_header: new_name} for logging/debug
         dropped_indices     – set of column indices that are duplicates
     """
+    # ── Step 0: Detect format ────────────────────────────────────────────
+    detected_source = _detect_format(headers)
+
     kobo_re = _re.compile(r'^\(+(Id\d+[a-zA-Z0-9_]*)\)+', _re.IGNORECASE)
 
-    # ── Step 1: first-pass rename ─────────────────────────────────────────
+    # ── Step 1: Rename loop ──────────────────────────────────────────────
     first_pass: list = []
     column_map: dict = {}
 
     for h in headers:
-        # Pattern A: (IdXXXXX) Question text
-        m = kobo_re.match(h)
-        if m:
-            new_name = m.group(1)
+        new_name = None
+
+        # ── Format-specific extraction (only the detected format runs) ───
+        if detected_source == "kobo_wrapped":
+            m = kobo_re.match(h)
+            if m:
+                new_name = m.group(1)
+
+        elif detected_source == "odk_central":
+            if '-' in h:
+                seg = h.rsplit('-', 1)[-1]
+                if seg:
+                    new_name = seg
+
+        # ── Universal fallbacks (all formats) ────────────────────────────
+        if new_name is None:
+            label_exact = h.strip()
+            if label_exact in _KOBO_LABEL_MAP_CS:
+                new_name = _KOBO_LABEL_MAP_CS[label_exact]
+            else:
+                label_lower = label_exact.lower()
+                if label_lower in _KOBO_LABEL_MAP_CI:
+                    new_name = _KOBO_LABEL_MAP_CI[label_lower]
+                else:
+                    for prefix, target in _KOBO_PREFIX_MAP.items():
+                        if label_exact.startswith(prefix):
+                            new_name = target
+                            break
+
+        # Record result
+        if new_name is not None and new_name != h:
             column_map[h] = new_name
             first_pass.append(new_name)
-            continue
+        else:
+            first_pass.append(h)
 
-        # Pattern B: known plain-English label
-        # Try case-sensitive first (distinguishes "Age in Days" vs "Age in days")
-        label_exact = h.strip()
-        if label_exact in _KOBO_LABEL_MAP_CS:
-            new_name = _KOBO_LABEL_MAP_CS[label_exact]
-            column_map[h] = new_name
-            first_pass.append(new_name)
-            continue
-        # Case-insensitive fallback (handles casing variation across forms)
-        label_lower = label_exact.lower()
-        if label_lower in _KOBO_LABEL_MAP_CI:
-            new_name = _KOBO_LABEL_MAP_CI[label_lower]
-            column_map[h] = new_name
-            first_pass.append(new_name)
-            continue
-
-        # Pattern C: prefix matching for Kobo note/instruction columns
-        matched_prefix = False
-        for prefix, target_name in _KOBO_PREFIX_MAP.items():
-            if label_exact.startswith(prefix):
-                column_map[h] = target_name
-                first_pass.append(target_name)
-                matched_prefix = True
-                break
-        if matched_prefix:
-            continue
-
-        # No match: keep as-is (metadata: _uuid, start, end, _id, …)
-        first_pass.append(h)
-
-    # ── Detect format ─────────────────────────────────────────────────────
-    kobo_hits = sum(1 for orig, renamed in column_map.items() if renamed != orig)
+    # ── Step 2: Validate — enough renames to confirm the format? ─────────
+    kobo_hits = len(column_map)
     kobo_ratio = kobo_hits / len(headers) if headers else 0
-    detected_format = "kobo" if kobo_ratio >= 0.20 else "standard"
-
-    if detected_format == "standard":
+    if kobo_ratio < 0.20:
         return dict(
             normalized_headers=headers,
             detected_format="standard",
@@ -525,7 +557,9 @@ def sanitize_column(headers: list, data_rows: list = None) -> dict:
             dropped_indices=set()
         )
 
-    # ── Step 2: resolve duplicates (Pattern C) ────────────────────────────
+    detected_format = detected_source  # confirmed by rename threshold
+
+    # ── Step 3: Resolve duplicates ───────────────────────────────────────
     name_to_indices: dict = {}
     for i, name in enumerate(first_pass):
         name_to_indices.setdefault(name, []).append(i)
@@ -557,7 +591,7 @@ def sanitize_column(headers: list, data_rows: list = None) -> dict:
                 normalized[i] = f"{name}_dup_{rank}"
                 dropped_indices.add(i)
 
-    # ── Step 3: detect suggested ID column ───────────────────────────────
+    # ── Step 4: Suggest ID column ────────────────────────────────────────
     norm_set = set(normalized)
     suggested = next(
         (c for c in ("instanceID", "_uuid", "_id") if c in norm_set),
@@ -601,16 +635,16 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
         headers = csv_data[0]
         data_rows = csv_data[1:]
 
-        # ── Kobo Toolbox column sanitization ─────────────────────────────
+        # ── Column sanitization (auto-detects format) ────────────────────
         norm = sanitize_column(headers, data_rows)
         headers = norm["normalized_headers"]
-        if norm["detected_format"] == "kobo":
+        if norm["detected_format"] != "standard":
             n_renamed = len(norm["column_map"])
             n_dropped = len(norm["dropped_indices"])
             await queue.put({
                 "type": "progress",
                 "message": (
-                    f"[INFO] Sanitizing format - "
+                    f"[INFO] Sanitizing format ({norm['detected_format']}) - "
                     f"renamed {n_renamed} column(s), "
                     f"resolved {n_dropped} duplicate(s). "
                     f"Suggested ID column: {norm['suggested_id_column']}"
@@ -1149,16 +1183,16 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
         headers = csv_data[0]
         data_rows = csv_data[1:]
 
-        # ── Kobo Toolbox column sanitization ─────────────────────────────
+        # ── Column sanitization (auto-detects format) ────────────────────
         norm = sanitize_column(headers, data_rows)
         headers = norm["normalized_headers"]
-        if norm["detected_format"] == "kobo":
+        if norm["detected_format"] != "standard":
             n_renamed = len(norm["column_map"])
             n_dropped = len(norm["dropped_indices"])
             await queue.put({
                 "type": "progress",
                 "message": (
-                    f"[INFO] Sanitizing format - "
+                    f"[INFO] Sanitizing format ({norm['detected_format']}) - "
                     f"renamed {n_renamed} column(s), "
                     f"resolved {n_dropped} duplicate(s). "
                     f"Suggested ID column: {norm['suggested_id_column']}"

@@ -3,6 +3,7 @@ VA_output/*.csv
 VA_output/*.txt
 interva6/output/*.csv
 interva6/output/*.txt
+.claude
 
 # Keep directory structure
 !VA_output/.gitkeep
@@ -37,3 +38,4 @@ test_*.csv
 sample_large*.csv
 __pycache__/main.cpython-312.pyc
 __pycache__/main.cpython-312.pyc
+
