@@ -50,6 +50,9 @@ class ChunkPayload(BaseModel):
     algorithm: str
     who_version: str  # WHO version: "auto", "2016WHOv151", or "2022WHOv0101"
     id_column: str = "instanceID"  # Column name used as unique record identifier
+    hiv: str = "h"      # HIV prevalence: "h" (high), "l" (low), "v" (very low)
+    malaria: str = "h"  # Malaria prevalence: "h" (high), "l" (low), "v" (very low)
+    covid: str = "v"    # COVID prevalence: "h" (high), "l" (low), "v" (very low) — InterVA-6 only
     data: str  # Base64 or plain text chunk
 
 
@@ -195,6 +198,9 @@ async def upload_chunk(payload: ChunkPayload):
                 "algorithm": payload.algorithm,
                 "who_version": payload.who_version,
                 "id_column": payload.id_column,
+                "hiv": payload.hiv,
+                "malaria": payload.malaria,
+                "covid": payload.covid,
                 "sse_queue": asyncio.Queue(),
                 "cancelled": False,
                 "task": None
@@ -211,6 +217,9 @@ async def upload_chunk(payload: ChunkPayload):
         session["algorithm"] = payload.algorithm
         session["who_version"] = payload.who_version
         session["id_column"] = payload.id_column
+        session["hiv"] = payload.hiv
+        session["malaria"] = payload.malaria
+        session["covid"] = payload.covid
         
         # Send progress update via SSE
         await session["sse_queue"].put({
@@ -273,13 +282,24 @@ async def upload_chunk(payload: ChunkPayload):
             algorithm_lower = session["algorithm"].lower()
             if "interva-6" in algorithm_lower or "interva6" in algorithm_lower:
                 task = asyncio.create_task(
-                    process_vman3_interva6(csv_data, session_id, session["who_version"], session.get("id_column", "instanceID"))
+                    process_vman3_interva6(
+                        csv_data, session_id, session["who_version"],
+                        session.get("id_column", "instanceID"),
+                        hiv=session.get("hiv", "h"),
+                        malaria=session.get("malaria", "h"),
+                        covid=session.get("covid", "v")
+                    )
                 )
                 session["task"] = task
                 return {"status": "processing", "session_id": session_id}
             elif "interva-5" in algorithm_lower or "interva5" in algorithm_lower:
                 task = asyncio.create_task(
-                    process_vman3_interva5(csv_data, session_id, session["who_version"], session.get("id_column", "instanceID"))
+                    process_vman3_interva5(
+                        csv_data, session_id, session["who_version"],
+                        session.get("id_column", "instanceID"),
+                        hiv=session.get("hiv", "h"),
+                        malaria=session.get("malaria", "h")
+                    )
                 )
                 session["task"] = task
                 return {"status": "processing", "session_id": session_id}
@@ -608,7 +628,7 @@ def sanitize_column(headers: list, data_rows: list = None) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who_version: str, id_column: str = "instanceID"):
+async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who_version: str, id_column: str = "instanceID", hiv: str = "h", malaria: str = "h", covid: str = "v"):
     """
     Process WHO VA data -> pycrossva -> InterVA6 with SSE progress updates.
     """
@@ -750,9 +770,9 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
             interva6_obj = interva6()
             results = interva6_obj.run(
                 input_data=ccva_df,
-                hiv="h",
-                malaria="h",
-                covid="v",
+                hiv=hiv,
+                malaria=malaria,
+                covid=covid,
                 write=False,
                 output="extended"
             )
@@ -853,43 +873,42 @@ async def get_csmf(session_id: str, top: int = 10):
         
         if "interva5_obj" in session:
             interva5_obj = session["interva5_obj"]
-            csmf_all_series = interva5_obj.get_csmf(top=top, groupcode=False, method="frequency")
-            
-            if csmf_all_series is None or len(csmf_all_series) == 0:
-                return {"categories": {}, "message": "No CSMF data available", "algorithm": algorithm}
-            
-            csmf_all_dict = csmf_all_series.to_dict()
-            
-            # Get the COD DataFrame for per-record filtering
             results = interva5_obj.results
-            if isinstance(results, dict) and "COD" in results:
-                cod_df = pd.DataFrame(results["COD"]) if isinstance(results["COD"], list) else results["COD"].copy()
-            else:
-                # Fallback: return only "all" if we can't get per-record data
-                return {
-                    "categories": {"all": {"csmf": csmf_all_dict, "count": len(csmf_all_dict)}},
-                    "top": top,
-                    "algorithm": algorithm
-                }
-        
+
+            if not results or not isinstance(results, dict) or "COD" not in results:
+                return {"categories": {}, "message": "No CSMF data available", "algorithm": algorithm}
+
+            cod_df = pd.DataFrame(results["COD"]) if isinstance(results["COD"], list) else results["COD"].copy()
+
+            # Replace blank causes with "Undetermined" so they count in CSMF
+            cod_df["CAUSE1"] = cod_df["CAUSE1"].replace(" ", "Undetermined")
+            cause1 = cod_df["CAUSE1"]
+            counts = cause1.value_counts()
+            total = len(cause1)
+
+            if total == 0:
+                return {"categories": {}, "message": "No causes found", "algorithm": algorithm}
+
+            csmf_all_dict = (counts / total).head(top).to_dict()
+
         elif "interva6_obj" in session:
             interva6_obj = session["interva6_obj"]
-            
+
             if not interva6_obj.results or "COD" not in interva6_obj.results:
                 return {"categories": {}, "message": "No results found in InterVA-6 object", "algorithm": algorithm}
-            
+
             cod_results = interva6_obj.results["COD"]
             cod_df = pd.DataFrame(cod_results) if isinstance(cod_results, list) else cod_results.copy()
-            
-            # Compute "all" CSMF the same way as before
+
+            # Replace blank causes with "Undetermined" so they count in CSMF
+            cod_df["CAUSE1"] = cod_df["CAUSE1"].replace(" ", "Undetermined")
             cause1 = cod_df["CAUSE1"]
-            valid = cause1[cause1 != " "]
-            counts = valid.value_counts()
-            total = len(valid)
-            
+            counts = cause1.value_counts()
+            total = len(cause1)
+
             if total == 0:
-                return {"categories": {}, "message": "No valid causes found", "algorithm": algorithm}
-            
+                return {"categories": {}, "message": "No causes found", "algorithm": algorithm}
+
             csmf_all_dict = (counts / total).head(top).to_dict()
         
         # ── Step 2: Build ID-based demographic lookup from input data ────
@@ -942,34 +961,33 @@ async def get_csmf(session_id: str, top: int = 10):
             """Given a list of instanceIDs, filter COD results and compute CSMF."""
             if not id_list:
                 return {}, 0
-            
+
             id_set = set(id_list)
             filtered = cod_df[cod_df["ID"].isin(id_set)]
-            
+
             if filtered.empty or "CAUSE1" not in filtered.columns:
                 return {}, 0
-            
+
+            # Blanks already replaced with "Undetermined" in cod_df
             cause1 = filtered["CAUSE1"]
-            valid = cause1[cause1 != " "]
-            total = len(valid)
-            
+            total = len(cause1)
+
             if total == 0:
                 return {}, 0
-            
-            counts = valid.value_counts()
+
+            counts = cause1.value_counts()
             csmf = (counts / total).head(top_n)
             return csmf.to_dict(), total
         
         # ── Step 4: Build categorized response ──────────────────────────
         
-        # Count total records for "all"
-        all_cause1 = cod_df["CAUSE1"] if "CAUSE1" in cod_df.columns else pd.Series()
-        all_valid_count = len(all_cause1[all_cause1 != " "]) if len(all_cause1) > 0 else 0
+        # Count total records for "all" (blanks already replaced with "Undetermined")
+        all_count = len(cod_df)
         
         categories = {
             "all": {
                 "csmf": csmf_all_dict,
-                "count": all_valid_count,
+                "count": all_count,
                 "label": "All Population"
             }
         }
@@ -1156,7 +1174,7 @@ async def cleanup_session(session_id: str):
     return {"status": "not_found", "session_id": session_id}
 
 
-async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who_version: str, id_column: str = "instanceID"):
+async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who_version: str, id_column: str = "instanceID", hiv: str = "h", malaria: str = "h"):
     """
     Process WHO VA data -> pycrossva -> InterVA5 with SSE progress updates.
     """
@@ -1296,8 +1314,8 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
                 
                 interva5_obj = InterVA5(
                     va_input=ccva_df,
-                    hiv="h",
-                    malaria="h",
+                    hiv=hiv,
+                    malaria=malaria,
                     write=False,
                     return_checked_data=False
                 )

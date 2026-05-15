@@ -1316,6 +1316,24 @@
             <option value="InterVA-5">InterVA-5</option>
             <option value="InterVA-6">InterVA-6</option>
           </select>
+          <select id="hivSelect">
+            <option value="" disabled selected>-- HIV prevalence --</option>
+            <option value="h">HIV: High</option>
+            <option value="l">HIV: Low</option>
+            <option value="v">HIV: Very Low</option>
+          </select>
+          <select id="malariaSelect">
+            <option value="" disabled selected>-- Malaria prevalence --</option>
+            <option value="h">Malaria: High</option>
+            <option value="l">Malaria: Low</option>
+            <option value="v">Malaria: Very Low</option>
+          </select>
+          <select id="covidSelect" style="display:none;">
+            <option value="" disabled selected>-- COVID prevalence --</option>
+            <option value="h">COVID: High</option>
+            <option value="l">COVID: Low</option>
+            <option value="v">COVID: Very Low</option>
+          </select>
           <button id="runBtn" disabled>Run Analysis</button>
           <button id="cancelBtn" disabled>Cancel</button>
         </div>
@@ -1564,6 +1582,9 @@
     const cancelBtn = document.getElementById('cancelBtn');
     const algorithmSelect = document.getElementById('algorithmSelect');
     const whoVersionSelect = document.getElementById('whoVersionSelect');
+    const hivSelect = document.getElementById('hivSelect');
+    const malariaSelect = document.getElementById('malariaSelect');
+    const covidSelect = document.getElementById('covidSelect');
     const outputBox = document.getElementById('outputBox');
     const downloadLink = document.getElementById('downloadLink');
     // Progress bar removed — stub references so existing call sites don't throw
@@ -1833,6 +1854,9 @@
               algorithm: algorithm,
               who_version: whoVersion,
               id_column: idCol,
+              hiv: hivSelect.value || 'h',
+              malaria: malariaSelect.value || 'h',
+              covid: covidSelect.value || 'v',
               data: chunks[i]
             })
           });
@@ -1976,6 +2000,7 @@
         algorithmSelect.value = 'InterVA-6';
         addLogMessage('[INFO] WHO 2022 -> InterVA-6 (recommended)');
       }
+      updateRunButtonState(); // sync COVID visibility after algorithm auto-switch
     });
 
     runBtn.addEventListener('click', async () => {
@@ -2565,11 +2590,21 @@
     }
 
     // Centralized Run-button gating: enabled only when ID + WHO version
-    // + algorithm are ALL selected.  Call this anywhere a precondition changes.
+    // + algorithm + prevalence settings are ALL selected.
     function updateRunButtonState() {
+      const alg = algorithmSelect.value;
+      const isIV6 = alg === 'InterVA-6';
+
+      // Show/hide COVID dropdown based on algorithm
+      covidSelect.style.display = isIV6 ? '' : 'none';
+      if (!isIV6) covidSelect.value = '';
+
       const ok = !!detectedIdColumn
               && whoVersionSelect.value !== ''
-              && algorithmSelect.value !== '';
+              && alg !== ''
+              && hivSelect.value !== ''
+              && malariaSelect.value !== ''
+              && (isIV6 ? covidSelect.value !== '' : true);
       runBtn.disabled = !ok;
     }
 
@@ -2579,9 +2614,12 @@
       validateIdColumn(parseInt(idx), uploadedData[0], uploadedData.slice(1));
     });
 
-    // Re-evaluate Run button when user picks WHO version or algorithm
+    // Re-evaluate Run button when user picks WHO version, algorithm, or prevalence
     whoVersionSelect.addEventListener('change', updateRunButtonState);
     algorithmSelect.addEventListener('change', updateRunButtonState);
+    hivSelect.addEventListener('change', updateRunButtonState);
+    malariaSelect.addEventListener('change', updateRunButtonState);
+    covidSelect.addEventListener('change', updateRunButtonState);
 
     // =========================================================================
     // TAB SWITCHING
@@ -3241,7 +3279,7 @@
       const modalChart = document.getElementById('csmfModalChart');
 
       modalTitle.textContent = `CSMF — ${label} (${algorithm})`;
-      modalSub.textContent = `${count} records with determined cause of death`;
+      modalSub.textContent = `${count} records`;
       modalChart.innerHTML = '';
 
       const maxVal = Math.max(...entries.map(d => d.value));
@@ -3589,7 +3627,7 @@
 
     resetOutput();
 
-    fileInfo.innerHTML = 'Beta Version <span style="background: #007bff; color: white; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;">v1.3</span>';
+    fileInfo.innerHTML = 'Beta Version <span style="background: #007bff; color: white; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;">v1.3.5</span>';
     fileInfo.style.color = '#007bff';
 
     fetch(`${API_BASE_URL}/health`)
