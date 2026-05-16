@@ -1317,20 +1317,17 @@
             <option value="InterVA-6">InterVA-6</option>
           </select>
           <select id="hivSelect">
-            <option value="" disabled selected>-- HIV prevalence --</option>
-            <option value="h">HIV: High</option>
+            <option value="h" selected>HIV: High</option>
             <option value="l">HIV: Low</option>
             <option value="v">HIV: Very Low</option>
           </select>
           <select id="malariaSelect">
-            <option value="" disabled selected>-- Malaria prevalence --</option>
-            <option value="h">Malaria: High</option>
+            <option value="h" selected>Malaria: High</option>
             <option value="l">Malaria: Low</option>
             <option value="v">Malaria: Very Low</option>
           </select>
           <select id="covidSelect" style="display:none;">
-            <option value="" disabled selected>-- COVID prevalence --</option>
-            <option value="h">COVID: High</option>
+            <option value="h" selected>COVID: High</option>
             <option value="l">COVID: Low</option>
             <option value="v">COVID: Very Low</option>
           </select>
@@ -1346,7 +1343,13 @@
           <span>Load a CSV file and run analysis to see cause-specific mortality fractions here</span>
         </div>
         <div class="csmf-section" id="csmfSection" style="display:none;">
-          <h3 id="csmfTitle">CSMF Results</h3>
+          <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+            <h3 id="csmfTitle" style="margin:0;">CSMF Results</h3>
+            <div class="checkbox-wrapper">
+              <input type="checkbox" id="includeUndetermined" checked>
+              <label for="includeUndetermined">Include Undetermined</label>
+            </div>
+          </div>
           <div class="csmf-grid" id="csmfGrid"></div>
         </div>
         <div class="action-row" id="actionRow" style="display:none; padding-top: 15px;">
@@ -2597,14 +2600,11 @@
 
       // Show/hide COVID dropdown based on algorithm
       covidSelect.style.display = isIV6 ? '' : 'none';
-      if (!isIV6) covidSelect.value = '';
+      if (!isIV6) covidSelect.value = 'h'; // reset to default when hidden
 
       const ok = !!detectedIdColumn
               && whoVersionSelect.value !== ''
-              && alg !== ''
-              && hivSelect.value !== ''
-              && malariaSelect.value !== ''
-              && (isIV6 ? covidSelect.value !== '' : true);
+              && alg !== '';
       runBtn.disabled = !ok;
     }
 
@@ -3173,6 +3173,8 @@
       grid.innerHTML = '';
       title.textContent = `CSMF Results (${algorithm})`;
 
+      const showUndetermined = document.getElementById('includeUndetermined').checked;
+
       // Render order: all first, then gender, then age groups
       const order = ['all', 'male', 'female', 'adult', 'child', 'neonatal'];
 
@@ -3180,9 +3182,14 @@
         if (!categories[key]) continue;
         const cat = categories[key];
         const csmf = cat.csmf;
-        const entries = Object.entries(csmf)
+        let entries = Object.entries(csmf)
           .map(([cause, value]) => ({ cause, value: parseFloat(value) }))
           .sort((a, b) => b.value - a.value);
+
+        // Filter out "Undetermined" if checkbox is unchecked
+        if (!showUndetermined) {
+          entries = entries.filter(d => d.cause !== 'Undetermined');
+        }
 
         if (!entries.length) continue;
 
@@ -3278,6 +3285,11 @@
       const modalSub = document.getElementById('csmfModalSubtitle');
       const modalChart = document.getElementById('csmfModalChart');
 
+      const showUndetermined = document.getElementById('includeUndetermined').checked;
+      if (!showUndetermined) {
+        entries = entries.filter(d => d.cause !== 'Undetermined');
+      }
+
       modalTitle.textContent = `CSMF — ${label} (${algorithm})`;
       modalSub.textContent = `${count} records`;
       modalChart.innerHTML = '';
@@ -3330,6 +3342,13 @@
       if (e.key === 'Escape') {
         document.getElementById('csmfModalOverlay').classList.remove('active');
         closeDistModal();
+      }
+    });
+
+    // Toggle Undetermined in CSMF — re-render grid in real time
+    document.getElementById('includeUndetermined').addEventListener('change', () => {
+      if (csmfFullData && csmfFullData.categories) {
+        displayCSMFGrid(csmfFullData.categories, csmfFullData.algorithm || currentAlgorithm || 'InterVA');
       }
     });
 
