@@ -800,18 +800,23 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
             results_df = results
         else:
             raise ValueError(f"Unexpected result type from InterVA6: {type(results)}")
-        
+
+        # Replace blank causes (" ") with "Undetermined" before CSV export
+        for col in ['CAUSE1', 'CAUSE2', 'CAUSE3']:
+            if col in results_df.columns:
+                results_df[col] = results_df[col].replace(" ", "Undetermined")
+
         await queue.put({
             "type": "progress",
             "message": f"[OK] Analysis complete! Generated {results_df.shape[0]} result rows"
         })
-        
+
         # Convert to CSV
         await queue.put({
             "type": "progress",
             "message": "Converting results to CSV format..."
         })
-        
+
         csv_buffer = io.StringIO()
         results_df.to_csv(csv_buffer, index=False)
         csv_buffer.seek(0)
@@ -881,6 +886,7 @@ async def get_csmf(session_id: str, top: int = 10):
             cod_df = pd.DataFrame(results["COD"]) if isinstance(results["COD"], list) else results["COD"].copy()
 
             # Replace blank causes with "Undetermined" so they count in CSMF
+            # (CSMF reads from interva_obj.results, not the download CSV, so needs its own replace)
             cod_df["CAUSE1"] = cod_df["CAUSE1"].replace(" ", "Undetermined")
             cause1 = cod_df["CAUSE1"]
             counts = cause1.value_counts()
@@ -901,6 +907,7 @@ async def get_csmf(session_id: str, top: int = 10):
             cod_df = pd.DataFrame(cod_results) if isinstance(cod_results, list) else cod_results.copy()
 
             # Replace blank causes with "Undetermined" so they count in CSMF
+            # (CSMF reads from interva_obj.results, not the download CSV, so needs its own replace)
             cod_df["CAUSE1"] = cod_df["CAUSE1"].replace(" ", "Undetermined")
             cause1 = cod_df["CAUSE1"]
             counts = cause1.value_counts()
@@ -1344,18 +1351,23 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
             results_df = results
         else:
             raise ValueError(f"Unexpected result type from InterVA5: {type(results)}")
-        
+
+        # Replace blank causes (" ") with "Undetermined" before CSV export
+        for col in ['CAUSE1', 'CAUSE2', 'CAUSE3']:
+            if col in results_df.columns:
+                results_df[col] = results_df[col].replace(" ", "Undetermined")
+
         await queue.put({
             "type": "progress",
             "message": f"[OK] Analysis complete! Generated {results_df.shape[0]} result rows"
         })
-        
+
         # Convert to CSV
         await queue.put({
             "type": "progress",
             "message": "Converting results to CSV format..."
         })
-        
+
         csv_buffer = io.StringIO()
         results_df.to_csv(csv_buffer, index=False)
         csv_buffer.seek(0)
