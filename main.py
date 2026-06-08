@@ -10,6 +10,7 @@ import sys
 import os
 import asyncio
 import uuid
+import sqlite3
 from collections import defaultdict
 from datetime import datetime
 
@@ -38,6 +39,51 @@ app.add_middleware(
 # Session storage for chunks and SSE queues
 sessions: Dict[str, Dict] = {}
 # Structure: {session_id: {"chunks": {chunk_index: data}, "total_chunks": N, "algorithm": str, "who_version": str, "sse_queue": asyncio.Queue, "cancelled": bool, "task": Optional[asyncio.Task]}}
+
+# ── Analytics DB (SQLite) ────────────────────────────────────────────
+DB_PATH = os.environ.get(
+    "ANALYTICS_DB",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "analytics.db")
+)
+
+def init_db():
+    """Create the analytics database and tables if they don't exist."""
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS user_locations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            country TEXT,
+            region TEXT,
+            city TEXT,
+            lat REAL,
+            lon REAL,
+            isp TEXT,
+            algorithm TEXT,
+            timestamp TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    conn.commit()
+    conn.close()
+    print(f"[OK] Analytics DB ready at {DB_PATH}")
+
+# Initialize DB on import
+init_db()
+
+# Dashboard auth
+DASHBOARD_EMAIL = "admin@vman.net"
+DASHBOARD_PASSWORD = "welcome2ccva"
+dashboard_tokens: set = set()
+# ─────────────────────────────────────────────────────────────────────
+
+class LocationPayload(BaseModel):
+    country: str = ""
+    region: str = ""
+    city: str = ""
+    lat: float = 0.0
+    lon: float = 0.0
+    isp: str = ""
+    algorithm: str = ""
 
 class DataPayload(BaseModel):
     algorithm: str
@@ -69,6 +115,83 @@ async def home():
             "status": "running",
             "instructions": "Create an index.html file in the same directory as main.py"
         }
+
+
+# ── Analytics & Dashboard Endpoints ──────────────────────────────────
+
+@app.get("/usage")
+async def serve_dashboard():
+    """Serve the analytics dashboard page."""
+    html_file = os.path.join(os.path.dirname(__file__), "dashboard.html")
+    if os.path.exists(html_file):
+        return FileResponse(html_file)
+    raise HTTPException(status_code=404, detail="Dashboard not found")
+
+
+@app.post("/track-location")
+async def track_location(payload: LocationPayload):
+    """Record a user's geolocation for analytics."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute(
+            "INSERT INTO user_locations (country, region, city, lat, lon, isp, algorithm) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (payload.country, payload.region, payload.city,
+             payload.lat, payload.lon, payload.isp, payload.algorithm)
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[WARN] Failed to record location: {e}")
+    return {"status": "ok"}
+
+
+@app.post("/dashboard-login")
+async def dashboard_login(payload: dict):
+    """Authenticate for the analytics dashboard."""
+    if (payload.get("email") == DASHBOARD_EMAIL
+            and payload.get("password") == DASHBOARD_PASSWORD):
+        token = str(uuid.uuid4())
+        dashboard_tokens.add(token)
+        return {"token": token}
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+
+@app.get("/api/dashboard-data")
+async def dashboard_data(token: str):
+    """Return aggregated location analytics for the dashboard map."""
+    if token not in dashboard_tokens:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+
+    # Aggregated by city (rounded lat/lon to merge nearby points)
+    locations = conn.execute("""
+        SELECT country, city, lat, lon,
+               COUNT(*) as count,
+               MIN(timestamp) as first_seen,
+               MAX(timestamp) as last_seen
+        FROM user_locations
+        GROUP BY country, city, ROUND(lat, 2), ROUND(lon, 2)
+        ORDER BY count DESC
+    """).fetchall()
+
+    # Summary stats
+    stats = conn.execute("""
+        SELECT COUNT(*) as total_visits,
+               COUNT(DISTINCT country) as unique_countries,
+               COUNT(DISTINCT city) as unique_cities
+        FROM user_locations
+    """).fetchone()
+
+    conn.close()
+
+    return {
+        "locations": [dict(r) for r in locations],
+        "stats": dict(stats)
+    }
+
+# ─────────────────────────────────────────────────────────────────────
 
 
 @app.get("/health")
@@ -349,6 +472,38 @@ async def download_result(session_id: str):
         media_type="text/csv",
         headers={
             "Content-Disposition": "attachment; filename=interva_results.csv",
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
+
+
+@app.get("/download-sanitized/{session_id}")
+async def download_sanitized(session_id: str):
+    """Download the sanitized (column-normalized) input CSV."""
+    session = sessions.get(session_id)
+    if not session or "sanitized_csv" not in session:
+        raise HTTPException(status_code=404, detail="Sanitized CSV not available")
+    return StreamingResponse(
+        io.BytesIO(session["sanitized_csv"]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=Input_sanitized.csv",
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
+
+
+@app.get("/download-transformed/{session_id}")
+async def download_transformed(session_id: str):
+    """Download the pyCrossVA-transformed input CSV."""
+    session = sessions.get(session_id)
+    if not session or "transformed_csv" not in session:
+        raise HTTPException(status_code=404, detail="Transformed CSV not available")
+    return StreamingResponse(
+        io.BytesIO(session["transformed_csv"]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=Input_transformed.csv",
             "Access-Control-Expose-Headers": "Content-Disposition"
         }
     )
@@ -674,6 +829,11 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
 
         input_df = pd.DataFrame(data_rows, columns=headers)
 
+        # Store sanitized input for download
+        sanitized_buffer = io.StringIO()
+        input_df.to_csv(sanitized_buffer, index=False)
+        session["sanitized_csv"] = sanitized_buffer.getvalue().encode('utf-8')
+
         await queue.put({
             "type": "progress",
             "message": f"Loaded {len(data_rows)} records with {len(headers)} columns"
@@ -736,16 +896,21 @@ async def process_vman3_interva6(csv_data: List[List[Any]], session_id: str, who
         )
         if ccva_df is None:
             raise ValueError("Transformation returned no data. Check input file and mapping configuration.")
-        
+
+        # Store transformed input for download
+        transformed_buffer = io.StringIO()
+        ccva_df.to_csv(transformed_buffer, index=False)
+        session["transformed_csv"] = transformed_buffer.getvalue().encode('utf-8')
+
         await queue.put({
             "type": "progress",
             "message": f"[OK] Transformation complete: {ccva_df.shape[0]} rows, {ccva_df.shape[1]} columns"
         })
-        
+
         # Check for cancellation
         if session.get("cancelled", False):
             return
-        
+
         # Run InterVA6
         await queue.put({
             "type": "progress",
@@ -1227,6 +1392,11 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
 
         input_df = pd.DataFrame(data_rows, columns=headers)
 
+        # Store sanitized input for download
+        sanitized_buffer = io.StringIO()
+        input_df.to_csv(sanitized_buffer, index=False)
+        session["sanitized_csv"] = sanitized_buffer.getvalue().encode('utf-8')
+
         await queue.put({
             "type": "progress",
             "message": f"Loaded {len(data_rows)} records with {len(headers)} columns"
@@ -1285,16 +1455,21 @@ async def process_vman3_interva5(csv_data: List[List[Any]], session_id: str, who
             lower=True,
             verbose=0
         )
-        
+
+        # Store transformed input for download
+        transformed_buffer = io.StringIO()
+        ccva_df.to_csv(transformed_buffer, index=False)
+        session["transformed_csv"] = transformed_buffer.getvalue().encode('utf-8')
+
         await queue.put({
             "type": "progress",
             "message": f"[OK] Transformation complete: {ccva_df.shape[0]} rows, {ccva_df.shape[1]} columns"
         })
-        
+
         # Check for cancellation
         if session.get("cancelled", False):
             return
-        
+
         # Run InterVA5
         await queue.put({
             "type": "progress",

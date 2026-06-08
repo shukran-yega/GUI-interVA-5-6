@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create output directories
-RUN mkdir -p VA_output interva6/output
+RUN mkdir -p VA_output interva6/output data
 
 # Expose port
 EXPOSE ${PORT}

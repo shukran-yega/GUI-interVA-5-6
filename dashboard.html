@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CCVA — Usage Dashboard</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- MarkerCluster CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f5f5f5;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Login Overlay ─────────────────────────────────────────────── */
+    .login-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .login-overlay.hidden { display: none; }
+
+    .login-card {
+      background: white;
+      padding: 36px 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+      width: 380px;
+      max-width: 90vw;
+    }
+
+    .login-card h2 {
+      margin: 0 0 6px 0;
+      font-size: 22px;
+      color: #1a1a1a;
+    }
+
+    .login-card .subtitle {
+      font-size: 13px;
+      color: #777;
+      margin: 0 0 24px 0;
+    }
+
+    .login-field {
+      margin-bottom: 16px;
+    }
+
+    .login-field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 6px;
+    }
+
+    .login-field input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .login-field input:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.12);
+    }
+
+    .login-error {
+      color: #dc3545;
+      font-size: 12px;
+      margin: 0 0 12px 0;
+      display: none;
+    }
+
+    .login-error.visible { display: block; }
+
+    .login-btn {
+      width: 100%;
+      padding: 11px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .login-btn:hover { background: #0056b3; }
+    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ── Dashboard Layout ──────────────────────────────────────────── */
+    .dash-header {
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .dash-header h1 {
+      margin: 0;
+      font-size: 20px;
+      color: #1a1a1a;
+    }
+
+    .dash-header h1 span {
+      color: #007bff;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .reload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .reload-btn:hover { background: #e4e4e4; }
+
+    .reload-btn.spinning svg {
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .back-link {
+      font-size: 13px;
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    .back-link:hover { text-decoration: underline; }
+
+    /* ── Stats Bar ─────────────────────────────────────────────────── */
+    .stats-bar {
+      display: flex;
+      gap: 0;
+      padding: 0 32px;
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .stat-card {
+      flex: 1;
+      padding: 18px 20px;
+      text-align: center;
+      border-right: 1px solid #eee;
+    }
+
+    .stat-card:last-child { border-right: none; }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #888;
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Map Container ─────────────────────────────────────────────── */
+    .map-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #map {
+      flex: 1;
+      min-height: 500px;
+    }
+
+    /* ── Loading State ─────────────────────────────────────────────── */
+    .loading-msg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 16px 28px;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+      font-size: 14px;
+      color: #555;
+      z-index: 800;
+    }
+
+    /* ── Table Section ─────────────────────────────────────────────── */
+    .table-section {
+      background: white;
+      border-top: 1px solid #e0e0e0;
+      padding: 24px 32px;
+    }
+
+    .table-section h3 {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      color: #1a1a1a;
+    }
+
+    .location-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .location-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: #f8f9fa;
+      border-bottom: 2px solid #dee2e6;
+      color: #555;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+
+    .location-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #eee;
+      color: #333;
+    }
+
+    .location-table tr:hover td {
+      background: #f8f9fa;
+    }
+
+    .count-badge {
+      display: inline-block;
+      background: #007bff;
+      color: white;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    /* ── Footer ────────────────────────────────────────────────────── */
+    .dash-footer {
+      background: white;
+      border-top: 1px solid #e0e0e0;
+      padding: 16px 32px;
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+    }
+
+    .dash-footer a {
+      color: #007bff;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══ Login Overlay ═══════════════════════════════════════════════ -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <h2>Dashboard Login</h2>
+      <p class="subtitle">Enter your credentials to access usage analytics.</p>
+
+      <div class="login-field">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+
+      <div class="login-field">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+      </div>
+
+      <p class="login-error" id="loginError">Invalid email or password. Please try again.</p>
+
+      <button class="login-btn" id="loginBtn">Sign In</button>
+    </div>
+  </div>
+
+  <!-- ═══ Dashboard (hidden until login) ══════════════════════════════ -->
+  <div class="dash-header" id="dashContent" style="display:none;">
+    <h1><span>CCVA</span> Usage Dashboard</h1>
+    <div class="header-actions">
+      <a href="/" class="back-link">&larr; Back to app</a>
+      <button class="reload-btn" id="reloadBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Reload
+      </button>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="statsBar" style="display:none;">
+    <div class="stat-card">
+      <div class="stat-value" id="statVisits">—</div>
+      <div class="stat-label">Total Visits</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statCountries">—</div>
+      <div class="stat-label">Countries</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statCities">—</div>
+      <div class="stat-label">Cities</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statTopCountry">—</div>
+      <div class="stat-label">Top Country</div>
+    </div>
+  </div>
+
+  <div class="map-wrapper" id="mapWrapper" style="display:none;">
+    <div id="map"></div>
+  </div>
+
+  <div class="table-section" id="tableSection" style="display:none;">
+    <h3>Location Breakdown</h3>
+    <table class="location-table">
+      <thead>
+        <tr>
+          <th>Country</th>
+          <th>City</th>
+          <th>Visits</th>
+          <th>First Seen</th>
+          <th>Last Seen</th>
+        </tr>
+      </thead>
+      <tbody id="locationTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="dash-footer" id="dashFooter" style="display:none;">
+    VMan3 Usage Analytics &middot; Data collected via anonymous IP geolocation &middot;
+    <a href="/">Return to main app</a>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- MarkerCluster JS -->
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <script>
+    const API_BASE = window.location.origin;
+    let authToken = sessionStorage.getItem('dashboard_token');
+    let map = null;
+    let markerLayer = null;
+
+    // ═══ Login ═══════════════════════════════════════════════════════
+
+    const loginOverlay = document.getElementById('loginOverlay');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPassword = document.getElementById('loginPassword');
+    const loginError = document.getElementById('loginError');
+
+    // If already have a token, try loading dashboard directly
+    if (authToken) {
+      showDashboard();
+      loadData();
+    }
+
+    loginBtn.addEventListener('click', doLogin);
+    loginPassword.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doLogin();
+    });
+
+    async function doLogin() {
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Signing in...';
+      loginError.classList.remove('visible');
+
+      try {
+        const resp = await fetch(`${API_BASE}/dashboard-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: loginEmail.value.trim(),
+            password: loginPassword.value
+          })
+        });
+
+        if (!resp.ok) throw new Error('Invalid credentials');
+
+        const data = await resp.json();
+        authToken = data.token;
+        sessionStorage.setItem('dashboard_token', authToken);
+
+        showDashboard();
+        loadData();
+      } catch (err) {
+        loginError.classList.add('visible');
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Sign In';
+      }
+    }
+
+    function showDashboard() {
+      loginOverlay.classList.add('hidden');
+      document.getElementById('dashContent').style.display = 'flex';
+      document.getElementById('statsBar').style.display = 'flex';
+      document.getElementById('mapWrapper').style.display = 'flex';
+      document.getElementById('tableSection').style.display = 'block';
+      document.getElementById('dashFooter').style.display = 'block';
+      initMap();
+    }
+
+    // ═══ Map ═════════════════════════════════════════════════════════
+
+    function initMap() {
+      if (map) return; // already initialized
+
+      map = L.map('map').setView([10, 20], 2); // Zoomed out for global view
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 18
+      }).addTo(map);
+
+      markerLayer = L.markerClusterGroup({
+        maxClusterRadius: 50,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false
+      });
+      map.addLayer(markerLayer);
+    }
+
+    // ═══ Data Loading ════════════════════════════════════════════════
+
+    const reloadBtn = document.getElementById('reloadBtn');
+    reloadBtn.addEventListener('click', () => loadData());
+
+    async function loadData() {
+      reloadBtn.classList.add('spinning');
+
+      try {
+        const resp = await fetch(`${API_BASE}/api/dashboard-data?token=${encodeURIComponent(authToken)}`);
+
+        if (resp.status === 401) {
+          // Token expired or invalid — force re-login
+          sessionStorage.removeItem('dashboard_token');
+          authToken = null;
+          loginOverlay.classList.remove('hidden');
+          return;
+        }
+
+        if (!resp.ok) throw new Error('Failed to load data');
+
+        const data = await resp.json();
+        renderStats(data.stats, data.locations);
+        renderMap(data.locations);
+        renderTable(data.locations);
+      } catch (err) {
+        console.error('Dashboard load error:', err);
+      } finally {
+        reloadBtn.classList.remove('spinning');
+      }
+    }
+
+    // ═══ Render Stats ════════════════════════════════════════════════
+
+    function renderStats(stats, locations) {
+      document.getElementById('statVisits').textContent =
+        (stats.total_visits || 0).toLocaleString();
+      document.getElementById('statCountries').textContent =
+        (stats.unique_countries || 0).toLocaleString();
+      document.getElementById('statCities').textContent =
+        (stats.unique_cities || 0).toLocaleString();
+
+      // Find top country
+      const countryMap = {};
+      locations.forEach(loc => {
+        countryMap[loc.country] = (countryMap[loc.country] || 0) + loc.count;
+      });
+      const sorted = Object.entries(countryMap).sort((a, b) => b[1] - a[1]);
+      document.getElementById('statTopCountry').textContent =
+        sorted.length > 0 ? sorted[0][0] : '—';
+    }
+
+    // ═══ Render Map ══════════════════════════════════════════════════
+
+    function getMarkerColor(count) {
+      if (count >= 50) return '#dc3545';  // red
+      if (count >= 20) return '#fd7e14';  // orange
+      if (count >= 10) return '#ffc107';  // yellow
+      if (count >= 5)  return '#28a745';  // green
+      return '#007bff';                    // blue
+    }
+
+    function getMarkerRadius(count) {
+      return Math.min(6 + Math.sqrt(count) * 3, 30);
+    }
+
+    function renderMap(locations) {
+      if (!markerLayer) return;
+      markerLayer.clearLayers();
+
+      locations.forEach(loc => {
+        if (!loc.lat || !loc.lon) return;
+
+        const color = getMarkerColor(loc.count);
+        const radius = getMarkerRadius(loc.count);
+
+        const marker = L.circleMarker([loc.lat, loc.lon], {
+          radius: radius,
+          fillColor: color,
+          color: '#fff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8
+        });
+
+        marker.bindPopup(`
+          <div style="font-family: 'Segoe UI', Arial, sans-serif; min-width: 140px;">
+            <div style="font-size: 15px; font-weight: 700; margin-bottom: 4px;">
+              ${loc.city || 'Unknown'}
+            </div>
+            <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+              ${loc.country || 'Unknown'}
+            </div>
+            <div style="font-size: 22px; font-weight: 700; color: ${color};">
+              ${loc.count}
+            </div>
+            <div style="font-size: 11px; color: #999;">visit${loc.count !== 1 ? 's' : ''}</div>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 8px 0;">
+            <div style="font-size: 11px; color: #aaa;">
+              First: ${formatDate(loc.first_seen)}<br>
+              Last: ${formatDate(loc.last_seen)}
+            </div>
+          </div>
+        `);
+
+        markerLayer.addLayer(marker);
+      });
+
+      // Fit map to markers if we have any
+      if (locations.length > 0) {
+        const bounds = markerLayer.getBounds();
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 6 });
+        }
+      }
+    }
+
+    // ═══ Render Table ════════════════════════════════════════════════
+
+    function renderTable(locations) {
+      const tbody = document.getElementById('locationTableBody');
+      tbody.innerHTML = '';
+
+      locations.forEach(loc => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(loc.country || '—')}</td>
+          <td>${escapeHtml(loc.city || '—')}</td>
+          <td><span class="count-badge">${loc.count}</span></td>
+          <td>${formatDate(loc.first_seen)}</td>
+          <td>${formatDate(loc.last_seen)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (locations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#999; padding:24px;">No location data recorded yet.</td></tr>';
+      }
+    }
+
+    // ═══ Helpers ══════════════════════════════════════════════════════
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '—';
+      try {
+        const d = new Date(dateStr + 'Z'); // SQLite timestamps are UTC
+        return d.toLocaleDateString('en-GB', {
+          day: 'numeric', month: 'short', year: 'numeric'
+        });
+      } catch (_) {
+        return dateStr;
+      }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
