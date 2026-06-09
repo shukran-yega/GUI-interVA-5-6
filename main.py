@@ -1045,7 +1045,7 @@ async def get_csmf(session_id: str, top: int = 10):
             interva5_obj = session["interva5_obj"]
             results = interva5_obj.results
 
-            if not results or not isinstance(results, dict) or "COD" not in results:
+            if not results or not isinstance(results, dict) or "COD" not in results or results["COD"] is None:
                 return {"categories": {}, "message": "No CSMF data available", "algorithm": algorithm}
 
             cod_df = pd.DataFrame(results["COD"]) if isinstance(results["COD"], list) else results["COD"].copy()
