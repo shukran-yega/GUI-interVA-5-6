@@ -8,7 +8,9 @@
       "Bash(awk -F, '{for\\(i=505; i<=508; i++\\) print i\": \"$i}')",
       "Bash(awk -F',' '{print \"uuid: \"$506; print \"id: \"$505}')",
       "Bash(python -c ' *)",
-      "Bash(pip install *)"
+      "Bash(pip install *)",
+      "Skill(dataviz)",
+      "Skill(dataviz:*)"
     ]
   }
 }

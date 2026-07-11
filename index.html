@@ -991,6 +991,17 @@
       margin: 0;
     }
 
+    #summarySection .section-header {
+      justify-content: center;
+    }
+    #summarySection .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
     .analysis-controls {
       display: flex;
       gap: 10px;
@@ -1062,8 +1073,23 @@
 
     .explore-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
+    }
+    @media (max-width: 1100px) {
+      .explore-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 720px) {
+      .explore-grid { grid-template-columns: 1fr; }
+    }
+
+    .explore-group-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 16px 0 8px;
     }
 
     /* ---- Skeleton loading state ---- */
@@ -1244,6 +1270,121 @@
       border-radius: 3px;
       transition: width 0.5s ease-out;
     }
+
+    /* -- Data quality (DQA) indicator cards -- */
+    .dqa-headline {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin: 2px 0;
+    }
+    .dqa-value {
+      font-size: 26px;
+      font-weight: 700;
+      color: #333;
+    }
+    .dqa-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      white-space: nowrap;
+    }
+    .dqa-badge.good { background: #e6f4ea; color: #1e7e34; }
+    .dqa-badge.warn { background: #fff8e1; color: #b57a15; }
+    .dqa-badge.bad  { background: #fdecea; color: #dc3545; }
+    .dqa-hist {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 110px;
+      margin-top: 10px;
+      padding-top: 18px;
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .dqa-hist-bar {
+      flex: 1;
+      min-width: 2px;
+      border-radius: 3px 3px 0 0;
+      transition: height 0.5s ease-out, opacity 0.3s;
+    }
+    .dqa-hist.with-curve .dqa-hist-bar { opacity: 0.3; }
+    .dqa-curve {
+      position: absolute;
+      inset: 18px 0 0 0;
+      width: 100%;
+      height: calc(100% - 18px);
+      pointer-events: none;
+    }
+    .dqa-hist-axis {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: #999;
+      margin-top: 3px;
+    }
+    .dqa-thresh {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 0;
+      border-left: 1px dashed #bbb;
+      pointer-events: none;
+    }
+    .dqa-thresh span {
+      position: absolute;
+      top: 2px;
+      left: 3px;
+      font-size: 9px;
+      color: #999;
+      white-space: nowrap;
+    }
+    .dqa-tier-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 10px;
+      font-size: 10px;
+      color: #666;
+      margin-top: 6px;
+    }
+    .dqa-note {
+      font-size: 10px;
+      color: #999;
+      margin-top: 4px;
+    }
+    .dqa-toggle {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background: #fff;
+      color: #555;
+      cursor: pointer;
+      flex-shrink: 0;
+      min-width: auto;
+    }
+    .dqa-toggle.active {
+      background: #eef5ff;
+      border-color: #007bff;
+      color: #007bff;
+    }
+    .dqa-title-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+    }
+    .dqa-info {
+      flex-shrink: 0;
+      font-size: 12px;
+      color: #aaa;
+      cursor: help;
+      line-height: 1;
+    }
+    .dqa-info:hover { color: #007bff; }
 
     .rerun-btn {
       margin-top: 10px;
@@ -2948,6 +3089,358 @@
     }
 
     // =========================================================================
+    // DATA QUALITY INDICATORS (ICS / RRS / ICI / AID)
+    // Record-level indicators from "Four Practical Indicators for Real-Time
+    // Verbal Autopsy Data Quality Assessment" (Lyatuu, IHI). Pure functions
+    // over headers/rows so they can be exercised from the console.
+    // =========================================================================
+
+    const DQA_DK  = new Set(['dk', 'dnk', "doesn't know", 'doesnt know', "don't know", 'dont know']);
+    const DQA_REF = new Set(['ref', 'refused', 'refused to answer']);
+
+    // Normalise a raw cell to 'yes' | 'no' | 'dk' | 'ref' | 'other' | ''
+    function dqaNorm(v) {
+      const s = (v || '').trim().toLowerCase();
+      if (!s) return '';
+      if (s === 'yes') return 'yes';
+      if (s === 'no') return 'no';
+      if (DQA_DK.has(s)) return 'dk';
+      if (DQA_REF.has(s)) return 'ref';
+      return 'other';
+    }
+
+    function dqaNum(v) {
+      const s = (v || '').trim();
+      if (!s) return null;
+      const n = parseFloat(s);
+      return isFinite(n) ? n : null;
+    }
+
+    // Dates: ISO YYYY-MM-DD(THH…) first, then DD/MM/YYYY (WHO-VA deployments
+    // are day-first; month-first is not attempted).
+    function dqaParseDate(v) {
+      const s = (v || '').trim();
+      if (!s) return null;
+      let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return Date.UTC(+m[1], +m[2] - 1, +m[3]);
+      m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (m) return Date.UTC(+m[3], +m[2] - 1, +m[1]);
+      return null;
+    }
+
+    // Interview start/end: full ISO datetime -> {t: epoch ms};
+    // bare HH:MM(:SS) (2016 instrument) -> {timeOnly: seconds}.
+    function dqaParseDateTime(v) {
+      const s = (v || '').trim();
+      if (!s) return null;
+      if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(s)) {
+        const t = Date.parse(s.replace(' ', 'T'));
+        return isNaN(t) ? null : { t };
+      }
+      const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+      if (m) return { timeOnly: (+m[1]) * 3600 + (+m[2]) * 60 + (+(m[3] || 0)) };
+      return null;
+    }
+
+    function dqaStats(values) {
+      const sorted = values.slice().sort((a, b) => a - b);
+      const n = sorted.length;
+      const q = p => {
+        if (!n) return null;
+        const idx = (n - 1) * p;
+        const lo = Math.floor(idx), hi = Math.ceil(idx);
+        return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+      };
+      return {
+        n: n,
+        mean: n ? values.reduce((a, b) => a + b, 0) / n : null,
+        median: q(0.5),
+        p25: q(0.25),
+        p75: q(0.75),
+        min: n ? sorted[0] : null,
+        max: n ? sorted[n - 1] : null
+      };
+    }
+
+    // Binary-column detection for ICS: header resolves to an Id10… name and
+    // ≥95% of its non-empty values are yes/no/dk/ref. One O(rows×cols) scan,
+    // cached on the rows array identity (a new upload parses a new array).
+    let _dqaBinaryCache = { key: null, cols: null };
+    function dqaBinaryColumns(headers, rows) {
+      if (_dqaBinaryCache.key === rows) return _dqaBinaryCache.cols;
+      const candidates = [];
+      headers.forEach((h, i) => {
+        const s = h.trim().toLowerCase();
+        const m = s.match(/^\(+(id\d+[a-z0-9_]*)\)+/);
+        const name = m ? m[1] : s;
+        if (name.indexOf('id10') === 0) candidates.push(i);
+      });
+      const nonEmpty = new Array(candidates.length).fill(0);
+      const binary = new Array(candidates.length).fill(0);
+      rows.forEach(r => {
+        for (let k = 0; k < candidates.length; k++) {
+          const norm = dqaNorm(r[candidates[k]]);
+          if (!norm) continue;
+          nonEmpty[k]++;
+          if (norm !== 'other') binary[k]++;
+        }
+      });
+      const cols = candidates.filter((c, k) => nonEmpty[k] > 0 && binary[k] / nonEmpty[k] >= 0.95);
+      _dqaBinaryCache = { key: rows, cols: cols };
+      return cols;
+    }
+
+    // ICS: % of answered binary questions answered informatively (yes/no
+    // rather than don't-know/refused). Records with no binary response excluded.
+    function computeICS(rows, binaryCols) {
+      const values = [];
+      rows.forEach(r => {
+        let informative = 0, answered = 0;
+        for (let k = 0; k < binaryCols.length; k++) {
+          const norm = dqaNorm(r[binaryCols[k]]);
+          if (norm === 'yes' || norm === 'no') { informative++; answered++; }
+          else if (norm === 'dk' || norm === 'ref') answered++;
+        }
+        if (answered > 0) values.push((informative / answered) * 100);
+      });
+      const tiers = { high: 0, moderate: 0, low: 0 };
+      values.forEach(v => {
+        if (v >= 90) tiers.high++;
+        else if (v >= 70) tiers.moderate++;
+        else tiers.low++;
+      });
+      return Object.assign({ values: values, tiers: tiers }, dqaStats(values));
+    }
+
+    // RRS: weighted composite of relationship, presence at death, recall
+    // period, and literacy/education. Records with unparseable death or
+    // interview dates are excluded (recall component undeterminable).
+    function computeRRS(rows, resolve) {
+      const iRel = resolve('Id10008'), iPres = resolve('Id10009');
+      const iDeath = resolve('Id10023'), iInt = resolve('Id10012');
+      const iLit = resolve('Id10064'), iEdu = resolve('Id10063');
+      const missing = [];
+      if (iRel === -1) missing.push('Id10008');
+      if (iPres === -1) missing.push('Id10009');
+      if (iDeath === -1) missing.push('Id10023');
+      if (iInt === -1) missing.push('Id10012');
+      if (missing.length) return { missing: missing };
+
+      const REL_CLOSE = /spouse|wife|husband|parent|mother|father|child|son|daughter/;
+      const REL_FAMILY = /family|relative|sibling|brother|sister|grand|aunt|uncle|nephew|niece|in[-_ ]?law/;
+      const values = [];
+      let excluded = 0, blank = 0;
+      rows.forEach(r => {
+        const rel = (r[iRel] || '').trim().toLowerCase().replace(/_/g, ' ');
+        const pres = dqaNorm(r[iPres]);
+        if (!rel && !pres) { blank++; return; }
+        const death = dqaParseDate(r[iDeath]);
+        const interview = dqaParseDate(r[iInt]);
+        if (death === null || interview === null) { excluded++; return; }
+        let score = 0;
+        if (REL_CLOSE.test(rel)) score += 40;
+        else if (REL_FAMILY.test(rel)) score += 20;
+        else if (rel) score += 10;
+        if (pres === 'yes') score += 30;
+        else if (pres === 'no') score += 15;
+        const days = (interview - death) / 86400000;
+        if (days < 90) score += 20;
+        else if (days < 180) score += 15;
+        else if (days < 365) score += 10;
+        const lit = iLit !== -1 ? dqaNorm(r[iLit]) : '';
+        const edu = iEdu !== -1 ? (r[iEdu] || '').trim().toLowerCase() : '';
+        score += (lit === 'yes' || /second|high|tertiar|universit|college/.test(edu)) ? 10 : 5;
+        values.push(score);
+      });
+      const tiers = { high: 0, moderate: 0, low: 0 };
+      values.forEach(v => {
+        if (v >= 80) tiers.high++;
+        else if (v >= 50) tiers.moderate++;
+        else tiers.low++;
+      });
+      const note = (iLit === -1 && iEdu === -1)
+        ? 'Education fields (Id10063/Id10064) absent — component scored 5/10' : '';
+      return Object.assign({ values: values, tiers: tiers, excluded: excluded, blank: blank, note: note }, dqaStats(values));
+    }
+
+    // ICI: six cross-field consistency rules; a record fails if any rule is
+    // violated. Duration rules (C3–C6) only apply when the total illness
+    // duration (Id10120) is a valid number > 0 — without this gate, blank or
+    // zero illness durations produce spurious violations.
+    const DQA_ICI_RULES = [
+      { id: 'C1', label: 'C1 Pregnant male',        desc: 'Pregnancy reported (Id10305) for a male decedent (Id10019)' },
+      { id: 'C2', label: 'C2 Blood w/o cough',      desc: 'Blood in cough (Id10157) reported without cough (Id10153)' },
+      { id: 'C3', label: 'C3 Fever > illness',      desc: 'Fever duration (Id10148) exceeds total illness duration (Id10120)' },
+      { id: 'C4', label: 'C4 Cough > illness',      desc: 'Cough duration (Id10154) exceeds total illness duration (Id10120)' },
+      { id: 'C5', label: 'C5 Diarrhoea > illness',  desc: 'Diarrhoea duration (Id10182) exceeds total illness duration (Id10120)' },
+      { id: 'C6', label: 'C6 Breathless > illness', desc: 'Breathlessness duration (Id10161) exceeds total illness duration (Id10120)' }
+    ];
+    function computeICI(rows, resolve) {
+      const iSex = resolve('Id10019'), iPreg = resolve('Id10305');
+      const iCough = resolve('Id10153'), iBlood = resolve('Id10157');
+      const iIll = resolve('Id10120'), iFever = resolve('Id10148');
+      const iCoughD = resolve('Id10154'), iDiarr = resolve('Id10182'), iBreath = resolve('Id10161');
+      const available = {
+        C1: iSex !== -1 && iPreg !== -1,
+        C2: iCough !== -1 && iBlood !== -1,
+        C3: iIll !== -1 && iFever !== -1,
+        C4: iIll !== -1 && iCoughD !== -1,
+        C5: iIll !== -1 && iDiarr !== -1,
+        C6: iIll !== -1 && iBreath !== -1
+      };
+      const counts = { C1: 0, C2: 0, C3: 0, C4: 0, C5: 0, C6: 0 };
+      let violRecords = 0;
+      rows.forEach(r => {
+        let violated = false;
+        if (available.C1 && dqaNorm(r[iPreg]) === 'yes' &&
+            (r[iSex] || '').trim().toLowerCase() === 'male') { counts.C1++; violated = true; }
+        if (available.C2 && dqaNorm(r[iBlood]) === 'yes' &&
+            dqaNorm(r[iCough]) === 'no') { counts.C2++; violated = true; }
+        const ill = iIll !== -1 ? dqaNum(r[iIll]) : null;
+        if (ill !== null && ill > 0) {
+          const durViol = (idx) => {
+            const d = idx !== -1 ? dqaNum(r[idx]) : null;
+            return d !== null && d > ill;
+          };
+          if (available.C3 && durViol(iFever)) { counts.C3++; violated = true; }
+          if (available.C4 && durViol(iCoughD)) { counts.C4++; violated = true; }
+          if (available.C5 && durViol(iDiarr)) { counts.C5++; violated = true; }
+          if (available.C6 && durViol(iBreath)) { counts.C6++; violated = true; }
+        }
+        if (violated) violRecords++;
+      });
+      const total = rows.length;
+      return {
+        total: total,
+        violRecords: violRecords,
+        passPct: total ? ((total - violRecords) / total) * 100 : null,
+        counts: counts,
+        available: available,
+        anyAvailable: Object.keys(available).some(k => available[k])
+      };
+    }
+
+    // AID: elapsed minutes between interview start (Id10011) and end (Id10481).
+    // Time-only fields (2016 instrument) get +1440 min on midnight crossing.
+    // Non-positive or ≥480-minute durations are excluded as artefacts.
+    function computeAID(rows, resolve) {
+      const iStart = resolve('Id10011'), iEnd = resolve('Id10481');
+      const missing = [];
+      if (iStart === -1) missing.push('Id10011');
+      if (iEnd === -1) missing.push('Id10481');
+      if (missing.length) return { missing: missing };
+      const values = [];
+      let excluded = 0;
+      rows.forEach(r => {
+        const start = dqaParseDateTime(r[iStart]);
+        const end = dqaParseDateTime(r[iEnd]);
+        if (!start || !end) return;
+        let mins = null;
+        if (start.t !== undefined && end.t !== undefined) {
+          mins = (end.t - start.t) / 60000;
+        } else if (start.timeOnly !== undefined && end.timeOnly !== undefined) {
+          mins = (end.timeOnly - start.timeOnly) / 60;
+          if (mins < 0) mins += 1440;
+        }
+        if (mins === null) return;
+        if (mins <= 0 || mins >= 480) { excluded++; return; }
+        values.push(mins);
+      });
+      return Object.assign({ values: values, excluded: excluded }, dqaStats(values));
+    }
+
+    // Catmull-Rom smoothed SVG path through [x, y] points (viewBox units).
+    function dqaSmoothPath(pts) {
+      if (pts.length < 2) return '';
+      let d = 'M ' + pts[0][0].toFixed(2) + ' ' + pts[0][1].toFixed(2);
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+        const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+        const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+        d += ' C ' + c1x.toFixed(2) + ' ' + c1y.toFixed(2) + ', '
+                   + c2x.toFixed(2) + ' ' + c2y.toFixed(2) + ', '
+                   + p2[0].toFixed(2) + ' ' + p2[1].toFixed(2);
+      }
+      return d;
+    }
+
+    // Binned histogram as DOM bars with optional smoothed curve overlay.
+    // opts: { min, max, binWidth, lastBinOverflow, color, scale ('linear'|'log'),
+    //         thresholds [{at, label}], unit, showCurve }
+    function renderDQAHistogram(container, values, opts) {
+      container.innerHTML = '';
+      const nBase = Math.round((opts.max - opts.min) / opts.binWidth);
+      const nBins = nBase + (opts.lastBinOverflow ? 1 : 0);
+      const bins = new Array(nBins).fill(0);
+      values.forEach(v => {
+        let b = Math.floor((v - opts.min) / opts.binWidth);
+        if (b < 0) b = 0;
+        if (b >= nBins) b = nBins - 1;
+        bins[b]++;
+      });
+      const maxCount = Math.max.apply(null, bins.concat([1]));
+      const scaleH = opts.scale === 'log'
+        ? c => Math.log10(c + 1) / Math.log10(maxCount + 1)
+        : c => c / maxCount;
+
+      const hist = document.createElement('div');
+      hist.className = 'dqa-hist' + (opts.showCurve ? ' with-curve' : '');
+      const total = values.length;
+      bins.forEach((c, i) => {
+        const bar = document.createElement('div');
+        bar.className = 'dqa-hist-bar';
+        bar.style.backgroundColor = opts.color;
+        bar.style.height = '0%';
+        const lo = opts.min + i * opts.binWidth;
+        const isOverflow = opts.lastBinOverflow && i === nBins - 1;
+        const range = isOverflow ? lo + '+' : lo + '–' + (lo + opts.binWidth);
+        const pct = total ? ((c / total) * 100).toFixed(1) : '0';
+        bar.title = range + (opts.unit ? ' ' + opts.unit : '') + ': '
+          + c.toLocaleString() + (c === 1 ? ' record' : ' records') + ' (' + pct + '%)';
+        hist.appendChild(bar);
+        setTimeout(() => { bar.style.height = (scaleH(c) * 100).toFixed(1) + '%'; }, 100);
+      });
+
+      const span = (opts.max - opts.min) + (opts.lastBinOverflow ? opts.binWidth : 0);
+      (opts.thresholds || []).forEach(th => {
+        const line = document.createElement('div');
+        line.className = 'dqa-thresh';
+        line.style.left = (((th.at - opts.min) / span) * 100).toFixed(2) + '%';
+        const lbl = document.createElement('span');
+        lbl.textContent = th.label;
+        line.appendChild(lbl);
+        hist.appendChild(line);
+      });
+
+      if (opts.showCurve && total > 0) {
+        const pts = bins.map((c, i) => [((i + 0.5) / nBins) * 100, 100 - scaleH(c) * 100]);
+        const SVG_NS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(SVG_NS, 'svg');
+        svg.setAttribute('class', 'dqa-curve');
+        svg.setAttribute('viewBox', '0 0 100 100');
+        svg.setAttribute('preserveAspectRatio', 'none');
+        const path = document.createElementNS(SVG_NS, 'path');
+        path.setAttribute('d', dqaSmoothPath(pts));
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', opts.color);
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('vector-effect', 'non-scaling-stroke');
+        path.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(path);
+        hist.appendChild(svg);
+      }
+
+      container.appendChild(hist);
+
+      const axis = document.createElement('div');
+      axis.className = 'dqa-hist-axis';
+      const maxLabel = opts.lastBinOverflow ? opts.max + '+' : String(opts.max);
+      axis.innerHTML = '<span>' + opts.min + (opts.unit ? ' ' + opts.unit : '') + '</span>'
+        + '<span>' + maxLabel + (opts.unit ? ' ' + opts.unit : '') + '</span>';
+      container.appendChild(axis);
+    }
+
+    // =========================================================================
     // EXPLORATORY ANALYSIS (client-side, runs on file upload)
     // =========================================================================
 
@@ -3280,6 +3773,312 @@
       addDistributionCard('Date of Death', 'Id10023', 8, '#6f42c1');
 
       exploreContent.appendChild(grid);
+
+      // -- Data quality indicator cards (ICS / RRS / ICI / AID) --
+      const dqaHeading = document.createElement('div');
+      dqaHeading.className = 'explore-group-title';
+      dqaHeading.textContent = 'Data quality';
+      exploreContent.appendChild(dqaHeading);
+
+      const dqaGrid = document.createElement('div');
+      dqaGrid.className = 'explore-grid';
+
+      const DQA_FIELD_DESCS = {
+        Id10008: 'respondent relationship',
+        Id10009: 'lived with deceased',
+        Id10012: 'interview date',
+        Id10023: 'date of death',
+        Id10011: 'interview start time',
+        Id10481: 'interview end time'
+      };
+
+      function dqaHeadline(body, valueText, badge, subLine) {
+        const hl = document.createElement('div');
+        hl.className = 'dqa-headline';
+        const val = document.createElement('span');
+        val.className = 'dqa-value';
+        val.textContent = valueText;
+        hl.appendChild(val);
+        if (badge) {
+          const b = document.createElement('span');
+          b.className = 'dqa-badge ' + badge.cls;
+          b.textContent = badge.text;
+          hl.appendChild(b);
+        }
+        body.appendChild(hl);
+        if (subLine) {
+          const meta = document.createElement('div');
+          meta.className = 'dqa-note';
+          meta.textContent = subLine;
+          body.appendChild(meta);
+        }
+      }
+
+      function dqaTierBadge(v, hi, mid, names) {
+        if (v >= hi) return { text: names[0], cls: 'good' };
+        if (v >= mid) return { text: names[1], cls: 'warn' };
+        return { text: names[2], cls: 'bad' };
+      }
+
+      function dqaTierRow(body, tiers, n, names) {
+        const row = document.createElement('div');
+        row.className = 'dqa-tier-row';
+        const pct = c => (n ? ((c / n) * 100).toFixed(1) : '0') + '%';
+        row.textContent = names[0] + ' ' + pct(tiers.high) + ' · '
+          + names[1] + ' ' + pct(tiers.moderate) + ' · '
+          + names[2] + ' ' + pct(tiers.low);
+        body.appendChild(row);
+      }
+
+      // Absent-field state: error text + one column picker per missing field.
+      function renderDQAMissing(body, missing, rerender) {
+        hasMissingColumns = true;
+        const err = document.createElement('div');
+        err.className = 'explore-card-error';
+        err.textContent = 'Required fields not in this dataset: '
+          + missing.map(c => c + ' (' + (DQA_FIELD_DESCS[c] || '') + ')').join(', ');
+        body.appendChild(err);
+        const remap = document.createElement('div');
+        remap.className = 'explore-card-remap';
+        missing.forEach(colName => {
+          const sel = buildColSelect(colName, '— map ' + colName + ' —');
+          remapSelectors[colName] = sel;
+          sel.addEventListener('change', () => {
+            const chosen = parseInt(sel.value);
+            if (isNaN(chosen)) delete columnMap[colName];
+            else columnMap[colName] = chosen;
+            rerender();
+          });
+          remap.appendChild(sel);
+        });
+        body.appendChild(remap);
+      }
+
+      function addDQACard(cfg) {
+        const card = document.createElement('div');
+        card.className = 'explore-card';
+
+        const cardHeader = document.createElement('div');
+        cardHeader.className = 'explore-card-header';
+
+        const titleGroup = document.createElement('div');
+        titleGroup.className = 'dqa-title-group';
+        const h4 = document.createElement('h4');
+        h4.textContent = cfg.title;
+        titleGroup.appendChild(h4);
+        const info = document.createElement('span');
+        info.className = 'dqa-info';
+        info.textContent = 'ⓘ';
+        info.title = cfg.tooltip;
+        titleGroup.appendChild(info);
+        cardHeader.appendChild(titleGroup);
+
+        let showCurve = false;
+        let toggle = null;
+        if (cfg.hasChart) {
+          toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.className = 'dqa-toggle';
+          toggle.textContent = 'curve';
+          toggle.title = 'Toggle smoothed distribution curve overlay';
+          cardHeader.appendChild(toggle);
+        }
+        card.appendChild(cardHeader);
+
+        const sub = document.createElement('div');
+        sub.className = 'explore-subtitle';
+        card.appendChild(sub);
+
+        const body = document.createElement('div');
+        card.appendChild(body);
+
+        function renderCard() {
+          body.innerHTML = '';
+          sub.textContent = cfg.subtitle || '';
+          cfg.render(body, sub, showCurve, renderCard);
+        }
+
+        if (toggle) {
+          toggle.addEventListener('click', () => {
+            showCurve = !showCurve;
+            toggle.classList.toggle('active', showCurve);
+            toggle.textContent = showCurve ? 'bars' : 'curve';
+            renderCard();
+          });
+        }
+
+        renderCard();
+        dqaGrid.appendChild(card);
+      }
+
+      // ICS — Informative Completeness Score
+      addDQACard({
+        title: 'ICS — Completeness',
+        tooltip: 'Informative Completeness Score: share of answered binary (yes/no) questions answered informatively — "yes" or "no" rather than "don’t know" or "refused" — per record. Tiers: High ≥ 90, Moderate 70–89, Low < 70.',
+        subtitle: 'Informative Completeness Score',
+        hasChart: true,
+        render(body, sub, showCurve) {
+          const binaryCols = dqaBinaryColumns(headers, rows);
+          const r = computeICS(rows, binaryCols);
+          if (!r.n) {
+            const err = document.createElement('div');
+            err.className = 'explore-card-error';
+            err.textContent = 'No binary (yes/no) fields detected in this dataset.';
+            body.appendChild(err);
+            return;
+          }
+          sub.textContent = binaryCols.length + ' binary fields · log-scaled counts';
+          dqaHeadline(body, r.mean.toFixed(1) + '%',
+            dqaTierBadge(r.mean, 90, 70, ['High', 'Moderate', 'Low']),
+            'median ' + r.median.toFixed(0) + ' · min ' + r.min.toFixed(1) + ' · n ' + r.n.toLocaleString());
+          const chart = document.createElement('div');
+          body.appendChild(chart);
+          renderDQAHistogram(chart, r.values, {
+            min: 0, max: 100, binWidth: 5, color: '#007bff', scale: 'log',
+            thresholds: [{ at: 70, label: '70' }, { at: 90, label: '90' }],
+            unit: '%', showCurve: showCurve
+          });
+          dqaTierRow(body, r.tiers, r.n, ['High', 'Moderate', 'Low']);
+        }
+      });
+
+      // RRS — Respondent Reliability Score
+      addDQACard({
+        title: 'RRS — Reliability',
+        tooltip: 'Respondent Reliability Score: weighted composite of relationship to deceased (Id10008, max 40), presence at death (Id10009, max 30), recall period (Id10023 vs Id10012, max 20) and literacy/education (Id10064/Id10063, max 10). Tiers: High ≥ 80, Moderate 50–79, Low < 50.',
+        subtitle: 'Respondent Reliability Score',
+        hasChart: true,
+        render(body, sub, showCurve, rerender) {
+          const r = computeRRS(rows, colIdx);
+          if (r.missing) {
+            renderDQAMissing(body, r.missing, rerender);
+            return;
+          }
+          if (!r.n) {
+            const err = document.createElement('div');
+            err.className = 'explore-card-error';
+            err.textContent = 'No scorable records (missing or unparseable dates).';
+            body.appendChild(err);
+            return;
+          }
+          const excludedNote = [];
+          if (r.excluded) excludedNote.push(r.excluded.toLocaleString() + ' excluded (unparseable dates)');
+          if (r.blank) excludedNote.push(r.blank.toLocaleString() + ' blank');
+          dqaHeadline(body, r.mean.toFixed(1),
+            dqaTierBadge(r.mean, 80, 50, ['High', 'Moderate', 'Low']),
+            'median ' + r.median.toFixed(0) + ' · n ' + r.n.toLocaleString()
+              + (excludedNote.length ? ' · ' + excludedNote.join(' · ') : ''));
+          const chart = document.createElement('div');
+          body.appendChild(chart);
+          renderDQAHistogram(chart, r.values, {
+            min: 0, max: 100, binWidth: 10, color: '#28a745', scale: 'linear',
+            thresholds: [{ at: 50, label: '50' }, { at: 80, label: '80' }],
+            showCurve: showCurve
+          });
+          dqaTierRow(body, r.tiers, r.n, ['High', 'Moderate', 'Low']);
+          if (r.note) {
+            const noteDiv = document.createElement('div');
+            noteDiv.className = 'dqa-note';
+            noteDiv.textContent = r.note;
+            body.appendChild(noteDiv);
+          }
+        }
+      });
+
+      // ICI — Internal Consistency Index
+      addDQACard({
+        title: 'ICI — Consistency',
+        tooltip: 'Internal Consistency Index: percentage of records with no logical contradictions across six cross-field rules (C1–C6). Tiers: Excellent ≥ 90%, Good 70–89%, Critical < 70%.',
+        subtitle: 'Internal Consistency Index',
+        hasChart: false,
+        render(body, sub) {
+          const r = computeICI(rows, colIdx);
+          if (!r.anyAvailable) {
+            const err = document.createElement('div');
+            err.className = 'explore-card-error';
+            err.textContent = 'None of the consistency-rule fields (Id10019, Id10305, Id10120, Id10148, Id10153, Id10154, Id10157, Id10161, Id10182) are in this dataset.';
+            body.appendChild(err);
+            return;
+          }
+          sub.textContent = r.violRecords.toLocaleString() + ' of ' + r.total.toLocaleString()
+            + ' records with ≥1 violation';
+          dqaHeadline(body, r.passPct.toFixed(1) + '%',
+            dqaTierBadge(r.passPct, 90, 70, ['Excellent', 'Good', 'Critical']),
+            'records passing all consistency rules');
+          const maxRule = Math.max.apply(null,
+            DQA_ICI_RULES.map(rule => r.available[rule.id] ? r.counts[rule.id] : 0).concat([1]));
+          DQA_ICI_RULES.forEach(rule => {
+            const row = document.createElement('div');
+            row.className = 'explore-stat-row';
+            const lbl = document.createElement('span');
+            lbl.className = 'stat-label';
+            lbl.textContent = rule.label;
+            lbl.title = rule.desc;
+            const valSpan = document.createElement('span');
+            valSpan.className = 'stat-value';
+            if (!r.available[rule.id]) {
+              valSpan.textContent = 'n/a';
+              valSpan.title = 'Required fields not in this dataset';
+            } else {
+              const c = r.counts[rule.id];
+              const pct = r.total ? ((c / r.total) * 100).toFixed(1) : '0';
+              valSpan.innerHTML = c.toLocaleString() + ' <span class="stat-pct">(' + pct + '%)</span>';
+            }
+            row.appendChild(lbl);
+            row.appendChild(valSpan);
+            body.appendChild(row);
+            if (r.available[rule.id]) {
+              const bar = document.createElement('div');
+              bar.className = 'explore-stat-bar';
+              const fill = document.createElement('div');
+              fill.className = 'explore-stat-bar-fill';
+              fill.style.width = '0%';
+              fill.style.backgroundColor = '#6f42c1';
+              bar.appendChild(fill);
+              body.appendChild(bar);
+              setTimeout(() => { fill.style.width = ((r.counts[rule.id] / maxRule) * 100) + '%'; }, 100);
+            }
+          });
+        }
+      });
+
+      // AID — Average Interview Duration
+      addDQACard({
+        title: 'AID — Interview Duration',
+        tooltip: 'Average Interview Duration: elapsed minutes between interview start (Id10011) and end (Id10481). Durations ≤ 0 or ≥ 480 minutes are excluded as artefacts. Median is the headline statistic (distributions are right-skewed).',
+        subtitle: 'Average Interview Duration',
+        hasChart: true,
+        render(body, sub, showCurve, rerender) {
+          const r = computeAID(rows, colIdx);
+          if (r.missing) {
+            renderDQAMissing(body, r.missing, rerender);
+            return;
+          }
+          if (!r.n) {
+            const err = document.createElement('div');
+            err.className = 'explore-card-error';
+            err.textContent = 'No valid interview durations could be computed from ' +
+              'the start/end time fields.';
+            body.appendChild(err);
+            return;
+          }
+          dqaHeadline(body, r.median.toFixed(1) + ' min',
+            null,
+            'median · IQR ' + r.p25.toFixed(0) + '–' + r.p75.toFixed(0)
+              + ' · n ' + r.n.toLocaleString()
+              + (r.excluded ? ' · ' + r.excluded.toLocaleString() + ' excluded' : ''));
+          const chart = document.createElement('div');
+          body.appendChild(chart);
+          renderDQAHistogram(chart, r.values, {
+            min: 0, max: 120, binWidth: 10, lastBinOverflow: true,
+            color: '#fd7e14', scale: 'linear',
+            thresholds: [{ at: Math.min(r.median, 120), label: 'median' }],
+            unit: 'min', showCurve: showCurve
+          });
+        }
+      });
+
+      exploreContent.appendChild(dqaGrid);
 
     }
 
@@ -4203,7 +5002,7 @@
 
     resetOutput();
 
-    fileInfo.innerHTML = 'Beta Version <span style="background: #007bff; color: white; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;">v1.4</span>';
+    fileInfo.innerHTML = 'Beta Version <span style="background: #007bff; color: white; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;">v1.5</span>';
     fileInfo.style.color = '#007bff';
 
     fetch(`${API_BASE_URL}/health`)
