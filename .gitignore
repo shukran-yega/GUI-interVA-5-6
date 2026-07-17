@@ -38,4 +38,6 @@ test_*.csv
 sample_large*.csv
 __pycache__/main.cpython-312.pyc
 __pycache__/main.cpython-312.pyc
+# demo VA data files 
+Va_data
 

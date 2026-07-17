@@ -1304,13 +1304,24 @@
       overflow: hidden;
       border-bottom: 1px solid #e0e0e0;
     }
-    .dqa-hist-bar {
+    .dqa-hist-col {
       flex: 1;
       min-width: 2px;
+      align-self: stretch;
+      display: flex;
+      align-items: flex-end;
       border-radius: 3px 3px 0 0;
-      transition: height 0.5s ease-out, opacity 0.3s;
+      transition: background 0.15s;
     }
+    .dqa-hist-col:hover { background: rgba(0, 0, 0, 0.045); }
+    .dqa-hist-bar {
+      width: 100%;
+      border-radius: 3px 3px 0 0;
+      transition: height 0.5s ease-out, opacity 0.3s, filter 0.15s;
+    }
+    .dqa-hist-col:hover .dqa-hist-bar { filter: brightness(0.82); }
     .dqa-hist.with-curve .dqa-hist-bar { opacity: 0.3; }
+    .dqa-hist.with-curve .dqa-hist-col:hover .dqa-hist-bar { opacity: 0.7; }
     .dqa-curve {
       position: absolute;
       inset: 18px 0 0 0;
@@ -1340,6 +1351,10 @@
       font-size: 9px;
       color: #999;
       white-space: nowrap;
+    }
+    .dqa-thresh.flip span {
+      left: auto;
+      right: 3px;
     }
     .dqa-tier-row {
       display: flex;
@@ -1385,6 +1400,15 @@
       line-height: 1;
     }
     .dqa-info:hover { color: #007bff; }
+
+    /* .container sets text-align:center, which the rule labels inherit —
+       pin them left so C1–C6 read against the card edge, values stay right. */
+    .dqa-grid .explore-stat-row .stat-label { text-align: left; }
+    .dqa-grid .explore-stat-row {
+      transition: background 0.15s;
+      border-radius: 3px;
+    }
+    .dqa-grid .explore-stat-row:hover { background: rgba(0, 0, 0, 0.035); }
 
     .rerun-btn {
       margin-top: 10px;
@@ -3387,6 +3411,10 @@
       hist.className = 'dqa-hist' + (opts.showCurve ? ' with-curve' : '');
       const total = values.length;
       bins.forEach((c, i) => {
+        // Each bin is a full-height column so the hover target covers the whole
+        // slot — thin and empty bins stay hoverable.
+        const col = document.createElement('div');
+        col.className = 'dqa-hist-col';
         const bar = document.createElement('div');
         bar.className = 'dqa-hist-bar';
         bar.style.backgroundColor = opts.color;
@@ -3395,9 +3423,10 @@
         const isOverflow = opts.lastBinOverflow && i === nBins - 1;
         const range = isOverflow ? lo + '+' : lo + '–' + (lo + opts.binWidth);
         const pct = total ? ((c / total) * 100).toFixed(1) : '0';
-        bar.title = range + (opts.unit ? ' ' + opts.unit : '') + ': '
+        col.title = range + (opts.unit ? ' ' + opts.unit : '') + ': '
           + c.toLocaleString() + (c === 1 ? ' record' : ' records') + ' (' + pct + '%)';
-        hist.appendChild(bar);
+        col.appendChild(bar);
+        hist.appendChild(col);
         setTimeout(() => { bar.style.height = (scaleH(c) * 100).toFixed(1) + '%'; }, 100);
       });
 
@@ -3405,7 +3434,13 @@
       (opts.thresholds || []).forEach(th => {
         const line = document.createElement('div');
         line.className = 'dqa-thresh';
-        line.style.left = (((th.at - opts.min) / span) * 100).toFixed(2) + '%';
+        const pos = ((th.at - opts.min) / span) * 100;
+        line.style.left = pos.toFixed(2) + '%';
+        // Flip the label to the left of its line when it would otherwise be
+        // clipped by the chart's right edge (width estimated from glyph count,
+        // since the chart is not yet in the live DOM when this runs).
+        const estPct = ((th.label.length * 5.4 + 6) / 220) * 100;
+        if (pos + estPct > 100) line.classList.add('flip');
         const lbl = document.createElement('span');
         lbl.textContent = th.label;
         line.appendChild(lbl);
@@ -3781,7 +3816,7 @@
       exploreContent.appendChild(dqaHeading);
 
       const dqaGrid = document.createElement('div');
-      dqaGrid.className = 'explore-grid';
+      dqaGrid.className = 'explore-grid dqa-grid';
 
       const DQA_FIELD_DESCS = {
         Id10008: 'respondent relationship',
@@ -3930,7 +3965,8 @@
           sub.textContent = binaryCols.length + ' binary fields · log-scaled counts';
           dqaHeadline(body, r.mean.toFixed(1) + '%',
             dqaTierBadge(r.mean, 90, 70, ['High', 'Moderate', 'Low']),
-            'median ' + r.median.toFixed(0) + ' · min ' + r.min.toFixed(1) + ' · n ' + r.n.toLocaleString());
+            'median ' + r.median.toFixed(0) + ' · min ' + r.min.toFixed(1)
+              + ' · max ' + r.max.toFixed(1) + ' · n ' + r.n.toLocaleString());
           const chart = document.createElement('div');
           body.appendChild(chart);
           renderDQAHistogram(chart, r.values, {
@@ -4072,7 +4108,7 @@
           renderDQAHistogram(chart, r.values, {
             min: 0, max: 120, binWidth: 10, lastBinOverflow: true,
             color: '#fd7e14', scale: 'linear',
-            thresholds: [{ at: Math.min(r.median, 120), label: 'median' }],
+            thresholds: [{ at: Math.min(r.median, 120), label: 'median ' + r.median.toFixed(1) }],
             unit: 'min', showCurve: showCurve
           });
         }
