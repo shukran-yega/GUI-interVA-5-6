@@ -1396,12 +1396,175 @@
       flex-shrink: 0;
       font-size: 12px;
       color: #aaa;
-      cursor: help;
+      cursor: pointer;
       line-height: 1;
+      /* Negative margin keeps the padded hit area from shifting the title row. */
+      padding: 2px 3px;
+      margin: -2px -3px;
+      border-radius: 4px;
     }
     .dqa-info:hover { color: #007bff; }
+    .dqa-info:focus-visible {
+      outline: 2px solid #007bff;
+      outline-offset: 1px;
+      color: #007bff;
+    }
 
-    /* .container sets text-align:center, which the rule labels inherit —
+    /* -- Indicator methodology modal (same two-phase fade as .dist-modal) -- */
+    .dqa-info-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 1100;
+      justify-content: center;
+      align-items: center;
+      padding: 30px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .dqa-info-overlay.active {
+      display: flex;
+      opacity: 0;
+    }
+    .dqa-info-overlay.visible { opacity: 1; }
+    .dqa-info-modal {
+      background: white;
+      border-radius: 14px;
+      max-width: 560px;
+      width: 100%;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.22);
+      transform: translateY(18px) scale(0.97);
+      transition: transform 0.22s ease, opacity 0.22s ease;
+      opacity: 0;
+      text-align: left;
+    }
+    .dqa-info-overlay.visible .dqa-info-modal {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    .dqa-info-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 20px 24px 14px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .dqa-info-header h3 {
+      margin: 0;
+      font-size: 17px;
+      color: #333;
+    }
+    .dqa-info-close {
+      background: none;
+      border: none;
+      font-size: 22px;
+      color: #aaa;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 6px;
+      min-width: auto;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .dqa-info-close:hover { color: #333; background: #f5f5f5; }
+    .dqa-info-subtitle {
+      font-size: 12px;
+      color: #999;
+      padding: 8px 24px 0;
+    }
+    .dqa-info-body {
+      overflow-y: auto;
+      padding: 6px 24px 24px;
+      flex: 1;
+      font-size: 13px;
+      color: #444;
+      line-height: 1.55;
+    }
+    .dqa-info-section { margin-top: 18px; }
+    .dqa-info-section h5 {
+      margin: 0 0 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: #888;
+    }
+    .dqa-info-section p { margin: 0 0 8px; }
+    .dqa-info-section p:last-child { margin-bottom: 0; }
+    .dqa-info-formula {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 13px;
+      background: #f7f8fa;
+      border-radius: 6px;
+      padding: 10px 12px;
+      text-align: center;
+      color: #333;
+      margin: 0 0 8px;
+    }
+    .dqa-info-tiers {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .dqa-info-tier {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dqa-info-rules {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .dqa-info-rules li {
+      padding: 5px 0;
+      border-bottom: 1px solid #f4f4f4;
+    }
+    .dqa-info-rules li:last-child { border-bottom: none; }
+    .dqa-info-rules b { color: #333; }
+    .dqa-info-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    .dqa-info-table th,
+    .dqa-info-table td {
+      text-align: left;
+      padding: 5px 8px 5px 0;
+      border-bottom: 1px solid #f4f4f4;
+      vertical-align: top;
+    }
+    .dqa-info-table th {
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #888;
+      font-weight: 700;
+    }
+    .dqa-info-table td:last-child {
+      text-align: right;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .dqa-info-note {
+      font-size: 12px;
+      color: #777;
+      line-height: 1.5;
+    }
+    .dqa-info-code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+      background: #f4f5f7;
+      border-radius: 3px;
+      padding: 1px 4px;
+    }
+
+    /* .container sets text-align:center, which the rule labels inherit 
        pin them left so C1–C6 read against the card edge, values stay right. */
     .dqa-grid .explore-stat-row .stat-label { text-align: left; }
     .dqa-grid .explore-stat-row {
@@ -1612,7 +1775,7 @@
         <span class="id-status" id="idStatus"></span>
       </div>
 
-      <!-- Section C: Summary — skeleton state on load, populated after CSV -->
+      <!-- Section C: Summary  skeleton state on load, populated after CSV -->
       <div class="summary-section" id="summarySection">
         <div class="section-header">
           <h2 class="section-title">Summary of data</h2>
@@ -1620,7 +1783,7 @@
         <div id="exploreContent"></div>
       </div>
 
-      <!-- Section D: Analysis — always visible -->
+      <!-- Section D: Analysis  always visible -->
       <div class="analysis-section" id="analysisSection">
         <div class="section-header">
           <h2 class="section-title">Analysis of data</h2>
@@ -1725,6 +1888,18 @@
         </div>
       </div>
 
+      <!-- DQA indicator methodology modal (opened from a card's ⓘ) -->
+      <div class="dqa-info-overlay" id="dqaInfoOverlay">
+        <div class="dqa-info-modal" role="dialog" aria-modal="true" aria-labelledby="dqaInfoTitle">
+          <div class="dqa-info-header">
+            <h3 id="dqaInfoTitle"></h3>
+            <button class="dqa-info-close" id="dqaInfoClose" aria-label="Close">&times;</button>
+          </div>
+          <div class="dqa-info-subtitle" id="dqaInfoSubtitle"></div>
+          <div class="dqa-info-body" id="dqaInfoBody"></div>
+        </div>
+      </div>
+
       <!-- Feedback modal (opened from footer link) -->
       <div class="feedback-overlay" id="feedbackOverlay">
         <div class="feedback-modal">
@@ -1757,7 +1932,7 @@
         <p class="footer-heading">Supported Instruments &amp; Algorithms</p>
         <ul>
           <li><b>WHO VA V1.5.2</b> and <b>InterVA5.</b> Source code from <a href="https://github.com/verbal-autopsy-software/InterVA5" target="_blank">here</a></li>
-          <li><b>WHO VA 2022</b> and <b>InterVA6</b> — python version of <a href="https://github.com/verbal-autopsy-software/InterVA2022" target="_blank">InterVA2022</a> (R-version)</li>
+          <li><b>WHO VA 2022</b> and <b>InterVA6</b>  python version of <a href="https://github.com/verbal-autopsy-software/InterVA2022" target="_blank">InterVA2022</a> (R-version)</li>
         </ul>
       </div>
       <div class="footer-col">
@@ -1829,7 +2004,7 @@
 
     // =========================================================================
     // COLUMN LABEL DICTIONARY  (sourced from yellow-highlighted cells in
-    // WHOVA_2022_WITH_LABEL.xlsx — do not modify without updating the source)
+    // WHOVA_2022_WITH_LABEL.xlsx  do not modify without updating the source)
     // =========================================================================
     const COLUMN_LABELS = {
       'start-time':  'Start time',
@@ -1886,7 +2061,7 @@
       hint.innerHTML = '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span>Load a CSV file to populate this section</span>';
       exploreContent.appendChild(hint);
 
-      // Skeleton card grid — 4 cards
+      // Skeleton card grid  4 cards
       const grid = document.createElement('div');
       grid.className = 'explore-grid';
       const barWidths = [95, 78, 63, 51, 40];
@@ -1938,7 +2113,7 @@
     const covidSelect = document.getElementById('covidSelect');
     const outputBox = document.getElementById('outputBox');
     const downloadLink = document.getElementById('downloadLink');
-    // Progress bar removed — stub references so existing call sites don't throw
+    // Progress bar removed  stub references so existing call sites don't throw
     const progressSection = { classList: { add: () => {}, remove: () => {} } };
     const progressFill = { style: {} };
     const progressPercent = { textContent: '' };
@@ -1971,7 +2146,7 @@
     //   100%   : Jump here instantly when backend sends 'complete'
     //
     // Rule: bar NEVER goes backward except on reset to 0 (error/cancel)
-    // Rule: bar NEVER stalls — the client ticker keeps it moving
+    // Rule: bar NEVER stalls  the client ticker keeps it moving
     // Rule: SSE messages go to the log box only, NOT the progress bar
     // =========================================================================
 
@@ -2013,7 +2188,7 @@
         if (current < 90) {
           setProgress(current + 1);
         } else {
-          // Hit 90% — backend isn't done yet
+          // Hit 90%  backend isn't done yet
           // Stop ticking, start showing friendly messages
           stopTickerOnly();
           startWaitingMessages();
@@ -2106,11 +2281,11 @@
           break;
 
         case 'chunk_received':
-          // Progress handled by upload loop — ignore here
+          // Progress handled by upload loop  ignore here
           break;
 
         case 'progress':
-          // Log to output box ONLY — progress bar is driven by the ticker
+          // Log to output box ONLY  progress bar is driven by the ticker
           addLogMessage(`-> ${data.message}`);
           break;
 
@@ -2291,7 +2466,7 @@
           actionRow.style.display = 'flex';
         }
 
-        // Fetch error log once while session is guaranteed alive — cache client-side
+        // Fetch error log once while session is guaranteed alive  cache client-side
         // so the Download button never has to re-request it from the server.
         try {
           const errResp = await fetch(`${API_BASE_URL}/get-error-log/${sessionId}`);
@@ -2474,7 +2649,7 @@
           addLogMessage('[OK] Individual records CSV added');
         }
 
-        // Error log — use client-side cache first; fall back to server if needed
+        // Error log  use client-side cache first; fall back to server if needed
         if (checkbox2.checked) {
           if (errorLogContent) {
             zip.file(`${folderName}/error_log.txt`, new Blob([errorLogContent], { type: 'text/plain' }));
@@ -2635,7 +2810,7 @@
     // see the same normalized column names.
     // =========================================================================
 
-    // Case-sensitive map (checked first — handles "Age in Days" vs "Age in days")
+    // Case-sensitive map (checked first  handles "Age in Days" vs "Age in days")
     const KOBO_LABEL_MAP_CS = {
       "The deceased person is a Neonate":  "isNeonatal",
       "The deceased person is a Child":    "isChild",
@@ -2650,7 +2825,7 @@
       "[Enter child's age in years:]":     "age_child_years",
       "Interview language":                "language"
     };
-    // Case-insensitive fallback (excludes "age in days" — ambiguous)
+    // Case-insensitive fallback (excludes "age in days"  ambiguous)
     const KOBO_LABEL_MAP_CI = {
       "the deceased person is a neonate":  "isNeonatal",
       "the deceased person is a child":    "isChild",
@@ -2753,7 +2928,7 @@
         }
       }
 
-      // ── Step 2: Validate — enough renames to confirm format? ────────
+      // ── Step 2: Validate  enough renames to confirm format? ────────
       const koboHits = Object.keys(columnMap).length;
       const koboRatio = headers.length > 0 ? koboHits / headers.length : 0;
       if (koboRatio < 0.20) {
@@ -2834,7 +3009,7 @@
       for (const x of sig2022) { if (s.has(x)) c22++; }
 
       // Id10476_audio is a strong WHO 2022 discriminator that survives
-      // Kobo regex stripping — promote to threshold if only match
+      // Kobo regex stripping  promote to threshold if only match
       if (c22 < 3 && s.has('id10476_audio')) c22 = 3;
 
       if (c16 > c22 && c16 >= 3) return '2016WHOv151';
@@ -3283,13 +3458,13 @@
         else tiers.low++;
       });
       const note = (iLit === -1 && iEdu === -1)
-        ? 'Education fields (Id10063/Id10064) absent — component scored 5/10' : '';
+        ? 'Education fields (Id10063/Id10064) absent  component scored 5/10' : '';
       return Object.assign({ values: values, tiers: tiers, excluded: excluded, blank: blank, note: note }, dqaStats(values));
     }
 
     // ICI: six cross-field consistency rules; a record fails if any rule is
     // violated. Duration rules (C3–C6) only apply when the total illness
-    // duration (Id10120) is a valid number > 0 — without this gate, blank or
+    // duration (Id10120) is a valid number > 0  without this gate, blank or
     // zero illness durations produce spurious violations.
     const DQA_ICI_RULES = [
       { id: 'C1', label: 'C1 Pregnant male',        desc: 'Pregnancy reported (Id10305) for a male decedent (Id10019)' },
@@ -3373,14 +3548,194 @@
       return Object.assign({ values: values, excluded: excluded }, dqaStats(values));
     }
 
+    // Methodology copy for the ⓘ pop-up on each indicator card. Static  it
+    // documents how each indicator is defined and computed, so it reads the
+    // same whether or not a dataset is loaded. `sections[].html` is authored
+    // here (never user input) and injected with innerHTML.
+    const DQA_TIER_BLOCK = tiers => '<div class="dqa-info-tiers">' + tiers.map(t =>
+      '<div class="dqa-info-tier"><span class="dqa-badge ' + t.cls + '">' + t.name
+        + '</span><span>' + t.range + '</span></div>').join('') + '</div>';
+
+    const DQA_INFO = {
+      ICS: {
+        title: 'ICS  Informative Completeness Score',
+        subtitle: 'Data quality indicator 1 of 4',
+        sections: [
+          { heading: 'What it measures', html:
+            '<p>The proportion of binary (yes/no) questions a record answered <em>informatively</em> ' +
+            'with a definitive “yes” or “no” rather than “don’t know” or “refused”.</p>' +
+            '<p>ICS ranges from 0% (every binary answer was “don’t know” or “refused”) to 100%. ' +
+            'A record at 100% is not necessarily <em>accurate</em>  a respondent can answer ' +
+            'confidently and still be wrong  but a systematically low ICS signals that the ' +
+            'respondent could not, or did not, engage meaningfully with the interview.</p>' },
+          { heading: 'Formula', html:
+            '<div class="dqa-info-formula">ICS<sub>i</sub> = |I<sub>i</sub>| / |B<sub>i</sub>| × 100</div>' +
+            '<p class="dqa-info-note"><b>B<sub>i</sub></b>  the binary fields of record <i>i</i> that ' +
+            'received any response (system-missing excluded).<br>' +
+            '<b>I<sub>i</sub> ⊆ B<sub>i</sub></b>  those answered “yes” or “no”.<br>' +
+            'Records with no binary response at all are excluded from the indicator.</p>' },
+          { heading: 'Tiers', html: DQA_TIER_BLOCK([
+            { name: 'High',     cls: 'good', range: 'ICS ≥ 90' },
+            { name: 'Moderate', cls: 'warn', range: 'ICS 70–89' },
+            { name: 'Low',      cls: 'bad',  range: 'ICS < 70' }]) },
+          { heading: 'How the binary-field count is derived', html:
+            '<p>The number shown beneath the card title (“<i>n</i> binary fields”) is not fixed  it is ' +
+            'counted from the columns of the file you uploaded. A column qualifies when <b>both</b> ' +
+            'tests pass:</p>' +
+            '<p>1. Its header resolves to a WHO-VA <span class="dqa-info-code">Id10…</span> field name  ' +
+            'either the bare name, or unwrapped from the Kobo export form ' +
+            '<span class="dqa-info-code">"(Id10120) During the illness…"</span>.</p>' +
+            '<p>2. At least <b>95%</b> of its non-empty values normalise to yes / no / don’t-know / ' +
+            'refused. The 95% tolerance lets a handful of stray free-text entries through without ' +
+            'admitting genuinely categorical columns (place of death, occupation, and so on).</p>' +
+            '<p class="dqa-info-note">So the count is “how many of this upload’s columns are true ' +
+            'yes/no questions”. A different export of the same instrument, with more or fewer ' +
+            'columns included, will show a different number.</p>' },
+          { heading: 'Why the chart is log-scaled', html:
+            '<p>ICS values pile up hard against 100%. On a linear axis that one bin would tower over ' +
+            'the chart and flatten every other bin to an invisible sliver  which is exactly where the ' +
+            'records worth investigating live.</p>' +
+            '<div class="dqa-info-formula">bar height = log₁₀(count + 1) / log₁₀(max count + 1)</div>' +
+            '<p class="dqa-info-note">Bar heights are therefore <b>not</b> proportional to record ' +
+            'counts: a bar half as tall as its neighbour holds far fewer than half as many records. ' +
+            'Hover any bin to read its true count and percentage.</p>' }
+        ]
+      },
+      RRS: {
+        title: 'RRS  Respondent Reliability Score',
+        subtitle: 'Data quality indicator 2 of 4',
+        sections: [
+          { heading: 'What it measures', html:
+            '<p>How much weight the answers in a record can bear, given <em>who</em> gave them. VA ' +
+            'responses are proxy-reported, so reliability depends on the respondent’s closeness to the ' +
+            'deceased, whether they were present at the death, how long ago it happened, and their ' +
+            'ability to engage with a structured questionnaire.</p>' +
+            '<p>Four factors are scored independently and summed to a 0–100 scale.</p>' },
+          { heading: 'Formula', html:
+            '<div class="dqa-info-formula">RRS = W<sub>rel</sub> + W<sub>prox</sub> + ' +
+            'W<sub>rec</sub> + W<sub>edu</sub></div>' },
+          { heading: 'Scoring rubric', html:
+            '<table class="dqa-info-table">' +
+            '<tr><th>Component</th><th>Field(s)</th><th>Points</th></tr>' +
+            '<tr><td>Relationship  spouse, parent or child</td><td>Id10008</td><td>40</td></tr>' +
+            '<tr><td>Relationship  other family member</td><td>Id10008</td><td>20</td></tr>' +
+            '<tr><td>Relationship  friend, health worker, other</td><td>Id10008</td><td>10</td></tr>' +
+            '<tr><td>Present at death  yes</td><td>Id10009</td><td>30</td></tr>' +
+            '<tr><td>Present at death  no</td><td>Id10009</td><td>15</td></tr>' +
+            '<tr><td>Recall period &lt; 90 days</td><td>Id10023, Id10012</td><td>20</td></tr>' +
+            '<tr><td>Recall period 90–179 days</td><td>Id10023, Id10012</td><td>15</td></tr>' +
+            '<tr><td>Recall period 180–364 days</td><td>Id10023, Id10012</td><td>10</td></tr>' +
+            '<tr><td>Recall period ≥ 365 days</td><td>Id10023, Id10012</td><td>0</td></tr>' +
+            '<tr><td>Literate, or secondary+ education</td><td>Id10064, Id10063</td><td>10</td></tr>' +
+            '<tr><td>Illiterate, or no formal education</td><td>Id10064, Id10063</td><td>5</td></tr>' +
+            '</table>' +
+            '<p class="dqa-info-note">Recall period is the interview date (Id10012) minus the date of ' +
+            'death (Id10023).</p>' },
+          { heading: 'Tiers', html: DQA_TIER_BLOCK([
+            { name: 'High',     cls: 'good', range: 'RRS ≥ 80' },
+            { name: 'Moderate', cls: 'warn', range: 'RRS 50–79' },
+            { name: 'Low',      cls: 'bad',  range: 'RRS < 50' }]) },
+          { heading: 'Exclusions and caveats', html:
+            '<p>Records whose date of death or interview date cannot be parsed are <b>excluded</b>  ' +
+            'without both dates the recall component is undeterminable, and scoring the record without ' +
+            'it would understate its reliability by up to 20 points.</p>' +
+            '<p>Dates are read as ISO <span class="dqa-info-code">YYYY-MM-DD</span> first, then ' +
+            'day-first <span class="dqa-info-code">DD/MM/YYYY</span>. Month-first US-style dates are ' +
+            'not attempted, as WHO-VA deployments are day-first.</p>' +
+            '<p>Records blank on both relationship and presence-at-death are counted separately as ' +
+            '“blank” rather than scored. Where the education fields are absent from the dataset ' +
+            'entirely, that component scores 5/10 for every record and the card notes it.</p>' }
+        ]
+      },
+      ICI: {
+        title: 'ICI  Internal Consistency Index',
+        subtitle: 'Data quality indicator 3 of 4',
+        sections: [
+          { heading: 'What it measures', html:
+            '<p>The share of records free of logical contradictions. Six cross-field rules flag ' +
+            'combinations that are biologically impossible or implausible  a pregnancy in a male ' +
+            'decedent, a symptom lasting longer than the illness that contained it.</p>' +
+            '<p>A record fails if it breaks <em>any</em> of the six rules.</p>' },
+          { heading: 'Formula', html:
+            '<div class="dqa-info-formula">ICI = records with zero violations / total records × 100</div>' },
+          { heading: 'Tiers', html: DQA_TIER_BLOCK([
+            { name: 'Excellent', cls: 'good', range: 'ICI ≥ 90%' },
+            { name: 'Good',      cls: 'warn', range: 'ICI 70–89%' },
+            { name: 'Critical',  cls: 'bad',  range: 'ICI < 70%' }]) },
+          { heading: 'The six consistency rules', html:
+            '<ul class="dqa-info-rules">' + DQA_ICI_RULES.map(r =>
+              '<li><b>' + r.id + '</b>  ' + r.desc + '</li>').join('') + '</ul>' },
+          { heading: 'Why the rule counts don’t sum to the record count', html:
+            '<p>They count two different things. The per-rule figures count <b>violations</b>; the ' +
+            'line above them counts <b>records</b>.</p>' +
+            '<p>A record that breaks three rules adds 3 to the rule counts but only 1 to the record ' +
+            'count. So the rule counts always sum to <em>at least</em> the record count, and usually ' +
+            'more  the gap is the number of records breaking more than one rule.</p>' +
+            '<p class="dqa-info-note">This is deliberate: ICI is defined on records, because one ' +
+            'record with three contradictions is one bad record, not three. Both totals are shown on ' +
+            'the card so the difference is visible rather than looking like an arithmetic error.</p>' },
+          { heading: 'How the rules are applied', html:
+            '<p>The duration rules <b>C3–C6</b> are only evaluated when the total illness duration ' +
+            '(Id10120) parses to a number greater than zero. Without that gate, a blank or zero ' +
+            'illness duration would make every recorded symptom duration look like a violation.</p>' +
+            '<p>Rules whose fields are absent from the upload show <span class="dqa-info-code">n/a' +
+            '</span> and take no part in the index.</p>' }
+        ]
+      },
+      AID: {
+        title: 'AID  Average Interview Duration',
+        subtitle: 'Data quality indicator 4 of 4',
+        sections: [
+          { heading: 'What it measures', html:
+            '<p>The elapsed wall-clock time of the interview, in minutes. Duration is a proxy for ' +
+            'interview process quality rather than for the content of the answers.</p>' +
+            '<p>An interview finished in a few minutes suggests whole questionnaire sections were ' +
+            'skipped; an unusually long one suggests a multi-session interview or a data-entry ' +
+            'artefact. Roughly, durations below 10–12 minutes warrant supervisor review.</p>' },
+          { heading: 'Formula', html:
+            '<div class="dqa-info-formula">AID<sub>i</sub> = (Id10481<sub>i</sub> − ' +
+            'Id10011<sub>i</sub>) / 60 minutes</div>' +
+            '<p class="dqa-info-note">Id10011 is the interview start time, Id10481 the end time.</p>' },
+          { heading: 'Why the headline is a median, not a mean', html:
+            '<p>Interview durations are strongly right-skewed: most cluster around half an hour, but a ' +
+            'thin tail of very long records drags the mean well above where the typical interview ' +
+            'actually sits. The median is unmoved by that tail, so it is the headline; the ' +
+            'interquartile range beside it shows the spread of the middle half of records.</p>' +
+            '<p class="dqa-info-note">This card carries no High/Moderate/Low badge  unlike the other ' +
+            'three indicators there is no published threshold at which a duration becomes “good”.</p>' },
+          { heading: 'Exclusions', html:
+            '<p>Durations of zero or less, and of 480 minutes (8 hours) or more, are excluded as ' +
+            'artefacts. The 8-hour cap filters multi-day data-entry patterns while still retaining ' +
+            'genuinely long interviews.</p>' +
+            '<p>The final bar of the chart is an overflow bucket holding everything from 120 minutes ' +
+            'up to the 480-minute cap, so it will often stand taller than the bars beside it.</p>' },
+          { heading: 'Instrument caveat', html:
+            '<p>The <b>2016</b> WHO-VA instrument stores Id10011 and Id10481 as time-of-day only, with ' +
+            'no date. A midnight crossing is then indistinguishable from a negative duration: 1,440 ' +
+            'minutes are added back, and the 480-minute cap removes what remains of the cross-day ' +
+            'artefacts. Interviews genuinely spanning midnight cannot be detected.</p>' +
+            '<p>The <b>2022</b> instrument stores full ISO 8601 datetimes, so durations compute ' +
+            'correctly across date boundaries.</p>' }
+        ]
+      }
+    };
+
     // Catmull-Rom smoothed SVG path through [x, y] points (viewBox units).
-    function dqaSmoothPath(pts) {
+    // `yBounds` ([lo, hi]) clamps the control points' y: at a sharp peak or a
+    // lone spike Catmull-Rom overshoots well past the points it interpolates,
+    // which pushes the stroke outside the chart box and gets it clipped. A cubic
+    // bezier stays within the convex hull of its control points, so clamping
+    // those keeps the whole drawn curve inside the band.
+    function dqaSmoothPath(pts, yBounds) {
       if (pts.length < 2) return '';
+      const clampY = yBounds
+        ? y => Math.max(yBounds[0], Math.min(yBounds[1], y))
+        : y => y;
       let d = 'M ' + pts[0][0].toFixed(2) + ' ' + pts[0][1].toFixed(2);
       for (let i = 0; i < pts.length - 1; i++) {
         const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
-        const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
-        const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+        const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = clampY(p1[1] + (p2[1] - p0[1]) / 6);
+        const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = clampY(p2[1] - (p3[1] - p1[1]) / 6);
         d += ' C ' + c1x.toFixed(2) + ' ' + c1y.toFixed(2) + ', '
                    + c2x.toFixed(2) + ' ' + c2y.toFixed(2) + ', '
                    + p2[0].toFixed(2) + ' ' + p2[1].toFixed(2);
@@ -3412,7 +3767,7 @@
       const total = values.length;
       bins.forEach((c, i) => {
         // Each bin is a full-height column so the hover target covers the whole
-        // slot — thin and empty bins stay hoverable.
+        // slot  thin and empty bins stay hoverable.
         const col = document.createElement('div');
         col.className = 'dqa-hist-col';
         const bar = document.createElement('div');
@@ -3448,14 +3803,25 @@
       });
 
       if (opts.showCurve && total > 0) {
-        const pts = bins.map((c, i) => [((i + 0.5) / nBins) * 100, 100 - scaleH(c) * 100]);
+        // Points sit at bin centres, but anchoring only those leaves the curve
+        // stopping short of the chart edges  a tall outer bin then reads as a
+        // vertical cut. Repeat the first and last bin heights at x = 0 and 100
+        // so the curve runs edge to edge. The y range is inset by PAD as well,
+        // so a full-height peak keeps its whole stroke inside the box instead of
+        // being halved by the container's overflow:hidden.
+        const PAD = 1.5;
+        const yAt = c => PAD + (1 - scaleH(c)) * (100 - PAD * 2);
+        const pts = [[0, yAt(bins[0])]]
+          .concat(bins.map((c, i) => [((i + 0.5) / nBins) * 100, yAt(c)]))
+          .concat([[100, yAt(bins[nBins - 1])]]);
+        const yBounds = [PAD, 100 - PAD];
         const SVG_NS = 'http://www.w3.org/2000/svg';
         const svg = document.createElementNS(SVG_NS, 'svg');
         svg.setAttribute('class', 'dqa-curve');
         svg.setAttribute('viewBox', '0 0 100 100');
         svg.setAttribute('preserveAspectRatio', 'none');
         const path = document.createElementNS(SVG_NS, 'path');
-        path.setAttribute('d', dqaSmoothPath(pts));
+        path.setAttribute('d', dqaSmoothPath(pts, yBounds));
         path.setAttribute('fill', 'none');
         path.setAttribute('stroke', opts.color);
         path.setAttribute('stroke-width', '2');
@@ -3673,19 +4039,19 @@
         const card = document.createElement('div');
         card.className = 'explore-card';
 
-        // Card header — static shell (title + picker); content refreshes independently
+        // Card header  static shell (title + picker); content refreshes independently
         const cardHeader = document.createElement('div');
         cardHeader.className = 'explore-card-header';
 
         const h4 = document.createElement('h4');
         cardHeader.appendChild(h4);
 
-        const sel = buildColSelect(expectedCol, '— default —');
+        const sel = buildColSelect(expectedCol, ' default ');
         remapSelectors[expectedCol] = sel;
         cardHeader.appendChild(sel);
         card.appendChild(cardHeader);
 
-        // Mutable content areas — cleared and rebuilt on each renderCard() call
+        // Mutable content areas  cleared and rebuilt on each renderCard() call
         const sub = document.createElement('div');
         sub.className = 'explore-subtitle';
         card.appendChild(sub);
@@ -3781,7 +4147,7 @@
             const remaining = data.length - maxItems;
             const toggle = document.createElement('div');
             toggle.style.cssText = 'text-align:center;font-size:11px;color:#007bff;margin-top:8px;cursor:pointer;user-select:none;font-weight:500;';
-            toggle.textContent = `+ ${remaining} more — view all`;
+            toggle.textContent = `+ ${remaining} more  view all`;
             toggle.addEventListener('click', (e) => {
               e.stopPropagation();
               openDistModal(displayTitle, data, color, maxItems);
@@ -3876,7 +4242,7 @@
         const remap = document.createElement('div');
         remap.className = 'explore-card-remap';
         missing.forEach(colName => {
-          const sel = buildColSelect(colName, '— map ' + colName + ' —');
+          const sel = buildColSelect(colName, ' map ' + colName + ' ');
           remapSelectors[colName] = sel;
           sel.addEventListener('change', () => {
             const chosen = parseInt(sel.value);
@@ -3904,7 +4270,14 @@
         const info = document.createElement('span');
         info.className = 'dqa-info';
         info.textContent = 'ⓘ';
-        info.title = cfg.tooltip;
+        info.title = 'About this indicator';
+        info.setAttribute('role', 'button');
+        info.setAttribute('tabindex', '0');
+        info.setAttribute('aria-label', 'How ' + cfg.title.split(' ')[0] + ' is defined and computed');
+        info.addEventListener('click', () => openDQAInfo(cfg.infoKey, info));
+        info.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDQAInfo(cfg.infoKey, info); }
+        });
         titleGroup.appendChild(info);
         cardHeader.appendChild(titleGroup);
 
@@ -3946,10 +4319,10 @@
         dqaGrid.appendChild(card);
       }
 
-      // ICS — Informative Completeness Score
+      // ICS  Informative Completeness Score
       addDQACard({
-        title: 'ICS — Completeness',
-        tooltip: 'Informative Completeness Score: share of answered binary (yes/no) questions answered informatively — "yes" or "no" rather than "don’t know" or "refused" — per record. Tiers: High ≥ 90, Moderate 70–89, Low < 70.',
+        title: 'ICS  Completeness',
+        infoKey: 'ICS',
         subtitle: 'Informative Completeness Score',
         hasChart: true,
         render(body, sub, showCurve) {
@@ -3978,10 +4351,10 @@
         }
       });
 
-      // RRS — Respondent Reliability Score
+      // RRS  Respondent Reliability Score
       addDQACard({
-        title: 'RRS — Reliability',
-        tooltip: 'Respondent Reliability Score: weighted composite of relationship to deceased (Id10008, max 40), presence at death (Id10009, max 30), recall period (Id10023 vs Id10012, max 20) and literacy/education (Id10064/Id10063, max 10). Tiers: High ≥ 80, Moderate 50–79, Low < 50.',
+        title: 'RRS  Reliability',
+        infoKey: 'RRS',
         subtitle: 'Respondent Reliability Score',
         hasChart: true,
         render(body, sub, showCurve, rerender) {
@@ -4021,10 +4394,10 @@
         }
       });
 
-      // ICI — Internal Consistency Index
+      // ICI  Internal Consistency Index
       addDQACard({
-        title: 'ICI — Consistency',
-        tooltip: 'Internal Consistency Index: percentage of records with no logical contradictions across six cross-field rules (C1–C6). Tiers: Excellent ≥ 90%, Good 70–89%, Critical < 70%.',
+        title: 'ICI  Consistency',
+        infoKey: 'ICI',
         subtitle: 'Internal Consistency Index',
         hasChart: false,
         render(body, sub) {
@@ -4036,8 +4409,15 @@
             body.appendChild(err);
             return;
           }
+          // Rule counts tally violations, the headline tallies records  a record
+          // breaking three rules adds 3 to the former and 1 to the latter. Show
+          // the violation total alongside so the two never look like a failed sum,
+          // but only when it actually differs from the record count.
+          const totalViol = DQA_ICI_RULES.reduce(
+            (sum, rule) => sum + (r.available[rule.id] ? r.counts[rule.id] : 0), 0);
           sub.textContent = r.violRecords.toLocaleString() + ' of ' + r.total.toLocaleString()
-            + ' records with ≥1 violation';
+            + ' records with ≥1 violation'
+            + (totalViol > r.violRecords ? ' · ' + totalViol.toLocaleString() + ' rule violations' : '');
           dqaHeadline(body, r.passPct.toFixed(1) + '%',
             dqaTierBadge(r.passPct, 90, 70, ['Excellent', 'Good', 'Critical']),
             'records passing all consistency rules');
@@ -4075,13 +4455,21 @@
               setTimeout(() => { fill.style.width = ((r.counts[rule.id] / maxRule) * 100) + '%'; }, 100);
             }
           });
+          if (totalViol > r.violRecords) {
+            const note = document.createElement('div');
+            note.className = 'dqa-note';
+            note.textContent = 'Counts above are violations, not records: '
+              + totalViol.toLocaleString() + ' violations across '
+              + r.violRecords.toLocaleString() + ' records, as a record can break more than one rule.';
+            body.appendChild(note);
+          }
         }
       });
 
-      // AID — Average Interview Duration
+      // AID  Average Interview Duration
       addDQACard({
-        title: 'AID — Interview Duration',
-        tooltip: 'Average Interview Duration: elapsed minutes between interview start (Id10011) and end (Id10481). Durations ≤ 0 or ≥ 480 minutes are excluded as artefacts. Median is the headline statistic (distributions are right-skewed).',
+        title: 'AID  Interview Duration',
+        infoKey: 'AID',
         subtitle: 'Average Interview Duration',
         hasChart: true,
         render(body, sub, showCurve, rerender) {
@@ -4254,7 +4642,7 @@
         if (entries.length > 5) {
           const more = document.createElement('div');
           more.style.cssText = 'text-align:center;font-size:10px;color:#aaa;margin-top:4px;';
-          more.textContent = `+ ${entries.length - 5} more — click to expand`;
+          more.textContent = `+ ${entries.length - 5} more  click to expand`;
           miniChart.appendChild(more);
         }
 
@@ -4282,7 +4670,7 @@
         entries = entries.filter(d => d.cause !== 'Undetermined');
       }
 
-      modalTitle.textContent = `CSMF — ${label} (${algorithm})`;
+      modalTitle.textContent = `CSMF  ${label} (${algorithm})`;
       modalSub.textContent = `${count} records`;
       modalChart.innerHTML = '';
 
@@ -4334,10 +4722,11 @@
       if (e.key === 'Escape') {
         document.getElementById('csmfModalOverlay').classList.remove('active');
         closeDistModal();
+        closeDQAInfo();
       }
     });
 
-    // Toggle Undetermined in CSMF — re-render active view in real time
+    // Toggle Undetermined in CSMF  re-render active view in real time
     document.getElementById('includeUndetermined').addEventListener('change', () => {
       if (csmfFullData && csmfFullData.categories) {
         const alg = csmfFullData.algorithm || currentAlgorithm || 'InterVA';
@@ -4381,7 +4770,7 @@
     });
 
     // =========================================================================
-    // GBD TREEMAP — Cause Classification & Rendering
+    // GBD TREEMAP  Cause Classification & Rendering
     // =========================================================================
 
     const GBD_GROUPS = {
@@ -4399,7 +4788,7 @@
       // Maternal (b_09XX)
       if (/ectopic|abortion|pregnancy-induced|obstetric haemorrhage|obstructed labour|pregnancy-related sepsis|anaemia of pregnan|ruptured uterus|maternal co/.test(s))
         return { group: 'communicable', sub: 'Pregnancy & childbirth' };
-      // Neonatal (b_10XX) — guard against "non-neonatal" in IV6 cause names
+      // Neonatal (b_10XX)  guard against "non-neonatal" in IV6 cause names
       if (!/non-neonatal/.test(s) && /prematur|birth asphyxia|neonatal|congenital malformation|perinatal/.test(s))
         return { group: 'communicable', sub: 'Neonatal causes' };
       // Stillbirth (b_11XX)
@@ -4585,12 +4974,12 @@
       const tooltip = document.getElementById('treemapTooltip');
       const showUndetermined = document.getElementById('includeUndetermined').checked;
 
-      // Initial render — default to "all"
+      // Initial render  default to "all"
       const defaultKey = availableDemos.includes('all') ? 'all' : availableDemos[0];
       renderTreemapCells(categories[defaultKey], wrapper, tooltip, showUndetermined);
       renderTreemapLegend(categories[defaultKey], legend, showUndetermined);
 
-      // Chip click handler — single-select
+      // Chip click handler  single-select
       chips.addEventListener('click', (e) => {
         const chip = e.target.closest('.treemap-chip');
         if (!chip) return;
@@ -4802,6 +5191,46 @@
     });
 
     // =========================================================================
+    // DQA INDICATOR METHODOLOGY MODAL
+    // =========================================================================
+
+    const dqaInfoOverlay  = document.getElementById('dqaInfoOverlay');
+    const dqaInfoClose    = document.getElementById('dqaInfoClose');
+    const dqaInfoTitle    = document.getElementById('dqaInfoTitle');
+    const dqaInfoSubtitle = document.getElementById('dqaInfoSubtitle');
+    const dqaInfoBody     = document.getElementById('dqaInfoBody');
+    // The ⓘ that opened the modal, so focus can return to it on close.
+    let dqaInfoOpener = null;
+
+    function openDQAInfo(key, opener) {
+      const info = DQA_INFO[key];
+      if (!info) return;
+      dqaInfoOpener = opener || null;
+      dqaInfoTitle.textContent = info.title;
+      dqaInfoSubtitle.textContent = info.subtitle || '';
+      dqaInfoBody.innerHTML = info.sections.map(s =>
+        '<div class="dqa-info-section"><h5>' + s.heading + '</h5>' + s.html + '</div>').join('');
+      dqaInfoBody.scrollTop = 0;
+      dqaInfoOverlay.classList.add('active');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => dqaInfoOverlay.classList.add('visible'));
+      });
+      dqaInfoClose.focus();
+    }
+
+    function closeDQAInfo() {
+      if (!dqaInfoOverlay.classList.contains('active')) return;
+      dqaInfoOverlay.classList.remove('visible');
+      setTimeout(() => dqaInfoOverlay.classList.remove('active'), 220);
+      if (dqaInfoOpener) { dqaInfoOpener.focus(); dqaInfoOpener = null; }
+    }
+
+    dqaInfoClose.addEventListener('click', closeDQAInfo);
+    dqaInfoOverlay.addEventListener('click', (e) => {
+      if (e.target === dqaInfoOverlay) closeDQAInfo();
+    });
+
+    // =========================================================================
     // PDF GENERATION
     // =========================================================================
 
@@ -4851,7 +5280,7 @@
 
           pdf.setFontSize(14);
           pdf.setFont('helvetica', 'bold');
-          pdf.text(`CSMF — ${cat.label || key} (n=${cat.count})`, 14, y);
+          pdf.text(`CSMF  ${cat.label || key} (n=${cat.count})`, 14, y);
           y += 12;
 
           // Table header
@@ -5038,7 +5467,7 @@
 
     resetOutput();
 
-    fileInfo.innerHTML = 'Beta Version <span style="background: #007bff; color: white; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;">v1.5</span>';
+    fileInfo.innerHTML = 'Beta Version <span style="background: #007bff; color: white; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;">v1.6</span>';
     fileInfo.style.color = '#007bff';
 
     fetch(`${API_BASE_URL}/health`)
@@ -5072,7 +5501,7 @@
     }
 
     if (isAdmin) {
-      showSnackbar('⚙ Admin mode — CSV row limit raised to 1,000,000', 5000);
+      showSnackbar('⚙ Admin mode  CSV row limit raised to 1,000,000', 5000);
     }
   </script>
 </body>
