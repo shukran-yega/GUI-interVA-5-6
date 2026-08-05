@@ -117,6 +117,21 @@ async def home():
         }
 
 
+@app.get("/sample-data")
+async def serve_sample_data():
+    """Serve the de-identified demo dataset for the 'Load sample data' button.
+
+    Fetched lazily on click, never as part of the page load. Regenerate with
+    build_sample_data.py — do not hand-edit, and do not swap in a raw export:
+    every direct identifier (names, phones, GPS, serials, free-text narratives)
+    has been stripped from this file.
+    """
+    csv_file = os.path.join(os.path.dirname(__file__), "sample_data.csv")
+    if os.path.exists(csv_file):
+        return FileResponse(csv_file, media_type="text/csv", filename="sample_data.csv")
+    raise HTTPException(status_code=404, detail="Sample data not found")
+
+
 # ── Analytics & Dashboard Endpoints ──────────────────────────────────
 
 @app.get("/usage")

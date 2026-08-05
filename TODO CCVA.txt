@@ -1,0 +1,5 @@
+1.GBD graph colors and bar chart should match graphs in vman are called normal distribution
+2.inco-operate machine learning in ccva
+3. ICI has 3 more additional fields intergrate them into the tool as well  ( c7,c8,c9 )
+4. update the information on google doc
+

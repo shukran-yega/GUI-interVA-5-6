@@ -228,6 +228,43 @@
       background-color: #dcdcdc;
     }
 
+    /* Sits at the far end of the controls row, opposite the file input. Outlined
+       rather than filled so it reads as the secondary path to the primary one. */
+    .sample-button {
+      flex: 0 0 auto;
+      margin-left: auto;
+      align-self: stretch;
+      background-color: transparent;
+      border: 2px dashed #bbb;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #555;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+    .sample-button:hover:not(:disabled) {
+      border-color: #007bff;
+      color: #007bff;
+      background-color: #f0f7ff;
+    }
+    .sample-button:disabled {
+      cursor: default;
+      opacity: 0.65;
+      border-style: solid;
+    }
+
+    .sample-hint {
+      width: 100%;
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #777;
+      text-align: left;
+    }
+    .sample-hint b { color: #555; font-weight: 600; }
+
     button, select {
       background-color: #e8e8e8;
       border: none;
@@ -280,6 +317,8 @@
         width: 100%;
         white-space: normal;
       }
+      /* Stacked layout has no "opposite end" to push against. */
+      .sample-button { margin-left: 0; }
     }
 
     #runBtn {
@@ -1565,7 +1604,7 @@
     }
 
     /* .container sets text-align:center, which the rule labels inherit 
-       pin them left so C1–C6 read against the card edge, values stay right. */
+       pin them left so C1–C9 read against the card edge, values stay right. */
     .dqa-grid .explore-stat-row .stat-label { text-align: left; }
     .dqa-grid .explore-stat-row {
       transition: background 0.15s;
@@ -1766,6 +1805,15 @@
         <div class="csv-info-box" id="csvInfoBox">
           <span class="csv-info-text" id="csvInfoText">No file loaded</span>
         </div>
+        <button type="button" class="sample-button" id="sampleButton"
+                title="Load an anonymised 1,000-record demo dataset — no file of your own needed">
+          Load sample data
+        </button>
+      </div>
+      <div class="sample-hint" id="sampleHint">
+        No data to hand? <b>Load sample data</b> fills the tool with 1,000 anonymised
+        verbal autopsy records so you can try it out. Names, phone numbers, GPS locations
+        and free-text answers have all been removed.
       </div>
 
       <!-- ID column mapping (shown when auto-detect fails) -->
@@ -2535,6 +2583,55 @@
       resetOutput();
 
       await loadCSVData(file);
+    });
+
+    // ── Sample data ────────────────────────────────────────────────────────
+    // Fetched only on click, never at page load: the file is ~1.2 MB and most
+    // sessions never need it. The page stays fully interactive while it streams,
+    // so a user can still pick their own CSV mid-download.
+    const sampleButton = document.getElementById('sampleButton');
+    let sampleLoading = false;
+
+    sampleButton.addEventListener('click', async () => {
+      if (sampleLoading || isLoading) return;
+      sampleLoading = true;
+      const original = sampleButton.textContent;
+      sampleButton.disabled = true;
+      sampleButton.textContent = 'Loading sample…';
+
+      outputBox.innerHTML = '';
+      addLogMessage('-> Fetching anonymised sample dataset...');
+
+      try {
+        // No cache override: FileResponse sends ETag/Last-Modified, so the browser
+        // revalidates and picks up a regenerated sample_data.csv. force-cache would
+        // pin users to a stale copy after build_sample_data.py is re-run.
+        const res = await fetch(`${API_BASE_URL}/sample-data`);
+        if (!res.ok) throw new Error(`server returned ${res.status}`);
+        const text = await res.text();
+
+        // Wrap as a File so the sample takes the identical path to a real upload —
+        // same parser, same sanitiser, same column detection, no special-casing.
+        const file = new File([text], 'sample_data.csv', { type: 'text/csv' });
+
+        fileButton.textContent = 'sample_data.csv';
+        fileInput.value = '';           // clear any prior pick so re-selecting it re-fires
+        uploadedData = null;
+        runBtn.disabled = true;
+        downloadLink.classList.remove('active');
+        resetOutput();
+        addLogMessage('-> Loading sample_data.csv (1,000 anonymised records)...');
+        await loadCSVData(file);
+        showSnackbar('Sample data loaded — 1,000 anonymised records. '
+                   + 'Names, phone numbers and locations have been removed.', 7000);
+      } catch (err) {
+        addLogMessage(`Could not load sample data: ${err.message}`, 'error');
+        showSnackbar('Could not load the sample dataset. Is the backend running?');
+      } finally {
+        sampleLoading = false;
+        sampleButton.disabled = false;
+        sampleButton.textContent = original;
+      }
     });
 
     whoVersionSelect.addEventListener('change', () => {
@@ -3462,58 +3559,132 @@
       return Object.assign({ values: values, tiers: tiers, excluded: excluded, blank: blank, note: note }, dqaStats(values));
     }
 
-    // ICI: six cross-field consistency rules; a record fails if any rule is
-    // violated. Duration rules (C3–C6) only apply when the total illness
-    // duration (Id10120) is a valid number > 0  without this gate, blank or
-    // zero illness durations produce spurious violations.
+    // ICI: nine cross-field consistency rules (manuscript Table 2). Each record
+    // scores ICI = (N - |V|) / N * 100, where N counts only the rules that could
+    // actually be evaluated for that record and |V| the ones it violated. The
+    // dataset figure is the mean of those per-record scores.
+    //
+    // A rule drops out of a record's N when its precondition is unmet — the age
+    // group is unrecorded, the sex is blank, a date won't parse, or the duration
+    // being compared is absent. Scoring those as "passed" would inflate the index
+    // on exactly the sparse datasets the indicator exists to catch.
+    //
+    // Module-restricted rules (C2–C5) fire on 'yes' only: a recorded 'no' is
+    // harmless, and instruments that write 'no' everywhere would otherwise flag
+    // every record.
     const DQA_ICI_RULES = [
-      { id: 'C1', label: 'C1 Pregnant male',        desc: 'Pregnancy reported (Id10305) for a male decedent (Id10019)' },
-      { id: 'C2', label: 'C2 Blood w/o cough',      desc: 'Blood in cough (Id10157) reported without cough (Id10153)' },
-      { id: 'C3', label: 'C3 Fever > illness',      desc: 'Fever duration (Id10148) exceeds total illness duration (Id10120)' },
-      { id: 'C4', label: 'C4 Cough > illness',      desc: 'Cough duration (Id10154) exceeds total illness duration (Id10120)' },
-      { id: 'C5', label: 'C5 Diarrhoea > illness',  desc: 'Diarrhoea duration (Id10182) exceeds total illness duration (Id10120)' },
-      { id: 'C6', label: 'C6 Breathless > illness', desc: 'Breathlessness duration (Id10161) exceeds total illness duration (Id10120)' }
+      { id: 'C1', label: 'C1 Interview before death', desc: 'Interview date (Id10012) precedes date of death (Id10023)' },
+      { id: 'C2', label: 'C2 Adult Qs, child/neonate', desc: 'Adult-only questions answered for a child or neonate (Id10138, Id10170, Id10237, Id10212, Id10411)' },
+      { id: 'C3', label: 'C3 Child Qs, adult/neonate', desc: 'Child-only questions answered for an adult or neonate (Id10185, Id10269, Id10369)' },
+      { id: 'C4', label: 'C4 Neonate Qs, adult/child', desc: 'Neonate-only questions answered for an adult or child (Id10104, Id10105, Id10107, Id10377, Id10109)' },
+      { id: 'C5', label: 'C5 Female Qs, male',         desc: 'Female-only questions answered for a male decedent (Id10294, Id10305, Id10304, Id10328, Id10340)' },
+      { id: 'C6', label: 'C6 Fever > illness',         desc: 'Fever duration (Id10148) exceeds total illness duration (Id10120)' },
+      { id: 'C7', label: 'C7 Cough > illness',         desc: 'Cough duration (Id10154) exceeds total illness duration (Id10120)' },
+      { id: 'C8', label: 'C8 Diarrhoea > illness',     desc: 'Diarrhoea duration (Id10182) exceeds total illness duration (Id10120)' },
+      { id: 'C9', label: 'C9 Breathless > illness',    desc: 'Breathlessness duration (Id10161) exceeds total illness duration (Id10120)' }
     ];
+
+    // Question sets restricted to one age group / sex by the instrument's skip
+    // logic. A 'yes' outside that group means the skip logic did not hold.
+    const DQA_ICI_ADULT_ONLY   = ['Id10138', 'Id10170', 'Id10237', 'Id10212', 'Id10411'];
+    const DQA_ICI_CHILD_ONLY   = ['Id10185', 'Id10269', 'Id10369'];
+    const DQA_ICI_NEONATE_ONLY = ['Id10104', 'Id10105', 'Id10107', 'Id10377', 'Id10109'];
+    const DQA_ICI_FEMALE_ONLY  = ['Id10294', 'Id10305', 'Id10304', 'Id10328', 'Id10340'];
+
     function computeICI(rows, resolve) {
-      const iSex = resolve('Id10019'), iPreg = resolve('Id10305');
-      const iCough = resolve('Id10153'), iBlood = resolve('Id10157');
+      const iDeath = resolve('Id10023'), iInt = resolve('Id10012');
+      const iSex = resolve('Id10019');
+      const iAdult = resolve('isAdult'), iChild = resolve('isChild'), iNeo = resolve('isNeonatal');
       const iIll = resolve('Id10120'), iFever = resolve('Id10148');
       const iCoughD = resolve('Id10154'), iDiarr = resolve('Id10182'), iBreath = resolve('Id10161');
+
+      // Resolve each question set once, dropping columns absent from this dataset.
+      const idx = names => names.map(resolve).filter(i => i !== -1);
+      const adultCols = idx(DQA_ICI_ADULT_ONLY);
+      const childCols = idx(DQA_ICI_CHILD_ONLY);
+      const neoCols   = idx(DQA_ICI_NEONATE_ONLY);
+      const femCols   = idx(DQA_ICI_FEMALE_ONLY);
+      const anyAge = iAdult !== -1 || iChild !== -1 || iNeo !== -1;
+
       const available = {
-        C1: iSex !== -1 && iPreg !== -1,
-        C2: iCough !== -1 && iBlood !== -1,
-        C3: iIll !== -1 && iFever !== -1,
-        C4: iIll !== -1 && iCoughD !== -1,
-        C5: iIll !== -1 && iDiarr !== -1,
-        C6: iIll !== -1 && iBreath !== -1
+        C1: iDeath !== -1 && iInt !== -1,
+        C2: anyAge && adultCols.length > 0,
+        C3: anyAge && childCols.length > 0,
+        C4: anyAge && neoCols.length > 0,
+        C5: iSex !== -1 && femCols.length > 0,
+        C6: iIll !== -1 && iFever !== -1,
+        C7: iIll !== -1 && iCoughD !== -1,
+        C8: iIll !== -1 && iDiarr !== -1,
+        C9: iIll !== -1 && iBreath !== -1
       };
-      const counts = { C1: 0, C2: 0, C3: 0, C4: 0, C5: 0, C6: 0 };
-      let violRecords = 0;
+
+      const counts    = {};   // violations per rule
+      const evaluated = {};   // records on which the rule could be evaluated
+      DQA_ICI_RULES.forEach(rule => { counts[rule.id] = 0; evaluated[rule.id] = 0; });
+
+      const scores = [];
+      let violRecords = 0, excludedNoRules = 0, totalN = 0;
+
       rows.forEach(r => {
-        let violated = false;
-        if (available.C1 && dqaNorm(r[iPreg]) === 'yes' &&
-            (r[iSex] || '').trim().toLowerCase() === 'male') { counts.C1++; violated = true; }
-        if (available.C2 && dqaNorm(r[iBlood]) === 'yes' &&
-            dqaNorm(r[iCough]) === 'no') { counts.C2++; violated = true; }
-        const ill = iIll !== -1 ? dqaNum(r[iIll]) : null;
-        if (ill !== null && ill > 0) {
-          const durViol = (idx) => {
-            const d = idx !== -1 ? dqaNum(r[idx]) : null;
-            return d !== null && d > ill;
-          };
-          if (available.C3 && durViol(iFever)) { counts.C3++; violated = true; }
-          if (available.C4 && durViol(iCoughD)) { counts.C4++; violated = true; }
-          if (available.C5 && durViol(iDiarr)) { counts.C5++; violated = true; }
-          if (available.C6 && durViol(iBreath)) { counts.C6++; violated = true; }
+        const flag = i => i !== -1 && (r[i] || '').trim() === '1';
+        const isAdult = flag(iAdult), isChild = flag(iChild), isNeo = flag(iNeo);
+        const ageKnown = isAdult || isChild || isNeo;
+        const sex = (r[iSex] || '').trim().toLowerCase();
+        const anyYes = cols => cols.some(i => dqaNorm(r[i]) === 'yes');
+
+        let n = 0, v = 0;
+        // verdict: true = violated, false = passed, null = not evaluable for this record
+        const apply = (id, verdict) => {
+          if (!available[id] || verdict === null) return;
+          n++;
+          evaluated[id]++;
+          if (verdict) { v++; counts[id]++; }
+        };
+
+        // C1  temporal consistency
+        if (available.C1) {
+          const death = dqaParseDate(r[iDeath]), interview = dqaParseDate(r[iInt]);
+          apply('C1', (death === null || interview === null) ? null : interview < death);
         }
-        if (violated) violRecords++;
+
+        // C2–C4  age-group question sets. Evaluable only once the age group is
+        // known; an in-group record is evaluated and passes.
+        apply('C2', ageKnown ? ((isChild || isNeo) && anyYes(adultCols)) : null);
+        apply('C3', ageKnown ? ((isAdult || isNeo) && anyYes(childCols)) : null);
+        apply('C4', ageKnown ? ((isAdult || isChild) && anyYes(neoCols)) : null);
+
+        // C5  female-only questions. 'undetermined' (intersex) asserts nothing.
+        apply('C5', (sex === 'male' || sex === 'female') ? (sex === 'male' && anyYes(femCols)) : null);
+
+        // C6–C9  symptom duration must not exceed the illness that contained it.
+        const ill = iIll !== -1 ? dqaNum(r[iIll]) : null;
+        const durVerdict = (i) => {
+          if (ill === null || ill <= 0 || i === -1) return null;
+          const d = dqaNum(r[i]);
+          return d === null ? null : d > ill;
+        };
+        apply('C6', durVerdict(iFever));
+        apply('C7', durVerdict(iCoughD));
+        apply('C8', durVerdict(iDiarr));
+        apply('C9', durVerdict(iBreath));
+
+        if (v > 0) violRecords++;
+        if (n === 0) { excludedNoRules++; return; }
+        totalN += n;
+        scores.push(((n - v) / n) * 100);
       });
+
       const total = rows.length;
+      const scored = scores.length;
       return {
         total: total,
+        scored: scored,
+        excludedNoRules: excludedNoRules,
         violRecords: violRecords,
-        passPct: total ? ((total - violRecords) / total) * 100 : null,
+        meanICI: scored ? scores.reduce((a, b) => a + b, 0) / scored : null,
+        meanN: scored ? totalN / scored : null,
         counts: counts,
+        evaluated: evaluated,
         available: available,
         anyAvailable: Object.keys(available).some(k => available[k])
       };
@@ -3652,34 +3823,52 @@
         subtitle: 'Data quality indicator 3 of 4',
         sections: [
           { heading: 'What it measures', html:
-            '<p>The share of records free of logical contradictions. Six cross-field rules flag ' +
-            'combinations that are biologically impossible or implausible  a pregnancy in a male ' +
-            'decedent, a symptom lasting longer than the illness that contained it.</p>' +
-            '<p>A record fails if it breaks <em>any</em> of the six rules.</p>' },
+            '<p>How free each record is of logical contradictions. Nine cross-field rules flag ' +
+            'combinations that are biologically impossible or implausible  female-only questions ' +
+            'answered for a male decedent, neonate questions answered for an adult, a symptom ' +
+            'lasting longer than the illness that contained it, an interview dated before the death.</p>' +
+            '<p>Each record is scored individually, then the card reports the mean across records. ' +
+            'A record is <em>not</em> simply pass or fail: breaking one rule out of nine costs it ' +
+            'far less than breaking five.</p>' },
           { heading: 'Formula', html:
-            '<div class="dqa-info-formula">ICI = records with zero violations / total records × 100</div>' },
+            '<div class="dqa-info-formula">ICI<sub>i</sub> = (N  |V<sub>i</sub>|) / N × 100' +
+            '<br>ICI = mean of ICI<sub>i</sub> across records</div>' +
+            '<p>|V<sub>i</sub>| is the number of rules record <em>i</em> violated. <b>N is the ' +
+            'number of rules that could actually be evaluated for that record</b>  not a flat 9.</p>' },
+          { heading: 'What N counts', html:
+            '<p>A rule drops out of a record’s N when the data needed to judge it is absent:</p>' +
+            '<ul class="dqa-info-rules">' +
+            '<li>the record has no age-group indicator set  <b>C2C4</b> cannot be judged</li>' +
+            '<li>sex is blank or <span class="dqa-info-code">undetermined</span>  <b>C5</b> cannot be judged</li>' +
+            '<li>either date fails to parse  <b>C1</b> cannot be judged</li>' +
+            '<li>the illness duration or the symptom duration is missing  that duration rule ' +
+            '(<b>C6C9</b>) cannot be judged</li>' +
+            '<li>the rule’s columns are absent from the upload entirely  it shows ' +
+            '<span class="dqa-info-code">n/a</span> and is excluded for every record</li></ul>' +
+            '<p class="dqa-info-note">Scoring an unjudgeable rule as “passed” would inflate the ' +
+            'index on exactly the sparse datasets this indicator exists to catch. A record where ' +
+            'only two rules could be checked and one failed scores 50%, not 89%. Records where no ' +
+            'rule at all could be evaluated are excluded from the mean and reported separately.</p>' },
           { heading: 'Tiers', html: DQA_TIER_BLOCK([
             { name: 'Excellent', cls: 'good', range: 'ICI ≥ 90%' },
             { name: 'Good',      cls: 'warn', range: 'ICI 70–89%' },
             { name: 'Critical',  cls: 'bad',  range: 'ICI < 70%' }]) },
-          { heading: 'The six consistency rules', html:
+          { heading: 'The nine consistency rules', html:
             '<ul class="dqa-info-rules">' + DQA_ICI_RULES.map(r =>
-              '<li><b>' + r.id + '</b>  ' + r.desc + '</li>').join('') + '</ul>' },
+              '<li><b>' + r.id + '</b>  ' + r.desc + '</li>').join('') + '</ul>' +
+            '<p class="dqa-info-note">The module rules <b>C2C5</b> fire on an answer of ' +
+            '<span class="dqa-info-code">yes</span> only. A recorded <span class="dqa-info-code">no' +
+            '</span> is harmless, and instruments that write “no” for every question rather than ' +
+            'leaving blanks would otherwise flag every record.</p>' },
           { heading: 'Why the rule counts don’t sum to the record count', html:
             '<p>They count two different things. The per-rule figures count <b>violations</b>; the ' +
             'line above them counts <b>records</b>.</p>' +
             '<p>A record that breaks three rules adds 3 to the rule counts but only 1 to the record ' +
             'count. So the rule counts always sum to <em>at least</em> the record count, and usually ' +
             'more  the gap is the number of records breaking more than one rule.</p>' +
-            '<p class="dqa-info-note">This is deliberate: ICI is defined on records, because one ' +
-            'record with three contradictions is one bad record, not three. Both totals are shown on ' +
-            'the card so the difference is visible rather than looking like an arithmetic error.</p>' },
-          { heading: 'How the rules are applied', html:
-            '<p>The duration rules <b>C3–C6</b> are only evaluated when the total illness duration ' +
-            '(Id10120) parses to a number greater than zero. Without that gate, a blank or zero ' +
-            'illness duration would make every recorded symptom duration look like a violation.</p>' +
-            '<p>Rules whose fields are absent from the upload show <span class="dqa-info-code">n/a' +
-            '</span> and take no part in the index.</p>' }
+            '<p class="dqa-info-note">Each rule’s percentage is taken over the records where that ' +
+            'rule could be evaluated, not over the whole dataset  otherwise a rule checkable on ' +
+            'only 30 records would look negligible against a 600-record total.</p>' }
         ]
       },
       AID: {
@@ -4405,11 +4594,21 @@
           if (!r.anyAvailable) {
             const err = document.createElement('div');
             err.className = 'explore-card-error';
-            err.textContent = 'None of the consistency-rule fields (Id10019, Id10305, Id10120, Id10148, Id10153, Id10154, Id10157, Id10161, Id10182) are in this dataset.';
+            err.textContent = 'None of the consistency-rule fields are in this dataset. '
+              + 'ICI needs at least one of: the age-group indicators (isAdult, isChild, '
+              + 'isNeonatal), sex (Id10019), the interview and death dates (Id10012, '
+              + 'Id10023), or the illness duration (Id10120).';
             body.appendChild(err);
             return;
           }
-          // Rule counts tally violations, the headline tallies records  a record
+          if (r.meanICI === null) {
+            const err = document.createElement('div');
+            err.className = 'explore-card-error';
+            err.textContent = 'No record had enough data to evaluate a single consistency rule.';
+            body.appendChild(err);
+            return;
+          }
+          // Rule counts tally violations, the record count tallies records  a record
           // breaking three rules adds 3 to the former and 1 to the latter. Show
           // the violation total alongside so the two never look like a failed sum,
           // but only when it actually differs from the record count.
@@ -4418,9 +4617,10 @@
           sub.textContent = r.violRecords.toLocaleString() + ' of ' + r.total.toLocaleString()
             + ' records with ≥1 violation'
             + (totalViol > r.violRecords ? ' · ' + totalViol.toLocaleString() + ' rule violations' : '');
-          dqaHeadline(body, r.passPct.toFixed(1) + '%',
-            dqaTierBadge(r.passPct, 90, 70, ['Excellent', 'Good', 'Critical']),
-            'records passing all consistency rules');
+          dqaHeadline(body, r.meanICI.toFixed(1) + '%',
+            dqaTierBadge(r.meanICI, 90, 70, ['Excellent', 'Good', 'Critical']),
+            'mean per-record consistency, ' + r.meanN.toFixed(1) + ' of '
+            + DQA_ICI_RULES.length + ' rules evaluated per record on average');
           const maxRule = Math.max.apply(null,
             DQA_ICI_RULES.map(rule => r.available[rule.id] ? r.counts[rule.id] : 0).concat([1]));
           DQA_ICI_RULES.forEach(rule => {
@@ -4436,9 +4636,16 @@
               valSpan.textContent = 'n/a';
               valSpan.title = 'Required fields not in this dataset';
             } else {
-              const c = r.counts[rule.id];
-              const pct = r.total ? ((c / r.total) * 100).toFixed(1) : '0';
+              // Denominator is the records the rule could actually be evaluated on,
+              // not the whole dataset  otherwise a rule checkable on 30 records
+              // looks negligible against a 600-record total.
+              const c = r.counts[rule.id], ev = r.evaluated[rule.id];
+              const pct = ev ? ((c / ev) * 100).toFixed(1) : '0';
               valSpan.innerHTML = c.toLocaleString() + ' <span class="stat-pct">(' + pct + '%)</span>';
+              valSpan.title = ev
+                ? c.toLocaleString() + ' violations out of ' + ev.toLocaleString()
+                  + ' records where this rule could be evaluated'
+                : 'No record had the data needed to evaluate this rule';
             }
             row.appendChild(lbl);
             row.appendChild(valSpan);
@@ -4461,6 +4668,16 @@
             note.textContent = 'Counts above are violations, not records: '
               + totalViol.toLocaleString() + ' violations across '
               + r.violRecords.toLocaleString() + ' records, as a record can break more than one rule.';
+            body.appendChild(note);
+          }
+          if (r.excludedNoRules > 0) {
+            const note = document.createElement('div');
+            note.className = 'dqa-note';
+            const one = r.excludedNoRules === 1;
+            note.textContent = r.excludedNoRules.toLocaleString() + ' of '
+              + r.total.toLocaleString() + (one ? ' records had' : ' records had')
+              + ' too little data to evaluate any rule and '
+              + (one ? 'is' : 'are') + ' excluded from the score.';
             body.appendChild(note);
           }
         }
