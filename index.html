@@ -228,11 +228,10 @@
       background-color: #dcdcdc;
     }
 
-    /* Sits at the far end of the controls row, opposite the file input. Outlined
-       rather than filled so it reads as the secondary path to the primary one. */
+    /* First control in the row, ahead of the file input. Outlined rather than
+       filled so it reads as the secondary path to the primary one. */
     .sample-button {
       flex: 0 0 auto;
-      margin-left: auto;
       align-self: stretch;
       background-color: transparent;
       border: 2px dashed #bbb;
@@ -622,11 +621,41 @@
       padding-right: 4px;
     }
 
+    /* Text ink, not the series colour, and outside the clipping track so the
+       value survives a one-pixel bar. */
     .mini-bar-value {
+      flex: 0 0 38px;
+      text-align: right;
       font-size: 9px;
       font-weight: 600;
-      color: white;
-      text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+      color: #555;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── CSMF cause-group legend ── */
+    .csmf-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 16px;
+      justify-content: center;
+      margin: 0 0 12px;
+      padding: 8px 10px;
+      background: #fafafa;
+      border: 1px solid #eee;
+      border-radius: 8px;
+    }
+    .csmf-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #555;
+    }
+    .csmf-legend-swatch {
+      width: 11px;
+      height: 11px;
+      border-radius: 3px;
+      flex: 0 0 auto;
     }
 
     /* ── CSMF Tabs ── */
@@ -976,10 +1005,12 @@
     }
 
     .bar-value {
+      flex: 0 0 52px;
+      text-align: right;
       font-size: 11px;
       font-weight: 600;
-      color: white;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      color: #555;
+      font-variant-numeric: tabular-nums;
     }
 
     .no-csmf-message {
@@ -1798,6 +1829,10 @@
       <div class="file-info" id="fileInfo">Select a CSV file to begin</div>
 
       <div class="controls-row">
+        <button type="button" class="sample-button" id="sampleButton"
+                title="Load a 3,000-record demo dataset — no file of your own needed">
+          Load sample data
+        </button>
         <div class="file-input-wrapper">
           <input type="file" id="fileInput" accept=".csv" />
           <div class="file-button" id="fileButton">Input CSV file</div>
@@ -1805,16 +1840,8 @@
         <div class="csv-info-box" id="csvInfoBox">
           <span class="csv-info-text" id="csvInfoText">No file loaded</span>
         </div>
-        <button type="button" class="sample-button" id="sampleButton"
-                title="Load an anonymised 1,000-record demo dataset — no file of your own needed">
-          Load sample data
-        </button>
       </div>
-      <div class="sample-hint" id="sampleHint">
-        No data to hand? <b>Load sample data</b> fills the tool with 1,000 anonymised
-        verbal autopsy records so you can try it out. Names, phone numbers, GPS locations
-        and free-text answers have all been removed.
-      </div>
+      
 
       <!-- ID column mapping (shown when auto-detect fails) -->
       <div class="id-mapping-row" id="idMappingRow">
@@ -2620,10 +2647,10 @@
         runBtn.disabled = true;
         downloadLink.classList.remove('active');
         resetOutput();
-        addLogMessage('-> Loading sample_data.csv (1,000 anonymised records)...');
+        addLogMessage('-> Loading sample_data.csv (3,000 anonymised records)...');
         await loadCSVData(file);
-        showSnackbar('Sample data loaded — 1,000 anonymised records. '
-                   + 'Names, phone numbers and locations have been removed.', 7000);
+        showSnackbar('Sample data loaded: 3,000 anonymised records. '
+                   + 'Names, phone numbers and locations have been annoymozied', 7000);
       } catch (err) {
         addLogMessage(`Could not load sample data: ${err.message}`, 'error');
         showSnackbar('Could not load the sample dataset. Is the backend running?');
@@ -4739,7 +4766,8 @@
       neonatal: { accent: '#6f42c1', bg: '#f0e6ff' }
     };
 
-    const BAR_COLORS = ['#dc3545','#007bff','#28a745','#ffc107','#6f42c1','#fd7e14','#20c997','#e83e8c','#17a2b8','#6c757d'];
+    // (Bars are coloured by GBD cause group via GBD_GROUPS/classifyCause, not by
+    // rank — the old rank-cycled BAR_COLORS palette was removed with that change.)
 
     async function fetchAndDisplayCSMF(sessionId) {
       try {
@@ -4769,6 +4797,30 @@
       const title = document.getElementById('csmfTitle');
       grid.innerHTML = '';
       title.textContent = `CSMF Results (${algorithm})`;
+
+      // Legend first: bars are coloured by cause group, and identity must not rest
+      // on colour alone — grey/green sit near the colourblind-separation floor.
+      let legend = document.getElementById('csmfLegend');
+      if (!legend) {
+        legend = document.createElement('div');
+        legend.id = 'csmfLegend';
+        legend.className = 'csmf-legend';
+        grid.parentNode.insertBefore(legend, grid);
+      }
+      legend.innerHTML = '';
+      for (const gKey of ['communicable', 'ncd', 'injuries', 'other']) {
+        const info = GBD_GROUPS[gKey];
+        const item = document.createElement('div');
+        item.className = 'csmf-legend-item';
+        const sw = document.createElement('span');
+        sw.className = 'csmf-legend-swatch';
+        sw.style.backgroundColor = info.color;
+        const tx = document.createElement('span');
+        tx.textContent = info.label;
+        item.appendChild(sw);
+        item.appendChild(tx);
+        legend.appendChild(item);
+      }
 
       const showUndetermined = document.getElementById('includeUndetermined').checked;
 
@@ -4829,10 +4881,15 @@
           const row = document.createElement('div');
           row.className = 'mini-bar-row';
 
+          // Colour by GBD cause group, not by rank — the same cause keeps its
+          // colour across every card and matches the treemap. Rank-cycled colours
+          // would repaint a cause whenever the ordering shifted.
+          const gInfo = GBD_GROUPS[classifyCause(d.cause).group];
+
           const label = document.createElement('div');
           label.className = 'mini-bar-label';
           label.textContent = d.cause;
-          label.title = d.cause;
+          label.title = `${d.cause}  ${gInfo.label}  ${(d.value * 100).toFixed(1)}%`;
 
           const track = document.createElement('div');
           track.className = 'mini-bar-track';
@@ -4840,16 +4897,19 @@
           const fill = document.createElement('div');
           fill.className = 'mini-bar-fill';
           fill.style.width = '0%';
-          fill.style.backgroundColor = BAR_COLORS[i % BAR_COLORS.length];
+          fill.style.backgroundColor = gInfo.color;
 
+          // Outside the track, in text ink: the track clips its overflow, so a
+          // value sitting inside the fill vanishes on short bars — and white-on-
+          // green fell below the 3:1 contrast floor.
           const val = document.createElement('span');
           val.className = 'mini-bar-value';
           val.textContent = `${(d.value * 100).toFixed(1)}%`;
 
-          fill.appendChild(val);
           track.appendChild(fill);
           row.appendChild(label);
           row.appendChild(track);
+          row.appendChild(val);
           miniChart.appendChild(row);
 
           // Animate
@@ -4897,10 +4957,12 @@
         const row = document.createElement('div');
         row.className = 'bar-row';
 
+        const gInfo = GBD_GROUPS[classifyCause(d.cause).group];
+
         const lbl = document.createElement('div');
         lbl.className = 'bar-label';
         lbl.textContent = d.cause;
-        lbl.title = d.cause;
+        lbl.title = `${d.cause}  ${gInfo.label}  ${(d.value * 100).toFixed(2)}%`;
 
         const wrapper = document.createElement('div');
         wrapper.className = 'bar-wrapper';
@@ -4908,16 +4970,16 @@
         const fill = document.createElement('div');
         fill.className = 'bar-fill';
         fill.style.width = '0%';
-        fill.style.backgroundColor = BAR_COLORS[i % BAR_COLORS.length];
+        fill.style.backgroundColor = gInfo.color;
 
         const val = document.createElement('span');
         val.className = 'bar-value';
         val.textContent = `${(d.value * 100).toFixed(2)}%`;
 
-        fill.appendChild(val);
         wrapper.appendChild(fill);
         row.appendChild(lbl);
         row.appendChild(wrapper);
+        row.appendChild(val);
         modalChart.appendChild(row);
 
         setTimeout(() => { fill.style.width = `${(d.value / maxVal) * 100}%`; }, 80 + i * 40);
@@ -4970,6 +5032,11 @@
       const tab = btn.dataset.tab;
       const grid = document.getElementById('csmfGrid');
       const treemap = document.getElementById('csmfTreemap');
+
+      // The legend sits outside the grid, so it has to follow the grid's visibility
+      // — the treemap ships its own legend and two would stack.
+      const barLegend = document.getElementById('csmfLegend');
+      if (barLegend) barLegend.style.display = (tab === 'treemap') ? 'none' : '';
 
       if (tab === 'treemap') {
         grid.style.display = 'none';
